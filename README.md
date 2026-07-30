@@ -77,7 +77,31 @@
 ln -sfn /path/to/personal-harness/config/claude/settings.json ~/.claude/settings.json
 ln -sfn /path/to/personal-harness/config/claude/skills ~/.claude/skills
 ln -sfn /path/to/personal-harness/config/claude/hooks ~/.claude/hooks
+ln -sfn /path/to/personal-harness/config/claude/statusline.sh ~/.claude/statusline.sh
 ```
+
+#### 상태줄 (statusline)
+
+`settings.json`의 `statusLine`이 `config/claude/statusline.sh`를 호출한다. Claude Code가 넘겨주는 JSON에서
+프로젝트·브랜치·모델·컨텍스트·비용과 `rate_limits`(5시간/7일 사용률, 리셋 시각)를 뽑아 한 줄로 렌더링한다.
+
+```
+📁 chaos 🌿 develop*2 · Opus 5 1M(xhigh) · 🧠 6% 62k/1M · 💰 $1.03 · 5h █░░░░░░░░░ 11%(16m) · 7d █████████░ 91%(67h 46m)
+```
+
+게이지와 퍼센트는 사용률에 따라 색이 바뀐다 (`<50%` 초록 → `50~74%` 노랑 → `75~89%` 주황 → `≥90%` 빨강).
+브랜치 뒤 `*2`는 커밋되지 않은 변경 파일 수, 괄호 안은 리밋 리셋까지 남은 시간(5분 미만이면 `곧`).
+
+스타일은 `~/.claude/statusline.style`에 한 단어를 넣어 전환한다 (기본 `full`, 파일 없으면 기본값 사용).
+
+| 스타일 | 구성 |
+|--------|------|
+| `full` | 위 예시 — 컨텍스트·비용 포함 1줄 |
+| `classic` | 프로젝트·브랜치·모델·5h·7d 만 |
+| `two` | 2줄 (아래줄에 12칸 게이지 + diff 라인수) |
+| `minimal` | 5칸 게이지 초압축 1줄 |
+
+기존 `ccburn collect` 사용량 수집은 스크립트 안에서 그대로 유지된다.
 
 ### Claude 스킬 (마켓플레이스 설치)
 
