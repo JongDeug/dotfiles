@@ -1,1 +1,0 @@
-/Users/jongdeug/Documents/dotfiles/claude/skills/gstack/health/SKILL.md

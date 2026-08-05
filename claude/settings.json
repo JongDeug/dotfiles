@@ -58,7 +58,7 @@
     "andrej-karpathy-skills@karpathy-skills": true,
     "frontend-design@claude-plugins-official": true,
     "humanize-korean@im-not-ai": true,
-    "figma@claude-plugins-official": true
+    "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
     "frontend-slides": {
@@ -78,6 +78,12 @@
         "source": "github",
         "repo": "epoko77-ai/im-not-ai"
       }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
     }
   },
   "language": "Korean",
@@ -89,5 +95,9 @@
   "editorMode": "vim",
   "remoteControlAtStartup": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  }
 }
