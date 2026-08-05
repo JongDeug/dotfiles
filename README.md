@@ -17,8 +17,7 @@
 ├── aerospace/               # AeroSpace 윈도우 매니저
 ├── nvim/                    # Neovim
 ├── tmux/                    # tmux
-├── vscode/                  # VS Code
-└── docs/                    # 대부분 2026-03 작성 후 방치. specs/ 만 실제 산출물
+└── vscode/                  # VS Code
 ```
 
 ## 설치

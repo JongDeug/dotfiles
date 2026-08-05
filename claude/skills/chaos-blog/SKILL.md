@@ -10,8 +10,6 @@ Base directory for this skill: /home/jongdeug/.claude/skills/chaos-blog
 종환님이 **주제** 또는 **초안**을 주면, 5역할 팀원이 협업해 chaos 블로그 글을 만들고
 **초안(draft) 등록 → 종환님 승인 → 발행** 까지 진행한다. 메인 세션(토르)이 team lead 이자 Planner 를 겸한다.
 
-설계서: `dotfiles/docs/specs/2026-06-17-chaos-blog-team-design.md`
-
 ## 트리거
 - `/chaos-blog <주제>` — 주제 모드
 - `/chaos-blog` + 초안 첨부/붙여넣기 — 초안 모드
@@ -133,5 +131,4 @@ lead 가 종환님께 미리보기(제목·요약·발췌 + 초안 URL 또는 �
 ## 참조
 - 팀원 정의: `~/.claude/agents/chaos-blog-team.md` (5 role 통합)
 - chaos API: `~/workspace/chaos/apps/api/src/api.mjs`, `chaos-data.mjs`
-- 설계서: `dotfiles/docs/specs/2026-06-17-chaos-blog-team-design.md`
 - Agent Teams 문서: https://code.claude.com/docs/en/agent-teams
