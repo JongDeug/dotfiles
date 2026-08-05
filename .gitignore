@@ -3,3 +3,31 @@ node_modules/
 config/claude/skills/ppt-creator/slidev-workspace/slides.md
 .DS_Store
 __pycache__/
+
+# gstack submodule 의 스킬은 claude/skills/<name>/SKILL.md 심링크로 노출된다.
+# gstack-upgrade 가 매번 재생성하는 파생물이고, 타깃이 절대경로라서 다른 머신·경로에서는
+# 반드시 깨진 링크로 도착한다. 추적하지 않고, 내가 작성한 스킬만 화이트리스트로 남긴다.
+# 새 PC: git clone --recurse-submodules 후 /gstack-upgrade 로 링크가 재생성된다.
+claude/skills/*/SKILL.md
+!claude/skills/add-wiki/SKILL.md
+!claude/skills/chaos-blog/SKILL.md
+!claude/skills/docx/SKILL.md
+!claude/skills/excalidraw-diagram/SKILL.md
+!claude/skills/explain-diff-obsidian/SKILL.md
+!claude/skills/explain-diff/SKILL.md
+!claude/skills/git-flow/SKILL.md
+!claude/skills/hwp-spec/SKILL.md
+!claude/skills/hwpx-spec/SKILL.md
+!claude/skills/hwpx/SKILL.md
+!claude/skills/nanobanana-ppt-skills/SKILL.md
+!claude/skills/obsidian/SKILL.md
+!claude/skills/officecli/SKILL.md
+!claude/skills/portfolio/SKILL.md
+!claude/skills/ppt-generation/SKILL.md
+!claude/skills/returnskills/SKILL.md
+!claude/skills/sync-readme/SKILL.md
+!claude/skills/task-flow/SKILL.md
+!claude/skills/tdd-cycle/SKILL.md
+!claude/skills/test-deploy/SKILL.md
+!claude/skills/upbit-openapi-skill/SKILL.md
+!claude/skills/weekly-report/SKILL.md
