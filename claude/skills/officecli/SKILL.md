@@ -1,11 +1,11 @@
 ---
 name: officecli
-description: Create, analyze, proofread, and modify Office documents (.docx, .xlsx, .pptx) using the officecli CLI tool. Use when the user wants to create, inspect, check formatting, find issues, add charts, or modify Office documents.
+description: Create, analyze, proofread, and modify Excel/PowerPoint (.xlsx, .pptx) using the officecli CLI tool. Use when the user wants to create, inspect, check formatting, find issues, add charts, or modify spreadsheets or presentations. For Word/.docx requests (tracked changes, redlining, format conversion), use the `docx` skill instead — its pandoc-based workflow is the one built for Word specifically.
 ---
 
 # officecli
 
-AI-friendly CLI for .docx, .xlsx, .pptx. Single binary, no dependencies, no Office installation needed.
+AI-friendly CLI for .xlsx, .pptx (and .docx, though Word-specific work should go through the `docx` skill). Single binary, no dependencies, no Office installation needed.
 
 ## Install & Update
 
