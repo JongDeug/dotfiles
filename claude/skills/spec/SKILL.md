@@ -1,0 +1,1 @@
+/Users/jongdeug/Documents/dotfiles/claude/skills/gstack/spec/SKILL.md

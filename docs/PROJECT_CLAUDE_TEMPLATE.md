@@ -1,7 +1,7 @@
 # CLAUDE.md (프로젝트 템플릿)
 
 > 이 파일을 프로젝트 루트에 `CLAUDE.md`로 복사하여 사용한다.
-> 조직 harness(`personal-harness/AGENTS.md`)의 기본값을 오버라이드하거나 보충하는 용도.
+> 조직 harness(`dotfiles/AGENTS.md`)의 기본값을 오버라이드하거나 보충하는 용도.
 
 ## 프로젝트 개요
 

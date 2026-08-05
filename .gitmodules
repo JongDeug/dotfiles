@@ -1,3 +1,3 @@
-[submodule "config/claude/skills/gstack"]
-	path = config/claude/skills/gstack
+[submodule "claude/skills/gstack"]
+	path = claude/skills/gstack
 	url = https://github.com/garrytan/gstack

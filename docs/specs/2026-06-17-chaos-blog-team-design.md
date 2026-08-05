@@ -143,7 +143,7 @@ Planner(구조 재배치) →〔Researcher 선택〕→ Writer(재구성)
 
 ## 6. 빌드 산출물 (구현 담당이 만들 것)
 
-1. **스킬:** `personal-harness/config/claude/skills/chaos-blog/SKILL.md`
+1. **스킬:** `dotfiles/claude/skills/chaos-blog/SKILL.md`
    - 트리거 `/chaos-blog`(+자연어), 모드 판별, 팀 스폰·task list·mailbox 오케스트레이션(write-girls 구조 참고).
    - lead=Planner 겸임. teammate 스폰: researcher/writer/diagrammer/editor/publisher.
 2. **에이전트 역할 정의:** 각 teammate role 정의(시스템 프롬프트). `.claude/agents/` 또는 스킬 내 인라인 — 빌드 담당이 프로젝트 관례에 맞춰 결정.

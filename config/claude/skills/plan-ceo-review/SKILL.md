@@ -1,1 +1,0 @@
-/Users/jongdeug/Documents/personal-harness/config/claude/skills/gstack/plan-ceo-review/SKILL.md
