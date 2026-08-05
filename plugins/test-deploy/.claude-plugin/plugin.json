@@ -1,8 +1,0 @@
-{
-  "name": "test-deploy",
-  "version": "1.0.0",
-  "description": "테스트 커버리지를 실행하고 결과를 HTML 이메일로 발송. Gmail SMTP를 통해 coverage 리포트를 팀에 공유한다.",
-  "author": {
-    "name": "jongdeug"
-  }
-}

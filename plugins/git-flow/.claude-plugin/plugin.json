@@ -1,8 +1,0 @@
-{
-  "name": "git-flow",
-  "version": "1.0.0",
-  "description": "Git 배포 플로우 자동화. feature/RC/release/hotfix 브랜치 관리, PR 생성, 태깅, revert 등 Git Flow 전체 사이클을 커맨드로 수행한다.",
-  "author": {
-    "name": "jongdeug"
-  }
-}

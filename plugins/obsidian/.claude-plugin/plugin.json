@@ -1,8 +1,0 @@
-{
-  "name": "obsidian",
-  "version": "1.0.0",
-  "description": "Obsidian vault 관리. 노트 CRUD, 데일리 노트, 검색, 태그, 태스크, 템플릿 등 Obsidian CLI의 모든 기능을 자연어로 수행한다. macOS/Windows/WSL 크로스 플랫폼 지원.",
-  "author": {
-    "name": "jongdeug"
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "name": "write-tests",
-  "version": "1.0.0",
-  "description": "NestJS/TypeScript 또는 Go 프로젝트에서 테스트 코드를 작성하는 스킬. 단위 테스트, 통합 테스트, spec 파일 생성을 자동화한다.",
-  "author": {
-    "name": "jongdeug"
-  }
-}

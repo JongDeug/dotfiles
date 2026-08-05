@@ -1,1 +1,0 @@
-../../../../config/claude/skills/test-deploy/SKILL.md

@@ -18,8 +18,7 @@
 ├── nvim/                    # Neovim
 ├── tmux/                    # tmux
 ├── vscode/                  # VS Code
-├── docs/                    # 대부분 2026-03 작성 후 방치. specs/ 만 실제 산출물
-└── plugins/                 # 마켓플레이스 배포용 껍데기 — 등록/설치된 적 없음
+└── docs/                    # 대부분 2026-03 작성 후 방치. specs/ 만 실제 산출물
 ```
 
 ## 설치
