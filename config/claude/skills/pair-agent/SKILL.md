@@ -1,0 +1,1 @@
+/Users/jongdeug/Documents/personal-harness/config/claude/skills/gstack/pair-agent/SKILL.md
