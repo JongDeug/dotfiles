@@ -17,7 +17,6 @@
 │   └── settings.local.json  #   머신 고유 설정
 ├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 세팅은 personal-harness-agent/SETUP.md
 ├── aerospace/               # AeroSpace 윈도우 매니저
-├── nvim/                    # Neovim
 ├── tmux/                    # tmux
 └── vscode/                  # VS Code
 ```
@@ -36,7 +35,7 @@ done
 
 그다음 Claude Code에서 **`/gstack-upgrade`를 한 번 돌린다** — gstack 스킬들을 노출하는 `SKILL.md` 심링크를 재생성한다(아래 참고).
 
-나머지 설정은 각 도구의 설정 경로에 심링크한다 (`nvim` → `~/.config/nvim` 등).
+나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
 ### settings.json
 
