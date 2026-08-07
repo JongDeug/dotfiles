@@ -15,6 +15,7 @@
 │   ├── statusline.sh        #   상태줄 렌더러 (아래 참고)
 │   ├── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
 │   └── settings.local.json  #   머신 고유 설정
+├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 세팅은 personal-harness-agent/SETUP.md
 ├── aerospace/               # AeroSpace 윈도우 매니저
 ├── nvim/                    # Neovim
 ├── tmux/                    # tmux

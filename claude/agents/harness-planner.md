@@ -1,0 +1,1 @@
+../../personal-harness-agent/agents/harness-planner.md
