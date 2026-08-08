@@ -9,7 +9,6 @@ __pycache__/
 # 반드시 깨진 링크로 도착한다. 추적하지 않고, 내가 작성한 스킬만 화이트리스트로 남긴다.
 # 새 PC: git clone --recurse-submodules 후 /gstack-upgrade 로 링크가 재생성된다.
 claude/skills/*/SKILL.md
-!claude/skills/add-wiki/SKILL.md
 !claude/skills/chaos-blog/SKILL.md
 !claude/skills/docx/SKILL.md
 !claude/skills/excalidraw-diagram/SKILL.md
