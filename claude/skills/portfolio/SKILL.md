@@ -22,8 +22,11 @@ allowed-tools: Bash, Read, mcp__plugin_telegram_telegram__reply
 
 2. 스크립트 실행:
 ```bash
-node /home/jongdeug/.claude/channels/telegram/jongdeug/scripts/portfolio_masked.js [--masked|--full] /tmp/portfolio_output.png
+node ~/.claude/channels/telegram/jongdeug/scripts/portfolio_masked.js [--masked|--full] /tmp/portfolio_output.png
 ```
+
+> `portfolio_masked.js` 는 이 repo 에 없다 — 텔레그램 봇 머신 로컬에만 존재한다.
+> 다른 머신에서 이 스킬을 쓰려면 그 파일을 먼저 repo 로 가져와야 한다.
 
 3. 생성된 이미지를 텔레그램 reply 로 전송 (chat_id: 5270356206 DM 또는 호출 채널)
 

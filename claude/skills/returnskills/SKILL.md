@@ -13,7 +13,7 @@ allowed-tools: Bash, Read, mcp__plugin_telegram_telegram__reply
 ### 1. 내 사용자 스킬 (`~/.claude/skills/`)
 
 ```bash
-for d in /home/jongdeug/.claude/skills/*/; do
+for d in ~/.claude/skills/*/; do
   name=$(basename "$d")
   desc=$(grep -m1 '^description:' "$d/SKILL.md" 2>/dev/null | sed 's/^description: *//')
   owner=$(grep -m1 '^owner:' "$d/SKILL.md" 2>/dev/null | sed 's/^owner: *//')

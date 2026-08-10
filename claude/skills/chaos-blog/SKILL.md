@@ -3,7 +3,7 @@ name: chaos-blog
 description: chaos 블로그(jongdeug.duckdns.org/blog/<slug>) 글쓰기 에이전트 팀. 종환님이 주제 또는 초안을 주면 researcher·writer·diagrammer·editor·publisher 팀원을 Agent Teams 로 스폰해 글을 집필하고 chaos posts 에 초안으로 등록, 승인 시 발행한다. 트리거는 `/chaos-blog`, "카오스 블로그 써줘", "블로그 글 써줘"(거점은 chaos). 메인 세션이 lead 겸 planner.
 ---
 
-Base directory for this skill: /home/jongdeug/.claude/skills/chaos-blog
+Base directory for this skill: ~/.claude/skills/chaos-blog
 
 # chaos-blog — 글쓰기 에이전트 팀 (메인 세션이 lead + Planner)
 

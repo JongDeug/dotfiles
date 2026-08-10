@@ -26,7 +26,7 @@ owner: jongdeug
 SMTP 인증 정보는 **스킬 디렉토리**의 `.env`에 저장한다 (프로젝트 루트가 아님):
 
 ```
-/home/jongdeug/.claude/skills/test-deploy/.env
+~/.claude/skills/test-deploy/.env
 ```
 
 ```bash
@@ -44,7 +44,7 @@ MAIL_PASS=앱비밀번호16자리  # Google 계정 → 보안 → 앱 비밀번�
 
 ```bash
 # 스킬 디렉토리의 .env에 MAIL_USER, MAIL_PASS 존재 여부 확인
-grep -E "MAIL_USER|MAIL_PASS" /home/jongdeug/.claude/skills/test-deploy/.env 2>/dev/null
+grep -E "MAIL_USER|MAIL_PASS" ~/.claude/skills/test-deploy/.env 2>/dev/null
 ```
 
 키가 없으면 스킬 디렉토리의 `.env` 파일에 추가하도록 안내 후 중단한다.
@@ -151,7 +151,7 @@ node {SKILL_DIR}/scripts/send-coverage-mail.mjs \
 ```
 
 `{SKILL_DIR}`은 이 파일의 실제 절대 경로로 대체한다:
-`/home/jongdeug/.claude/skills/test-deploy`
+`~/.claude/skills/test-deploy`
 
 ### 8. 완료 메시지 출력
 
