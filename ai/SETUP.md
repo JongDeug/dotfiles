@@ -23,11 +23,11 @@ DOTFILES="$HOME/Documents/dotfiles"   # ← clone 위치에 맞게 수정
 mkdir -p "$HOME/.claude"
 for n in hooks statusline.sh; do
   target="$HOME/.claude/$n"
-  [ -L "$target" ] && [ "$(readlink "$target")" = "$DOTFILES/claude/$n" ] && { echo "skip $n (이미 심링크)"; continue; }
-  ln -sfn "$DOTFILES/claude/$n" "$target"
+  [ -L "$target" ] && [ "$(readlink "$target")" = "$DOTFILES/ai/claude/$n" ] && { echo "skip $n (이미 심링크)"; continue; }
+  ln -sfn "$DOTFILES/ai/claude/$n" "$target"
 done
 # settings.json (파일 단위)
-[ -L "$HOME/.claude/settings.json" ] && [ "$(readlink "$HOME/.claude/settings.json")" = "$DOTFILES/claude/settings.json" ] || ln -sfn "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
+[ -L "$HOME/.claude/settings.json" ] && [ "$(readlink "$HOME/.claude/settings.json")" = "$DOTFILES/ai/claude/settings.json" ] || ln -sfn "$DOTFILES/ai/claude/settings.json" "$HOME/.claude/settings.json"
 ```
 
 > **Windows PowerShell**: `ln` 대신 `New-Item -ItemType SymbolicLink -Path "$HOME\.claude\<name>" -Target "$DOTFILES\claude\<name>"`. (관리자 권한 또는 Developer Mode 필요.)
@@ -41,7 +41,7 @@ done
 [ -L "$HOME/.claude/skills" ] && rm "$HOME/.claude/skills"
 
 mkdir -p "$HOME/.claude/skills"
-for d in "$DOTFILES"/claude/skills/*/; do
+for d in "$DOTFILES"/ai/claude/skills/*/; do
   name="$(basename "$d")"
   target="$HOME/.claude/skills/$name"
   [ -L "$target" ] && [ "$(readlink "$target")" = "$d" ] && { echo "skip $name"; continue; }
@@ -68,14 +68,14 @@ git clone https://github.com/garrytan/gstack "$HOME/.claude/skills/gstack"
 
 ## 3. 에이전트 심링크 (`~/.claude/agents`도 실제 디렉토리)
 
-스킬과 같은 규칙이다. 에이전트 정의는 두 곳에 산다 — harness 4개는 `personal-harness-agent/agents/`(SETUP·specs·LEARNING과 한 묶음이라 거기가 집), 나머지는 `claude/agents/`. 양쪽을 `~/.claude/agents/`로 심링크한다:
+스킬과 같은 규칙이다. 에이전트 정의는 두 곳에 산다 — harness 4개는 `ai/shared/harness/agents/`(호스트 무관 역할 프롬프트라 shared 소속), 나머지는 `ai/claude/agents/`. 양쪽을 `~/.claude/agents/`로 심링크한다:
 
 ```bash
 # 과거에 통심링크였다면 먼저 걷어낸다
 [ -L "$HOME/.claude/agents" ] && rm "$HOME/.claude/agents"
 
 mkdir -p "$HOME/.claude/agents"
-for f in "$DOTFILES"/claude/agents/*.md "$DOTFILES"/personal-harness-agent/agents/*.md; do
+for f in "$DOTFILES"/ai/claude/agents/*.md "$DOTFILES"/ai/shared/harness/agents/*.md; do
   target="$HOME/.claude/agents/$(basename "$f")"
   [ -L "$target" ] && [ "$(readlink "$target")" = "$f" ] && { echo "skip $(basename "$f")"; continue; }
   ln -sfn "$f" "$target"
@@ -89,7 +89,7 @@ done
 `~/.claude/commands`를 harness 커맨드 디렉토리로 심링크. **이미 올바르면 skip**:
 
 ```bash
-[ -L "$HOME/.claude/commands" ] && [ "$(readlink "$HOME/.claude/commands")" = "$DOTFILES/personal-harness-agent/commands" ] || ln -sfn "$DOTFILES/personal-harness-agent/commands" "$HOME/.claude/commands"
+[ -L "$HOME/.claude/commands" ] && [ "$(readlink "$HOME/.claude/commands")" = "$DOTFILES/ai/shared/harness/commands" ] || ln -sfn "$DOTFILES/ai/shared/harness/commands" "$HOME/.claude/commands"
 ```
 
 ## 5. 텔레그램 연동 (봇을 돌리는 머신에서만)
@@ -98,7 +98,7 @@ done
 
 ```bash
 mkdir -p "$HOME/.claude/channels"
-[ -L "$HOME/.claude/channels/telegram" ] || ln -sfn "$DOTFILES/claude/telegram" "$HOME/.claude/channels/telegram"
+[ -L "$HOME/.claude/channels/telegram" ] || ln -sfn "$DOTFILES/ai/claude/telegram" "$HOME/.claude/channels/telegram"
 ```
 
 > `portfolio` 스킬이 호출하는 `portfolio_masked.js`는 이 repo에 없다 — 봇 머신 로컬에만 있다. 다른 머신에서 `/portfolio`를 쓰려면 그 파일을 repo로 먼저 가져와야 한다.
@@ -130,7 +130,7 @@ dotfiles 바깥 아무 디렉토리(`~`, 다른 프로젝트 등)에서 확인�
 ## 첫 실행
 
 ```
-/harness personal-harness-agent/specs/hello-world-api.md
+/harness ai/shared/harness/specs/hello-world-api.md
 ```
 
 toy 앱(`hello-world-api/`)이 아직 비어있으므로 이 첫 실행이 Dev가 spec대로 실제로 구현하는 과정을 그대로 보여준다. `LEARNING.md`와 `telemetry.jsonl`은 이때 자동으로 채워진다.

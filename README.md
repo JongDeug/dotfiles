@@ -8,21 +8,23 @@
 
 ```
 .
-├── claude/                  # Claude Code 설정
-│   ├── skills/              #   직접 만든 스킬 14개
-│   ├── agents/              #   harness 아닌 서브에이전트 (chaos-blog-team)
-│   ├── hooks/notify.sh      #   작업 완료 시 tmux + OS 알림
-│   ├── telegram/            #   텔레그램 연동 설정
-│   ├── statusline.sh        #   상태줄 렌더러 (아래 참고)
-│   └── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
-├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 에이전트·커맨드·spec 한 묶음
-│   ├── agents/              #   harness-planner / -dev / -qe / -ops
-│   ├── commands/harness.md  #   /harness 슬래시 커맨드
-│   └── SETUP.md             #   ← 새 PC 세팅 절차의 정본
-├── aerospace/               # AeroSpace 윈도우 매니저
-├── tmux/                    # tmux
-└── vscode/                  # VS Code
+├── ai/                          # AI 도구 설정 전부
+│   ├── SETUP.md                 #   ← 새 PC 세팅 절차의 정본
+│   ├── claude/                  #   Claude Code 전용 배선
+│   │   ├── skills/              #     직접 만든 스킬 14개
+│   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
+│   │   ├── hooks/notify.sh      #     작업 완료 시 tmux + OS 알림
+│   │   ├── telegram/            #     텔레그램 연동 설정
+│   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
+│   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
+│   └── shared/                  #   호스트 무관 — 다른 AI 도구에도 그대로 쓸 것
+│       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·spec)
+├── aerospace/                   # AeroSpace 윈도우 매니저
+├── tmux/                        # tmux
+└── vscode/                      # VS Code
 ```
+
+**`ai/claude` vs `ai/shared` 기준:** 그 도구가 없으면 의미가 없는 것은 `claude/`(훅·statusline·settings, Agent Teams 의존인 chaos-blog-team), 역할 프롬프트처럼 호스트를 갈아끼워도 살아남는 것은 `shared/`. Codex·Cursor 등을 쓰게 되면 `ai/codex/` 를 형제로 추가하고 `shared/` 를 양쪽에서 노출한다 — **쓰기 전까지는 만들지 않는다.**
 
 파일은 전부 **실체 하나씩만** 있다. `~/.claude`로 노출하는 심링크는 repo에 커밋하지 않고 세팅할 때 만든다.
 
@@ -38,24 +40,24 @@ mkdir -p ~/.claude/skills ~/.claude/agents ~/.claude/channels
 
 # 통심링크로 되는 것
 for n in hooks settings.json statusline.sh; do
-  ln -sfn "$D/claude/$n" ~/.claude/$n
+  ln -sfn "$D/ai/claude/$n" ~/.claude/$n
 done
-ln -sfn "$D/personal-harness-agent/commands" ~/.claude/commands
+ln -sfn "$D/ai/shared/harness/commands" ~/.claude/commands
 
 # 스킬·에이전트는 실체를 하나씩 링크
-for d in "$D"/claude/skills/*/; do
+for d in "$D"/ai/claude/skills/*/; do
   ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"
 done
-for f in "$D"/claude/agents/*.md "$D"/personal-harness-agent/agents/*.md; do
+for f in "$D"/ai/claude/agents/*.md "$D"/ai/shared/harness/agents/*.md; do
   ln -sfn "$f" ~/.claude/agents/"$(basename "$f")"
 done
 
-ln -sfn "$D/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
+ln -sfn "$D/ai/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
 ```
 
 끝이다. 스킬이나 에이전트를 새로 만들면 해당 `for` 루프만 다시 돌리면 된다.
 
-> `skills`와 `agents`만 통심링크가 아니라 **실제 디렉토리 + 개별 심링크**다. `skills`는 외부 스킬(gstack 등)이 거기에 설치해도 repo가 오염되지 않게 하려는 것이고, `agents`는 harness 정의가 `personal-harness-agent/`에 살기 때문이다 — repo 안에 노출용 심링크를 미리 박아두는 대신 setup이 만든다. 나머지는 통심링크.
+> `skills`와 `agents`만 통심링크가 아니라 **실제 디렉토리 + 개별 심링크**다. `skills`는 외부 스킬(gstack 등)이 거기에 설치해도 repo가 오염되지 않게 하려는 것이고, `agents`는 정의가 `ai/claude/agents/`와 `ai/shared/harness/agents/` 두 곳에 나뉘어 살기 때문이다 — repo 안에 노출용 심링크를 미리 박아두는 대신 setup이 만든다. 나머지는 통심링크.
 
 나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
