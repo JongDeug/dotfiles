@@ -7,14 +7,12 @@
 ```
 .
 ├── claude/                  # Claude Code 설정 — ~/.claude 로 심링크
-│   ├── skills/              #   스킬 (직접 만든 22개 + gstack submodule)
+│   ├── skills/              #   스킬 (직접 만든 14개 + gstack submodule)
 │   ├── agents/              #   서브에이전트 정의
 │   ├── hooks/notify.sh      #   작업 완료 시 tmux + OS 알림
-│   ├── scripts/             #   스킬이 호출하는 보조 스크립트
-│   ├── telegram/            #   텔레그램 연동 설정
+│   ├── telegram/            #   텔레그램 연동 설정 — ~/.claude/channels/telegram 로 심링크
 │   ├── statusline.sh        #   상태줄 렌더러 (아래 참고)
-│   ├── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
-│   └── settings.local.json  #   머신 고유 설정
+│   └── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
 ├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 세팅은 personal-harness-agent/SETUP.md
 ├── aerospace/               # AeroSpace 윈도우 매니저
 ├── tmux/                    # tmux
@@ -23,17 +21,21 @@
 
 ## 새 PC 세팅
 
+repo 위치는 어디든 상관없다 — 아래 `D`만 맞추면 된다.
+
 ```bash
 git clone --recurse-submodules git@github.com:JongDeug/dotfiles.git ~/Documents/dotfiles
 
 D=~/Documents/dotfiles
-mkdir -p ~/.claude
-for n in skills agents hooks scripts settings.json statusline.sh; do
+mkdir -p ~/.claude/channels
+for n in skills agents hooks settings.json statusline.sh; do
   ln -sfn "$D/claude/$n" ~/.claude/$n
 done
+ln -sfn "$D/personal-harness-agent/commands" ~/.claude/commands
+ln -sfn "$D/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
 ```
 
-그다음 Claude Code에서 **`/gstack-upgrade`를 한 번 돌린다** — gstack 스킬들을 노출하는 `SKILL.md` 심링크를 재생성한다(아래 참고).
+끝이다. gstack 노출 심링크는 상대경로로 커밋돼 있어 clone과 동시에 살아난다 — 별도 재생성 단계가 없다.
 
 나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
@@ -47,7 +49,7 @@ done
 - `extraKnownMarketplaces` — 그 플러그인들을 받아오는 마켓플레이스 URL
 - `hooks` — `PostToolUse`(sync-readme), `Notification`/`Stop`(notify.sh)
 
-> ⚠️ 훅 커맨드에 repo 경로가 하드코딩돼 있다 (`~/Documents/dotfiles/claude/hooks/notify.sh`). repo를 다른 경로에 두면 이 값도 고쳐야 한다.
+훅 커맨드는 전부 `~/.claude/...` 를 경유한다(`bash ~/.claude/hooks/notify.sh`). repo 경로가 들어있지 않으므로 repo를 어디에 두든 그대로 동작한다.
 
 ## 상태줄 (statusline)
 
@@ -74,11 +76,32 @@ done
 
 | 출처 | 어디에 있나 | 새 PC에서 |
 |---|---|---|
-| 직접 만든 22개 | `claude/skills/<name>/` 실파일 | clone하면 바로 |
+| 직접 만든 14개 | `claude/skills/<name>/` 실파일 | clone하면 바로 |
 | 외부 플러그인 12개 | `settings.json`의 `enabledPlugins` | Claude Code가 자동 설치 |
-| gstack 55개 | `claude/skills/gstack` submodule | `--recurse-submodules` + `/gstack-upgrade` |
+| gstack 4개 | `claude/skills/<name>/SKILL.md` → submodule 심링크 | clone하면 바로 |
 
-gstack 스킬은 `claude/skills/<name>/SKILL.md`가 submodule 내부를 가리키는 심링크로 노출된다. 이 링크는 타깃이 **절대경로**여서 다른 경로·다른 머신에서는 반드시 깨지고, `gstack-upgrade`가 매번 재생성하는 파생물이다. 그래서 추적하지 않는다 — `.gitignore`에서 `claude/skills/*/SKILL.md`를 무시하고 직접 만든 22개만 화이트리스트로 예외 처리했다. gstack이 스킬을 늘리거나 줄여도 `.gitignore`는 손댈 필요가 없다.
+### gstack
+
+`claude/skills/gstack`은 submodule이고 안에 54개 스킬이 들어있지만, 그중 **실제로 노출한 건 4개**다 — `browse` · `design-review` · `office-hours` · `plan-eng-review`. 노출 방식은 `claude/skills/<name>/SKILL.md`가 submodule 내부를 가리키는 심링크다.
+
+```
+claude/skills/browse/SKILL.md -> ../gstack/browse/SKILL.md
+```
+
+타깃이 **상대경로**라 repo를 어디에 두든, 어느 머신이든 깨지지 않는다. 그래서 그냥 git에 커밋돼 있고, clone하면 바로 살아난다.
+
+업데이트는 submodule을 당기면 끝이다:
+
+```bash
+git submodule update --remote claude/skills/gstack
+git add claude/skills/gstack && git commit -m "chore: gstack 업데이트"
+```
+
+> ⚠️ gstack의 `setup`(= `/gstack-upgrade`)은 **돌리지 않는다.** 그건 54개를 전부 절대경로 심링크로 노출하는 도구라, 돌리면 안 쓰는 50개가 되살아나고 위 4개도 절대경로로 덮인다. 노출할 스킬을 늘리고 싶으면 심링크를 직접 하나 만들면 된다:
+> ```bash
+> mkdir -p claude/skills/<name> && ln -s ../gstack/<name>/SKILL.md claude/skills/<name>/SKILL.md
+> ```
+> (스킬이 `sections/` 같은 보조 디렉토리를 쓰면 그것도 같은 방식으로 링크한다.)
 
 ## clone 시 참고
 
