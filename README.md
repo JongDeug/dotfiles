@@ -1,39 +1,61 @@
 # dotfiles
 
-개인 설정 저장소. 새 PC에서 이걸 clone하면 내 스킬과 자주 쓰는 외부 스킬이 한 번에 세팅되는 것이 목적이다. 내용의 대부분은 Claude Code 설정(스킬·에이전트·훅)이고, 나머지는 터미널/에디터/윈도우 매니저 설정이다.
+개인 설정 저장소. 새 PC에서 이걸 clone하면 내 Claude Code 설정이 한 번에 서는 것이 목적이다. 내용의 대부분은 Claude Code 설정(스킬·에이전트·훅)이고, 나머지는 터미널/에디터/윈도우 매니저 설정이다.
+
+**여기 담기는 건 내가 쓴 것만이다.** 외부 스킬 묶음(gstack)이나 플러그인은 repo에 벤더링하지 않고, 각 머신에서 설치하는 방법만 문서로 남긴다.
 
 ## 구조
 
 ```
 .
-├── claude/                  # Claude Code 설정 — ~/.claude 로 심링크
-│   ├── skills/              #   스킬 (직접 만든 22개 + gstack submodule)
-│   ├── agents/              #   서브에이전트 정의
+├── claude/                  # Claude Code 설정
+│   ├── skills/              #   직접 만든 스킬 14개
+│   ├── agents/              #   harness 아닌 서브에이전트 (chaos-blog-team)
 │   ├── hooks/notify.sh      #   작업 완료 시 tmux + OS 알림
-│   ├── scripts/             #   스킬이 호출하는 보조 스크립트
 │   ├── telegram/            #   텔레그램 연동 설정
 │   ├── statusline.sh        #   상태줄 렌더러 (아래 참고)
-│   ├── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
-│   └── settings.local.json  #   머신 고유 설정
-├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 세팅은 personal-harness-agent/SETUP.md
+│   └── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
+├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 에이전트·커맨드·spec 한 묶음
+│   ├── agents/              #   harness-planner / -dev / -qe / -ops
+│   ├── commands/harness.md  #   /harness 슬래시 커맨드
+│   └── SETUP.md             #   ← 새 PC 세팅 절차의 정본
 ├── aerospace/               # AeroSpace 윈도우 매니저
 ├── tmux/                    # tmux
 └── vscode/                  # VS Code
 ```
 
+파일은 전부 **실체 하나씩만** 있다. `~/.claude`로 노출하는 심링크는 repo에 커밋하지 않고 세팅할 때 만든다.
+
 ## 새 PC 세팅
 
+repo 위치는 어디든 상관없다 — 아래 `D`만 맞추면 된다.
+
 ```bash
-git clone --recurse-submodules git@github.com:JongDeug/dotfiles.git ~/Documents/dotfiles
+git clone git@github.com:JongDeug/dotfiles.git ~/Documents/dotfiles
 
 D=~/Documents/dotfiles
-mkdir -p ~/.claude
-for n in skills agents hooks scripts settings.json statusline.sh; do
+mkdir -p ~/.claude/skills ~/.claude/agents ~/.claude/channels
+
+# 통심링크로 되는 것
+for n in hooks settings.json statusline.sh; do
   ln -sfn "$D/claude/$n" ~/.claude/$n
 done
+ln -sfn "$D/personal-harness-agent/commands" ~/.claude/commands
+
+# 스킬·에이전트는 실체를 하나씩 링크
+for d in "$D"/claude/skills/*/; do
+  ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"
+done
+for f in "$D"/claude/agents/*.md "$D"/personal-harness-agent/agents/*.md; do
+  ln -sfn "$f" ~/.claude/agents/"$(basename "$f")"
+done
+
+ln -sfn "$D/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
 ```
 
-그다음 Claude Code에서 **`/gstack-upgrade`를 한 번 돌린다** — gstack 스킬들을 노출하는 `SKILL.md` 심링크를 재생성한다(아래 참고).
+끝이다. 스킬이나 에이전트를 새로 만들면 해당 `for` 루프만 다시 돌리면 된다.
+
+> `skills`와 `agents`만 통심링크가 아니라 **실제 디렉토리 + 개별 심링크**다. `skills`는 외부 스킬(gstack 등)이 거기에 설치해도 repo가 오염되지 않게 하려는 것이고, `agents`는 harness 정의가 `personal-harness-agent/`에 살기 때문이다 — repo 안에 노출용 심링크를 미리 박아두는 대신 setup이 만든다. 나머지는 통심링크.
 
 나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
@@ -47,7 +69,7 @@ done
 - `extraKnownMarketplaces` — 그 플러그인들을 받아오는 마켓플레이스 URL
 - `hooks` — `PostToolUse`(sync-readme), `Notification`/`Stop`(notify.sh)
 
-> ⚠️ 훅 커맨드에 repo 경로가 하드코딩돼 있다 (`~/Documents/dotfiles/claude/hooks/notify.sh`). repo를 다른 경로에 두면 이 값도 고쳐야 한다.
+훅 커맨드는 전부 `~/.claude/...` 를 경유한다(`bash ~/.claude/hooks/notify.sh`). repo 경로가 들어있지 않으므로 repo를 어디에 두든 그대로 동작한다.
 
 ## 상태줄 (statusline)
 
@@ -74,11 +96,30 @@ done
 
 | 출처 | 어디에 있나 | 새 PC에서 |
 |---|---|---|
-| 직접 만든 22개 | `claude/skills/<name>/` 실파일 | clone하면 바로 |
+| 직접 만든 14개 | `claude/skills/<name>/` — 이 repo | clone + 세팅 루프 |
 | 외부 플러그인 12개 | `settings.json`의 `enabledPlugins` | Claude Code가 자동 설치 |
-| gstack 55개 | `claude/skills/gstack` submodule | `--recurse-submodules` + `/gstack-upgrade` |
+| gstack | `~/.claude/skills/gstack` — repo 밖 | 아래 절차 (선택) |
 
-gstack 스킬은 `claude/skills/<name>/SKILL.md`가 submodule 내부를 가리키는 심링크로 노출된다. 이 링크는 타깃이 **절대경로**여서 다른 경로·다른 머신에서는 반드시 깨지고, `gstack-upgrade`가 매번 재생성하는 파생물이다. 그래서 추적하지 않는다 — `.gitignore`에서 `claude/skills/*/SKILL.md`를 무시하고 직접 만든 22개만 화이트리스트로 예외 처리했다. gstack이 스킬을 늘리거나 줄여도 `.gitignore`는 손댈 필요가 없다.
+### gstack (repo에 넣지 않는다)
+
+[gstack](https://github.com/garrytan/gstack)은 marketplace 배포가 없어서 `enabledPlugins`로 못 받는다. 그렇다고 submodule로 벤더링하지도 않는다 — 내 설정이 아니고, `browse`의 실행 바이너리(`browse/dist`)는 어차피 추적 대상이 아니라 벤더링해도 각 머신에서 `setup`을 돌려야 하기 때문이다. 그래서 **repo 밖에 직접 clone**한다.
+
+```bash
+git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack
+~/.claude/skills/gstack/setup       # bun 필요
+```
+
+`setup`은 자기 부모 디렉토리(`~/.claude/skills/`)에 `gstack-*` 디렉토리를 만들어 스킬을 노출한다. `~/.claude/skills`가 실제 디렉토리라서(위 세팅 참고) 설치물이 이 repo로 새지 않는다.
+
+업데이트는 그 자리에서:
+
+```bash
+cd ~/.claude/skills/gstack && git pull && ./setup
+```
+
+`/skills` 목록이 길어지는 게 싫으면 안 쓰는 `gstack-*` 디렉토리를 지운다 (`setup`을 다시 돌리면 되살아난다). 실사용은 `gstack-browse` · `gstack-design-review` · `gstack-office-hours` · `gstack-plan-eng-review` 정도.
+
+gstack을 안 깐 머신에서도 나머지 설정은 전부 정상 동작한다.
 
 ## clone 시 참고
 

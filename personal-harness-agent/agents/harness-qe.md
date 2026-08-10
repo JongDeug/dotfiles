@@ -1,8 +1,7 @@
 ---
 name: harness-qe
 description: spec.md의 Acceptance Criteria로 harness-dev의 구현을 검증한다. Write/Edit 툴이 없어 코드를 고칠 수 없다 — 검증만 한다.
-tools: Read, Grep, Glob, Bash
-model: sonnet
+tools: Read, Bash, Glob, Grep
 color: red
 ---
 

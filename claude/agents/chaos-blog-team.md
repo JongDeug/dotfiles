@@ -126,7 +126,7 @@ chaos 블로그의 기존 톤 규칙(`DRAFT_SYSTEM`)을 그대로 계승한다:
 ### 출력 JSON
 ```json
 {
-  "draft_path": "/home/jongdeug/.claude/drafts/chaos-blog/<slug>-vN.md",
+  "draft_path": "~/.claude/drafts/chaos-blog/<slug>-vN.md",
   "title": "...", "summary": "...", "topics": ["..."],
   "source_atom_ids": ["..."],
   "diagram_markers_used": 2,
@@ -198,7 +198,7 @@ chaos 블로그의 생명은 "사람이 쓴 글". 종환님의 **im-not-ai** 자
 ### 출력 JSON
 ```json
 {
-  "file": "/home/jongdeug/.claude/drafts/chaos-blog/<slug>-vN.md",
+  "file": "~/.claude/drafts/chaos-blog/<slug>-vN.md",
   "passed": true,
   "ai_tells_detected": 0,
   "change_rate_pct": 0,
