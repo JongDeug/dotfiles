@@ -9,9 +9,10 @@
 ```
 .
 ├── ai/                          # AI 도구 설정 전부
-│   ├── SETUP.md                 #   ← 새 PC 세팅 절차의 정본
+│   ├── setup.sh                 #   ← 세팅은 이거 하나 돌리면 끝 (멱등)
+│   ├── SETUP.md                 #   그 절차의 설명·선택 항목
 │   ├── claude/                  #   Claude Code 전용 배선
-│   │   ├── skills/              #     직접 만든 스킬 14개
+│   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
 │   │   ├── hooks/notify.sh      #     작업 완료 시 tmux + OS 알림
 │   │   ├── telegram/            #     텔레그램 연동 설정
@@ -30,34 +31,18 @@
 
 ## 새 PC 세팅
 
-repo 위치는 어디든 상관없다 — 아래 `D`만 맞추면 된다.
-
 ```bash
-git clone git@github.com:JongDeug/dotfiles.git ~/Documents/dotfiles
-
-D=~/Documents/dotfiles
-mkdir -p ~/.claude/skills ~/.claude/agents ~/.claude/channels
-
-# 통심링크로 되는 것
-for n in hooks settings.json statusline.sh; do
-  ln -sfn "$D/ai/claude/$n" ~/.claude/$n
-done
-ln -sfn "$D/ai/shared/harness/commands" ~/.claude/commands
-
-# 스킬·에이전트는 실체를 하나씩 링크
-for d in "$D"/ai/claude/skills/*/; do
-  ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"
-done
-for f in "$D"/ai/claude/agents/*.md "$D"/ai/shared/harness/agents/*.md; do
-  ln -sfn "$f" ~/.claude/agents/"$(basename "$f")"
-done
-
-ln -sfn "$D/ai/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
+git clone git@github.com:JongDeug/dotfiles.git ~/어디든
+~/어디든/ai/setup.sh
 ```
 
-끝이다. 스킬이나 에이전트를 새로 만들면 해당 `for` 루프만 다시 돌리면 된다.
+clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는다.
 
-> `skills`와 `agents`만 통심링크가 아니라 **실제 디렉토리 + 개별 심링크**다. `skills`는 외부 스킬(gstack 등)이 거기에 설치해도 repo가 오염되지 않게 하려는 것이고, `agents`는 정의가 `ai/claude/agents/`와 `ai/shared/harness/agents/` 두 곳에 나뉘어 살기 때문이다 — repo 안에 노출용 심링크를 미리 박아두는 대신 setup이 만든다. 나머지는 통심링크.
+**스킬이나 에이전트를 새로 만들면 `ai/setup.sh`를 다시 돌리면 된다.** 몇 번 돌려도 안전하고(멱등), 갯수를 세지 않고 있는 것을 전부 링크하므로 뭘 추가해도 문서나 스크립트를 고칠 일이 없다. `--check`를 붙이면 손대지 않고 상태만 본다.
+
+심링크가 아닌 실물이 이미 자리에 있으면 건너뛰고 경고한다 — 남의 파일을 지우지 않는다.
+
+자세한 연결 표와 선택 항목(gstack·텔레그램)은 [ai/SETUP.md](ai/SETUP.md).
 
 나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
@@ -98,8 +83,8 @@ ln -sfn "$D/ai/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇
 
 | 출처 | 어디에 있나 | 새 PC에서 |
 |---|---|---|
-| 직접 만든 14개 | `claude/skills/<name>/` — 이 repo | clone + 세팅 루프 |
-| 외부 플러그인 12개 | `settings.json`의 `enabledPlugins` | Claude Code가 자동 설치 |
+| 직접 만든 것 | `ai/claude/skills/<name>/` — 이 repo | `ai/setup.sh` |
+| 외부 플러그인 | `settings.json`의 `enabledPlugins` | Claude Code가 자동 설치 |
 | gstack | `~/.claude/skills/gstack` — repo 밖 | 아래 절차 (선택) |
 
 ### gstack (repo에 넣지 않는다)
