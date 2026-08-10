@@ -1,5 +1,4 @@
 node_modules/
 .env
-config/claude/skills/ppt-creator/slidev-workspace/slides.md
 .DS_Store
 __pycache__/
