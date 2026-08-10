@@ -1,1 +1,0 @@
-../../personal-harness-agent/agents/harness-ops.md

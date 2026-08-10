@@ -15,13 +15,13 @@
 DOTFILES="$HOME/Documents/dotfiles"   # ← clone 위치에 맞게 수정
 ```
 
-## 1. `~/.claude` 심링크 (claude/ 전체)
+## 1. `~/.claude` 심링크 (통심링크로 되는 것)
 
-`agents`, `hooks`, `settings.json`, `statusline.sh`를 각각 `~/.claude/<이름>`으로 심링크. **이미 올바른 심링크면 skip**:
+`hooks`, `settings.json`, `statusline.sh`를 각각 `~/.claude/<이름>`으로 심링크. **이미 올바른 심링크면 skip**:
 
 ```bash
 mkdir -p "$HOME/.claude"
-for n in agents hooks statusline.sh; do
+for n in hooks statusline.sh; do
   target="$HOME/.claude/$n"
   [ -L "$target" ] && [ "$(readlink "$target")" = "$DOTFILES/claude/$n" ] && { echo "skip $n (이미 심링크)"; continue; }
   ln -sfn "$DOTFILES/claude/$n" "$target"
@@ -66,17 +66,23 @@ git clone https://github.com/garrytan/gstack "$HOME/.claude/skills/gstack"
 
 `/skills` 목록이 길면 안 쓰는 `gstack-*`를 지운다(`setup` 재실행 시 되살아남). 실사용은 `gstack-browse`·`gstack-design-review`·`gstack-office-hours`·`gstack-plan-eng-review` 정도. **gstack을 안 깔아도 나머지는 전부 정상 동작한다.**
 
-## 3. harness 에이전트 전역 노출
+## 3. 에이전트 심링크 (`~/.claude/agents`도 실제 디렉토리)
 
-`~/.claude/agents`는 이미 `dotfiles/claude/agents`를 가리키므로(블록 1), 그 안에 harness 4개 파일을 relative 심링크로 놓는다. **이미 심링크면 skip**:
+스킬과 같은 규칙이다. 에이전트 정의는 두 곳에 산다 — harness 4개는 `personal-harness-agent/agents/`(SETUP·specs·LEARNING과 한 묶음이라 거기가 집), 나머지는 `claude/agents/`. 양쪽을 `~/.claude/agents/`로 심링크한다:
 
 ```bash
-cd "$DOTFILES/claude/agents"
-for f in harness-planner harness-dev harness-qe harness-ops; do
-  [ -L "$f.md" ] && { echo "skip $f.md"; continue; }
-  ln -sfn ../../personal-harness-agent/agents/$f.md $f.md
+# 과거에 통심링크였다면 먼저 걷어낸다
+[ -L "$HOME/.claude/agents" ] && rm "$HOME/.claude/agents"
+
+mkdir -p "$HOME/.claude/agents"
+for f in "$DOTFILES"/claude/agents/*.md "$DOTFILES"/personal-harness-agent/agents/*.md; do
+  target="$HOME/.claude/agents/$(basename "$f")"
+  [ -L "$target" ] && [ "$(readlink "$target")" = "$f" ] && { echo "skip $(basename "$f")"; continue; }
+  ln -sfn "$f" "$target"
 done
 ```
+
+에이전트를 새로 만들 때마다 이 루프만 다시 돌리면 된다 (멱등). repo 안에 심링크를 미리 만들어두지 않으므로, 실체 파일은 각자 자기 자리에 하나씩만 존재한다.
 
 ## 4. `/harness` 커맨드 전역 노출
 

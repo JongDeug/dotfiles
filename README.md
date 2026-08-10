@@ -8,18 +8,23 @@
 
 ```
 .
-├── claude/                  # Claude Code 설정 — ~/.claude 로 심링크
+├── claude/                  # Claude Code 설정
 │   ├── skills/              #   직접 만든 스킬 14개
-│   ├── agents/              #   서브에이전트 정의
+│   ├── agents/              #   harness 아닌 서브에이전트 (chaos-blog-team)
 │   ├── hooks/notify.sh      #   작업 완료 시 tmux + OS 알림
-│   ├── telegram/            #   텔레그램 연동 설정 — ~/.claude/channels/telegram 로 심링크
+│   ├── telegram/            #   텔레그램 연동 설정
 │   ├── statusline.sh        #   상태줄 렌더러 (아래 참고)
 │   └── settings.json        #   전역 설정 — 훅, 플러그인 목록, 취향
-├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 세팅은 personal-harness-agent/SETUP.md
+├── personal-harness-agent/  # Planner→Dev→QE→Ops harness — 에이전트·커맨드·spec 한 묶음
+│   ├── agents/              #   harness-planner / -dev / -qe / -ops
+│   ├── commands/harness.md  #   /harness 슬래시 커맨드
+│   └── SETUP.md             #   ← 새 PC 세팅 절차의 정본
 ├── aerospace/               # AeroSpace 윈도우 매니저
 ├── tmux/                    # tmux
 └── vscode/                  # VS Code
 ```
+
+파일은 전부 **실체 하나씩만** 있다. `~/.claude`로 노출하는 심링크는 repo에 커밋하지 않고 세팅할 때 만든다.
 
 ## 새 PC 세팅
 
@@ -29,20 +34,28 @@ repo 위치는 어디든 상관없다 — 아래 `D`만 맞추면 된다.
 git clone git@github.com:JongDeug/dotfiles.git ~/Documents/dotfiles
 
 D=~/Documents/dotfiles
-mkdir -p ~/.claude/skills ~/.claude/channels
-for n in agents hooks settings.json statusline.sh; do
+mkdir -p ~/.claude/skills ~/.claude/agents ~/.claude/channels
+
+# 통심링크로 되는 것
+for n in hooks settings.json statusline.sh; do
   ln -sfn "$D/claude/$n" ~/.claude/$n
 done
 ln -sfn "$D/personal-harness-agent/commands" ~/.claude/commands
+
+# 스킬·에이전트는 실체를 하나씩 링크
 for d in "$D"/claude/skills/*/; do
   ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"
 done
+for f in "$D"/claude/agents/*.md "$D"/personal-harness-agent/agents/*.md; do
+  ln -sfn "$f" ~/.claude/agents/"$(basename "$f")"
+done
+
 ln -sfn "$D/claude/telegram" ~/.claude/channels/telegram   # 텔레그램 봇을 돌리는 머신에서만
 ```
 
-끝이다. 스킬을 새로 만들면 위 `for` 루프만 다시 돌리면 된다.
+끝이다. 스킬이나 에이전트를 새로 만들면 해당 `for` 루프만 다시 돌리면 된다.
 
-> `~/.claude/skills`만 통심링크가 아니라 **실제 디렉토리 + 스킬별 심링크**다. 외부 스킬(gstack 등)이 여기에 자기 것을 설치해도 이 repo가 오염되지 않게 하려는 것이다. 나머지(`agents`·`hooks`·`settings.json`·`statusline.sh`·`commands`)는 통심링크.
+> `skills`와 `agents`만 통심링크가 아니라 **실제 디렉토리 + 개별 심링크**다. `skills`는 외부 스킬(gstack 등)이 거기에 설치해도 repo가 오염되지 않게 하려는 것이고, `agents`는 harness 정의가 `personal-harness-agent/`에 살기 때문이다 — repo 안에 노출용 심링크를 미리 박아두는 대신 setup이 만든다. 나머지는 통심링크.
 
 나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
 
