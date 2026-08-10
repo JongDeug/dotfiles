@@ -1,136 +1,86 @@
 # SETUP
 
-새 PC에서 Claude Code 설정 전체(`~/.claude`)를 한 번에 세팅하는 가이드. 에이전트가 이 문서를 읽고 위에서 아래로 단계를 실행한다 — **이미 잡혀있는 것은 skip** (멱등). harness(Planner→Dev→QE→Ops) 파이프라인까지 포함.
+새 PC에서 `~/.claude`를 이 repo에 연결한다.
 
-모든 명령은 clone 위치에 무관하다 — `DOTFILES` 변수만 본인의 clone 경로로 맞춘다. macOS/Linux/Git Bash/WSL 어디서나 같은 명령.
+```bash
+git clone git@github.com:JongDeug/dotfiles.git ~/어디든
+~/어디든/ai/setup.sh
+```
+
+끝이다. clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는다.
+
+`ai/setup.sh`는 **몇 번 돌려도 안전하다.** 스킬이나 에이전트를 새로 만들었으면 그냥 다시 돌리면 된다. 갯수를 세거나 이름을 나열하지 않고 있는 것을 전부 링크하므로, 뭘 추가해도 이 문서를 고칠 일이 없다.
+
+```bash
+./ai/setup.sh          # 연결 (+ 결과 요약)
+./ai/setup.sh --check  # 손대지 않고 현재 상태만 점검
+```
+
+심링크가 아닌 실물이 이미 자리에 있으면 **건너뛰고 경고한다** — 남의 파일을 지우지 않는다. 그 경우 종료코드 1.
+
+## 연결 규칙
+
+스크립트는 **이름을 나열하지 않는다.** 규칙 두 개만 안다:
+
+```
+ai/**/skills/<name>/       →  ~/.claude/skills/<name>        개별
+ai/**/agents/<name>.md     →  ~/.claude/agents/<name>.md     개별
+ai/**/commands/<name>.md   →  ~/.claude/commands/<name>.md   개별
+
+ai/claude/telegram         →  ~/.claude/channels/telegram    (이름만 다른 유일한 예외)
+ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째로
+```
+
+그래서:
+
+- 스킬·에이전트·커맨드를 **몇 개 만들든** 다시 돌리기만 하면 된다
+- `ai/shared/` 아래 **새 묶음**을 만들어 그 안에 `agents/`·`commands/`를 둬도 자동으로 잡힌다 (harness 경로가 박혀있지 않다)
+- `ai/claude/`에 `mcp.json`이든 `output-styles/`든 **새로 넣으면 이름 그대로** 연결된다
+
+`skills`·`agents`·`commands`가 개별 심링크인 이유는 여러 출처가 한 자리로 모이기 때문이다. `skills`는 추가로, 외부 스킬(gstack 등)이 `~/.claude/skills/`에 자기 것을 설치하므로 repo를 통째로 걸면 설치물이 repo로 샌다.
+
+> **스킬 내부는 건드리지 않는다.** 스킬이 자기 자산으로 `agents/`나 `commands/`를 갖는 경우가 있어서(`upbit-openapi-skill/agents/openai.yaml`), 스킬 디렉토리 안으로는 내려가지 않는다.
+
+노출 심링크는 repo에 커밋돼 있지 않다. 전부 이 스크립트가 만든다.
 
 ## 전제 조건
 
-- `dotfiles` repo가 clone돼 있어야 한다. submodule은 없으므로 평범한 `git clone`이면 된다.
-- **`ponytail` plugin**이 이 repo의 `settings.json`에 의해 자동 설치되지만, 첫 세팅 시엔 Claude Code가 플러그인을 받아오지 못한 상태일 수 있다. 확인 단계(아래)에서 검증하고, 빠져있으면 `/plugin` → Marketplaces → ponytail으로 수동 설치.
+- 평범한 `git clone`이면 된다 (submodule 없음).
+- **`ponytail` 플러그인** — `settings.json`의 `enabledPlugins`로 자동 설치되지만 첫 세팅 땐 아직 안 받아졌을 수 있다. 스킬 목록에 ponytail 패밀리가 없으면 `/plugin` → Marketplaces에서 수동 설치. harness의 dev·ops가 런타임에 불러 쓴다.
 
-## 0. clone 경로 변수
+## 선택 1 — gstack
 
-```bash
-DOTFILES="$HOME/Documents/dotfiles"   # ← clone 위치에 맞게 수정
-```
-
-## 1. `~/.claude` 심링크 (통심링크로 되는 것)
-
-`hooks`, `settings.json`, `statusline.sh`를 각각 `~/.claude/<이름>`으로 심링크. **이미 올바른 심링크면 skip**:
+[gstack](https://github.com/garrytan/gstack)은 marketplace 배포가 없어 `enabledPlugins`로 못 받고, 이 repo에 벤더링하지도 않는다. 내 설정이 아닌 데다 `browse`의 실행 바이너리는 어차피 각 머신에서 빌드해야 한다. 쓸 머신에서만 직접 깐다:
 
 ```bash
-mkdir -p "$HOME/.claude"
-for n in hooks statusline.sh; do
-  target="$HOME/.claude/$n"
-  [ -L "$target" ] && [ "$(readlink "$target")" = "$DOTFILES/ai/claude/$n" ] && { echo "skip $n (이미 심링크)"; continue; }
-  ln -sfn "$DOTFILES/ai/claude/$n" "$target"
-done
-# settings.json (파일 단위)
-[ -L "$HOME/.claude/settings.json" ] && [ "$(readlink "$HOME/.claude/settings.json")" = "$DOTFILES/ai/claude/settings.json" ] || ln -sfn "$DOTFILES/ai/claude/settings.json" "$HOME/.claude/settings.json"
+git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack
+~/.claude/skills/gstack/setup      # bun 필요
 ```
 
-> **Windows PowerShell**: `ln` 대신 `New-Item -ItemType SymbolicLink -Path "$HOME\.claude\<name>" -Target "$DOTFILES\claude\<name>"`. (관리자 권한 또는 Developer Mode 필요.)
+`setup`이 자기 부모(`~/.claude/skills/`)에 `gstack-*`를 만든다. 그 자리가 실제 디렉토리라서 설치물이 dotfiles로 새지 않는다. 업데이트는 `cd ~/.claude/skills/gstack && git pull && ./setup`.
 
-## 2. 스킬 심링크 (`~/.claude/skills`는 실제 디렉토리)
+목록이 길면 안 쓰는 `gstack-*`를 지운다 (`setup` 재실행 시 되살아난다). **안 깔아도 나머지는 전부 정상 동작한다.**
 
-`skills`만 통심링크가 **아니다.** `~/.claude/skills`를 실제 디렉토리로 두고 자작 스킬을 하나씩 심링크한다. 외부 스킬(gstack 등)이 `~/.claude/skills/` 안에 자기 것을 설치해도 이 repo가 오염되지 않게 하려는 것이다.
+## 선택 2 — 텔레그램
 
-```bash
-# 과거에 통심링크였다면 먼저 걷어낸다 (심링크만 지우므로 repo 는 안전)
-[ -L "$HOME/.claude/skills" ] && rm "$HOME/.claude/skills"
+`ai/setup.sh`가 `~/.claude/channels/telegram` 링크는 항상 걸어둔다(심링크일 뿐 아무것도 실행하지 않는다). 실제로 봇을 쓰려면 `settings.json`에서 telegram 플러그인을 켠다.
 
-mkdir -p "$HOME/.claude/skills"
-for d in "$DOTFILES"/ai/claude/skills/*/; do
-  name="$(basename "$d")"
-  target="$HOME/.claude/skills/$name"
-  [ -L "$target" ] && [ "$(readlink "$target")" = "$d" ] && { echo "skip $name"; continue; }
-  ln -sfn "$d" "$target"
-done
-```
-
-스킬을 새로 만들 때마다 이 루프만 다시 돌리면 된다 (멱등).
-
-## 2-1. gstack (선택 — 이 repo에 들어있지 않다)
-
-[gstack](https://github.com/garrytan/gstack)은 marketplace 배포가 없어 `enabledPlugins`로 못 받고, 벤더링도 하지 않는다 — 내 설정이 아닌 데다 `browse`의 실행 바이너리는 어차피 각 머신에서 빌드해야 한다. 쓰고 싶은 머신에서만 직접 설치한다:
-
-```bash
-git clone https://github.com/garrytan/gstack "$HOME/.claude/skills/gstack"
-"$HOME/.claude/skills/gstack/setup"      # bun 필요
-```
-
-`setup`은 `INSTALL_SKILLS_DIR="$(dirname "$INSTALL_GSTACK_DIR")"` — 자기 부모인 `~/.claude/skills/`에 `gstack-*` 디렉토리를 만든다. 블록 2에서 그 경로를 실제 디렉토리로 만들어뒀으므로 설치물이 dotfiles repo로 새지 않는다.
-
-업데이트: `cd ~/.claude/skills/gstack && git pull && ./setup`
-
-`/skills` 목록이 길면 안 쓰는 `gstack-*`를 지운다(`setup` 재실행 시 되살아남). 실사용은 `gstack-browse`·`gstack-design-review`·`gstack-office-hours`·`gstack-plan-eng-review` 정도. **gstack을 안 깔아도 나머지는 전부 정상 동작한다.**
-
-## 3. 에이전트 심링크 (`~/.claude/agents`도 실제 디렉토리)
-
-스킬과 같은 규칙이다. 에이전트 정의는 두 곳에 산다 — harness 4개는 `ai/shared/harness/agents/`(호스트 무관 역할 프롬프트라 shared 소속), 나머지는 `ai/claude/agents/`. 양쪽을 `~/.claude/agents/`로 심링크한다:
-
-```bash
-# 과거에 통심링크였다면 먼저 걷어낸다
-[ -L "$HOME/.claude/agents" ] && rm "$HOME/.claude/agents"
-
-mkdir -p "$HOME/.claude/agents"
-for f in "$DOTFILES"/ai/claude/agents/*.md "$DOTFILES"/ai/shared/harness/agents/*.md; do
-  target="$HOME/.claude/agents/$(basename "$f")"
-  [ -L "$target" ] && [ "$(readlink "$target")" = "$f" ] && { echo "skip $(basename "$f")"; continue; }
-  ln -sfn "$f" "$target"
-done
-```
-
-에이전트를 새로 만들 때마다 이 루프만 다시 돌리면 된다 (멱등). repo 안에 심링크를 미리 만들어두지 않으므로, 실체 파일은 각자 자기 자리에 하나씩만 존재한다.
-
-## 4. `/harness` 커맨드 전역 노출
-
-`~/.claude/commands`를 harness 커맨드 디렉토리로 심링크. **이미 올바르면 skip**:
-
-```bash
-[ -L "$HOME/.claude/commands" ] && [ "$(readlink "$HOME/.claude/commands")" = "$DOTFILES/ai/shared/harness/commands" ] || ln -sfn "$DOTFILES/ai/shared/harness/commands" "$HOME/.claude/commands"
-```
-
-## 5. 텔레그램 연동 (봇을 돌리는 머신에서만)
-
-`portfolio`·`returnskills` 스킬이 텔레그램 reply를 쓴다. 훅 3개가 `~/.claude/channels/telegram/scripts/`를 참조하므로 그 경로를 만들어준다:
-
-```bash
-mkdir -p "$HOME/.claude/channels"
-[ -L "$HOME/.claude/channels/telegram" ] || ln -sfn "$DOTFILES/ai/claude/telegram" "$HOME/.claude/channels/telegram"
-```
-
-> `portfolio` 스킬이 호출하는 `portfolio_masked.js`는 이 repo에 없다 — 봇 머신 로컬에만 있다. 다른 머신에서 `/portfolio`를 쓰려면 그 파일을 repo로 먼저 가져와야 한다.
-
-텔레그램을 안 쓰는 머신은 이 단계를 건너뛴다. 나머지 스킬은 영향받지 않는다.
+> `portfolio` 스킬이 부르는 `portfolio_masked.js`는 이 repo에 없다 — 봇 머신 로컬에만 있다. 다른 머신에서 `/portfolio`를 쓰려면 그 파일을 먼저 repo로 가져와야 한다.
 
 ## 확인
 
-**새 Claude Code 세션**을 열고(기존 세션은 에이전트/커맨드 목록을 세션 시작 시 로드하므로 재시작 필요):
+`./ai/setup.sh --check`가 링크 상태를 판정한다. 그 외에 **새 세션을 열고** 눈으로 볼 것:
 
-- 슬래시 커맨드 목록에 `/harness`가 보이는지
-- 서브에이전트로 `harness-planner`/`harness-dev`/`harness-qe`/`harness-ops` 4개가 보이는지
-- `git-flow` 스킬과 `ponytail` 스킬 패밀리(`ponytail`/`-review`/`-audit`/`-debt`/`-gain`)가 스킬 목록에 보이는지 — ops·dev가 런타임에 불러 쓴다. ponytail이 안 보이면 전제조건의 수동 설치.
-- 자작 스킬 14개가 보이는지 — 안 보이면 블록 2의 루프 미실행.
-- (gstack을 깐 머신이면) `gstack-*`가 보이는지.
+- `/harness` 커맨드와 `harness-*` 서브에이전트가 보이는지
+- 자작 스킬과 ponytail 패밀리가 스킬 목록에 보이는지
+- dotfiles 바깥 아무 디렉토리에서도 똑같이 보이는지 — cwd와 무관한 전역 설정이다
 
-## 스킬 출처 구조 (참고)
+기존 세션은 시작 시점에 목록을 로드하므로 재시작해야 반영된다.
 
-`/skills`에 뜨는 스킬은 세 출처가 섞인다. **이 repo가 들고 있는 건 첫 줄뿐이다.**
-
-| 출처 | 개수 | 실체 위치 | 새 PC에서 |
-|---|---|---|---|
-| 직접 만든 스킬 | 14 | `claude/skills/<name>/` — 이 repo | clone + 블록 2 루프 |
-| 외부 plugin | 12 | `~/.claude/plugins/` | `settings.json`의 `enabledPlugins`로 자동 |
-| gstack | 선택 | `~/.claude/skills/gstack` — repo 밖 | 블록 2-1 (안 깔아도 됨) |
-
-dotfiles 바깥 아무 디렉토리(`~`, 다른 프로젝트 등)에서 확인해도 똑같이 보여야 한다 — cwd와 무관하게 전역이다.
-
-## 첫 실행
+## 첫 실행 (harness)
 
 ```
 /harness ai/shared/harness/specs/hello-world-api.md
 ```
 
-toy 앱(`hello-world-api/`)이 아직 비어있으므로 이 첫 실행이 Dev가 spec대로 실제로 구현하는 과정을 그대로 보여준다. `LEARNING.md`와 `telemetry.jsonl`은 이때 자동으로 채워진다.
+repo에는 spec만 있고 구현체는 없다 — 이 실행에서 Dev가 spec대로 처음부터 만드는 과정이 그대로 보인다. `LEARNING.md`와 `telemetry.jsonl`(spec과 같은 디렉토리)은 이때 채워진다.
