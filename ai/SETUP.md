@@ -63,9 +63,9 @@ git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack
 
 ## 선택 2 — 텔레그램
 
-`ai/setup.sh`가 `~/.claude/channels/telegram` 링크는 항상 걸어둔다(심링크일 뿐 아무것도 실행하지 않는다). 실제로 봇을 쓰려면 `settings.json`에서 telegram 플러그인을 켠다.
+`ai/setup.sh`가 `~/.claude/channels/telegram` 링크는 항상 걸어둔다(심링크일 뿐 아무것도 실행하지 않는다). 실제로 봇을 쓰려면 `settings.json`에서 telegram 플러그인을 켜고, 봇 토큰 등은 `~/.claude/channels/telegram/.env`에 둔다 — **`.env`는 이 repo에 커밋하지 않는다** (dotfiles는 public이다).
 
-> `portfolio` 스킬이 부르는 `portfolio_masked.js`는 이 repo에 없다 — 봇 머신 로컬에만 있다. 다른 머신에서 `/portfolio`를 쓰려면 그 파일을 먼저 repo로 가져와야 한다.
+훅 스크립트(`scripts/*.sh`)의 실체는 여기다. 예전엔 `personal-harness` repo가 원본이고 이쪽이 낡은 사본이었는데, 봇 머신의 `~/.claude/channels/telegram/scripts/`가 이 repo를 가리키도록 통합했다.
 
 ## 확인
 

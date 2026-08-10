@@ -86,6 +86,23 @@ for p in "$AI"/claude/*; do
   esac
 done
 
+# ── repo 에서 사라진 것의 노출도 걷어낸다. 스킬을 지웠으면 ~/.claude 에서도
+# 사라져야 한다. 우리가 건 링크(= repo 를 가리키는 것)만 손대므로 gstack 처럼
+# 밖에서 설치된 것은 건드리지 않는다.
+pruned=0
+for bucket in skills agents commands; do
+  for l in "$CLAUDE/$bucket"/*; do
+    [ -L "$l" ] || continue
+    case "$(readlink "$l")" in "$REPO"/*) ;; *) continue ;; esac
+    [ -e "$l" ] && continue
+    if [ "$CHECK_ONLY" = 1 ]; then
+      echo "  - ${l#"$HOME"/} 실체가 repo 에서 사라짐"; refused=$((refused + 1))
+    else
+      rm "$l"; pruned=$((pruned + 1))
+    fi
+  done
+done
+
 # 도달하지 못하는 링크가 남았는지
 broken=0
 while IFS= read -r l; do
@@ -96,7 +113,7 @@ count() { find "$CLAUDE/$1" -maxdepth 1 -mindepth 1 2>/dev/null | wc -l | tr -d 
 if [ "$CHECK_ONLY" = 1 ]; then
   echo "점검: 연결됨 $skipped · 미연결/불일치 $refused · 깨짐 $broken"
 else
-  echo "연결 $linked · 이미 맞음 $skipped · 건너뜀 $refused · 깨짐 $broken"
+  echo "연결 $linked · 이미 맞음 $skipped · 정리 $pruned · 건너뜀 $refused · 깨짐 $broken"
   echo "노출: 스킬 $(count skills) · 에이전트 $(count agents) · 커맨드 $(count commands)"
 fi
 
