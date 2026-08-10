@@ -18,17 +18,28 @@ git clone git@github.com:JongDeug/dotfiles.git ~/어디든
 
 심링크가 아닌 실물이 이미 자리에 있으면 **건너뛰고 경고한다** — 남의 파일을 지우지 않는다. 그 경우 종료코드 1.
 
-## 무엇이 어디로 연결되나
+## 연결 규칙
 
-| repo | → | `~/.claude` | 방식 |
-|---|---|---|---|
-| `ai/claude/{hooks,settings.json,statusline.sh}` | → | 같은 이름 | 통심링크 |
-| `ai/shared/harness/commands` | → | `commands` | 통심링크 |
-| `ai/claude/telegram` | → | `channels/telegram` | 통심링크 |
-| `ai/claude/skills/*` | → | `skills/*` | **개별** 심링크 |
-| `ai/claude/agents/*.md` + `ai/shared/harness/agents/*.md` | → | `agents/*` | **개별** 심링크 |
+스크립트는 **이름을 나열하지 않는다.** 규칙 두 개만 안다:
 
-`skills`와 `agents`만 개별인 이유: `skills`는 외부 스킬(gstack 등)이 `~/.claude/skills/`에 자기 것을 설치하므로 repo를 통째로 걸면 설치물이 repo로 샌다. `agents`는 실체가 `ai/claude`와 `ai/shared` 두 곳에 나뉘어 살아서 한 곳을 걸 수 없다.
+```
+ai/**/skills/<name>/       →  ~/.claude/skills/<name>        개별
+ai/**/agents/<name>.md     →  ~/.claude/agents/<name>.md     개별
+ai/**/commands/<name>.md   →  ~/.claude/commands/<name>.md   개별
+
+ai/claude/telegram         →  ~/.claude/channels/telegram    (이름만 다른 유일한 예외)
+ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째로
+```
+
+그래서:
+
+- 스킬·에이전트·커맨드를 **몇 개 만들든** 다시 돌리기만 하면 된다
+- `ai/shared/` 아래 **새 묶음**을 만들어 그 안에 `agents/`·`commands/`를 둬도 자동으로 잡힌다 (harness 경로가 박혀있지 않다)
+- `ai/claude/`에 `mcp.json`이든 `output-styles/`든 **새로 넣으면 이름 그대로** 연결된다
+
+`skills`·`agents`·`commands`가 개별 심링크인 이유는 여러 출처가 한 자리로 모이기 때문이다. `skills`는 추가로, 외부 스킬(gstack 등)이 `~/.claude/skills/`에 자기 것을 설치하므로 repo를 통째로 걸면 설치물이 repo로 샌다.
+
+> **스킬 내부는 건드리지 않는다.** 스킬이 자기 자산으로 `agents/`나 `commands/`를 갖는 경우가 있어서(`upbit-openapi-skill/agents/openai.yaml`), 스킬 디렉토리 안으로는 내려가지 않는다.
 
 노출 심링크는 repo에 커밋돼 있지 않다. 전부 이 스크립트가 만든다.
 
