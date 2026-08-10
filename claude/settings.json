@@ -5,7 +5,7 @@
   "permissions": {
     "defaultMode": "bypassPermissions"
   },
-  "model": "sonnet",
+  "model": "opus[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [[ \"$(uname)\" == \"Darwin\" ]]; then B=~/Documents; else B=~/workspace; fi; bash \"$B/dotfiles/claude/hooks/notify.sh\"'"
+            "command": "bash ~/.claude/hooks/notify.sh"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [[ \"$(uname)\" == \"Darwin\" ]]; then B=~/Documents; else B=~/workspace; fi; NOTIFY_ONLY_BG=1 NOTIFY_DEFAULT_MSG=\"✅ 작업 완료\" bash \"$B/dotfiles/claude/hooks/notify.sh\"'"
+            "command": "NOTIFY_ONLY_BG=1 NOTIFY_DEFAULT_MSG=\"✅ 작업 완료\" bash ~/.claude/hooks/notify.sh"
           }
         ]
       }
