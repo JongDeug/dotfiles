@@ -4,6 +4,15 @@
 
 모든 명령은 clone 위치에 무관하다 — `DOTFILES` 변수만 본인의 clone 경로로 맞춘다. macOS/Linux/Git Bash/WSL 어디서나 같은 명령.
 
+세팅 대상은 `ai/` 아래 두 곳이다:
+
+| | 무엇 | 왜 나뉘어 있나 |
+|---|---|---|
+| `ai/claude/` | skills · agents · hooks · telegram · statusline · settings | Claude Code가 없으면 의미가 없는 것 |
+| `ai/shared/` | harness (역할 프롬프트 · 커맨드 · spec) | 호스트를 갈아끼워도 살아남는 것 |
+
+`~/.claude/`로 노출하는 심링크는 repo에 커밋돼 있지 않다 — **아래 단계가 만든다.** 그래서 repo를 어디에 두든 같은 절차로 선다.
+
 ## 전제 조건
 
 - `dotfiles` repo가 clone돼 있어야 한다. submodule은 없으므로 평범한 `git clone`이면 된다.
@@ -30,7 +39,7 @@ done
 [ -L "$HOME/.claude/settings.json" ] && [ "$(readlink "$HOME/.claude/settings.json")" = "$DOTFILES/ai/claude/settings.json" ] || ln -sfn "$DOTFILES/ai/claude/settings.json" "$HOME/.claude/settings.json"
 ```
 
-> **Windows PowerShell**: `ln` 대신 `New-Item -ItemType SymbolicLink -Path "$HOME\.claude\<name>" -Target "$DOTFILES\claude\<name>"`. (관리자 권한 또는 Developer Mode 필요.)
+> **Windows PowerShell**: `ln` 대신 `New-Item -ItemType SymbolicLink -Path "$HOME\.claude\<name>" -Target "$DOTFILES\ai\claude\<name>"`. (관리자 권한 또는 Developer Mode 필요.)
 
 ## 2. 스킬 심링크 (`~/.claude/skills`는 실제 디렉토리)
 
@@ -121,7 +130,7 @@ mkdir -p "$HOME/.claude/channels"
 
 | 출처 | 개수 | 실체 위치 | 새 PC에서 |
 |---|---|---|---|
-| 직접 만든 스킬 | 14 | `claude/skills/<name>/` — 이 repo | clone + 블록 2 루프 |
+| 직접 만든 스킬 | 14 | `ai/claude/skills/<name>/` — 이 repo | clone + 블록 2 루프 |
 | 외부 plugin | 12 | `~/.claude/plugins/` | `settings.json`의 `enabledPlugins`로 자동 |
 | gstack | 선택 | `~/.claude/skills/gstack` — repo 밖 | 블록 2-1 (안 깔아도 됨) |
 
@@ -133,4 +142,4 @@ dotfiles 바깥 아무 디렉토리(`~`, 다른 프로젝트 등)에서 확인�
 /harness ai/shared/harness/specs/hello-world-api.md
 ```
 
-toy 앱(`hello-world-api/`)이 아직 비어있으므로 이 첫 실행이 Dev가 spec대로 실제로 구현하는 과정을 그대로 보여준다. `LEARNING.md`와 `telemetry.jsonl`은 이때 자동으로 채워진다.
+repo에는 spec만 있고 구현체는 없다 — 이 첫 실행에서 Dev가 spec대로 처음부터 만드는 과정을 그대로 보여준다. `LEARNING.md`와 `telemetry.jsonl`(spec과 같은 디렉토리에 생성)은 이때 채워진다.
