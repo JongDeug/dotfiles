@@ -82,7 +82,8 @@ model=${model_name/ (1M context)/ 1M}
 branch=$(git -C "$cur_dir" symbolic-ref --quiet --short HEAD 2>/dev/null \
       || git -C "$cur_dir" rev-parse --short HEAD 2>/dev/null)
 dirty=0
-[[ -n $branch ]] && dirty=$(git -C "$cur_dir" status --porcelain 2>/dev/null | wc -l)
+# macOS 의 wc -l 은 숫자를 우측 정렬로 패딩한다("       2") → `main*       2` 로 찍힌다.
+[[ -n $branch ]] && dirty=$(git -C "$cur_dir" status --porcelain 2>/dev/null | grep -c '')
 
 # 토큰 축약: 50719 → 50k / 1000000 → 1M
 short_tok() {
