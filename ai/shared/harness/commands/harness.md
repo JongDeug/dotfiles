@@ -35,7 +35,8 @@ argument-hint: <spec 경로 또는 러프한 요청>
 3. `dev_end` 기록 (변경 파일 목록 요약 포함).
 4. `qe_start` 기록.
 5. `harness-qe`를 Task로 호출: spec 전문 + harness-dev의 변경 요약 전달.
-6. `qe_end` 기록 (PASS/FAIL).
+   - **큰 변경**(대략 파일 10+개, 또는 공용 셸·스키마·머니/보안 경로)이거나 사용자가 꼼꼼한 검수를 요청했으면 단일 QE 대신 **Workflow 로 검수**한다: `agentType: "harness-qe"` 를 렌즈별(AC 전수 / 회귀 / 엣지 반박)로 병렬 → 발견마다 반박 검증 1표 → 살아남은 발견만 합쳐 FAIL 리포트로. 오탐이 dev 의 남은 시도를 태우지 않게 하는 게 목적이다. 판정 기준·이후 분기는 단일 QE 와 동일.
+6. `qe_end` 기록 (PASS/FAIL — Workflow 검수였으면 `"mode":"workflow"` 추가).
 7. 분기:
    - **PASS** → 루프를 빠져나가 4번으로.
    - **FAIL이고 attempt < 3** → `attempt += 1`, 1번으로 돌아가 재시도. 이때 harness-dev에게 넘길 "직전 FAIL 리포트"는 방금 harness-qe가 낸 리포트입니다.
