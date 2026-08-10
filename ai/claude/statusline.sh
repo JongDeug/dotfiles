@@ -17,8 +17,11 @@ STYLE="${CLAUDE_STATUSLINE_STYLE:-}"
 STYLE=${STYLE//[[:space:]]/}
 STYLE=${STYLE:-full}
 
-# ── 필드 추출 (TSV 1줄) ──────────────────────────────────────────────────────
-IFS=$'\t' read -r cur_dir model_name effort ctx_pct ctx_tok ctx_size cost \
+# ── 필드 추출 (구분자 1줄) ───────────────────────────────────────────────────
+# 구분자로 탭을 쓰면 안 된다. bash 에서 탭은 공백류 IFS 라 연속된 탭이 하나로
+# 합쳐지고, 중간 필드가 하나라도 비면(예: effort 미설정) 뒤 필드가 전부 한 칸씩
+# 밀려 비용 자리에 토큰 수가 들어온다. US(\037)는 공백류가 아니라 빈 필드가 보존된다.
+IFS=$'\037' read -r cur_dir model_name effort ctx_pct ctx_tok ctx_size cost \
                  add del fh_pct fh_reset sd_pct sd_reset fast_mode \
   < <(printf '%s' "$input" | jq -r '[
         (.workspace.current_dir // .cwd // ""),
@@ -35,7 +38,7 @@ IFS=$'\t' read -r cur_dir model_name effort ctx_pct ctx_tok ctx_size cost \
         (.rate_limits.seven_day.used_percentage // -1),
         (.rate_limits.seven_day.resets_at // 0),
         (.fast_mode // false)
-      ] | @tsv')
+      ] | map(tostring) | join("\u001f")')
 
 # ── 색상 ─────────────────────────────────────────────────────────────────────
 DIM=$'\033[2m'; RST=$'\033[0m'; B=$'\033[1m'
@@ -68,7 +71,10 @@ gauge() {
 left() {
   local ts=$1 d h m
   (( ts <= 0 )) && { printf '?'; return; }
-  d=$(( ts - EPOCHSECONDS ))
+  # EPOCHSECONDS 는 bash 5.0+ 전용이다. macOS 기본 /bin/bash 는 3.2 라
+  # settings.json 의 `bash ~/.claude/statusline.sh` 가 그쪽으로 걸리면
+  # 이 값이 비어 리셋 시각이 통째로 사라진다. date 로 폴백한다.
+  d=$(( ts - ${EPOCHSECONDS:-$(date +%s)} ))
   (( d <= 0 )) && { printf '재설정'; return; }
   (( d < 300 )) && { printf '곧'; return; }
   h=$(( d / 3600 )); m=$(( (d % 3600) / 60 ))
@@ -82,7 +88,8 @@ model=${model_name/ (1M context)/ 1M}
 branch=$(git -C "$cur_dir" symbolic-ref --quiet --short HEAD 2>/dev/null \
       || git -C "$cur_dir" rev-parse --short HEAD 2>/dev/null)
 dirty=0
-[[ -n $branch ]] && dirty=$(git -C "$cur_dir" status --porcelain 2>/dev/null | wc -l)
+# macOS 의 wc -l 은 숫자를 공백으로 패딩한다("       1") → 그대로 쓰면 `*       1` 로 찍힌다.
+[[ -n $branch ]] && dirty=$(git -C "$cur_dir" status --porcelain 2>/dev/null | grep -c '' )
 
 # 토큰 축약: 50719 → 50k / 1000000 → 1M
 short_tok() {
