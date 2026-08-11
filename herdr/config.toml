@@ -7,36 +7,28 @@ prefix = "ctrl+space"
 split_vertical = "prefix+|"
 
 # Window(=tab) 이동: Alt+←/→ (prefix 없이)
-previous_tab = "alt+left"
-next_tab = "alt+right"
-
-# tmux 는 prefix+r 이 reload — resize_mode 와 자리 교환
-reload_config = "prefix+r"
-resize_mode = "prefix+shift+r"
-
-# tmux prefix+p 는 window 점퍼로 재사용중
-goto = "prefix+p"
+previous_tab = ["prefix+p", "alt+left"]
+next_tab = ["prefix+n", "alt+right"]
 
 # prefix+1..9 는 탭, prefix+shift+1..9 는 워크스페이스.
 # 에이전트 점프는 prefix 없이 ctrl+1..9 직행 — alt 는 AeroSpace, cmd 는 iTerm 이 먹는다.
 switch_workspace = "prefix+shift+1..9"
 focus_agent = "ctrl+1..9"
 
+# 직전 페인으로 토글 (tmux 의 prefix+; ). 탭 토글(tmux prefix+l)은 herdr 에 없다.
+last_pane = "prefix+;"
+
 # 에이전트 패널을 attention queue 로 쓸 때 앞뒤로 훑기
 previous_agent = "prefix+["
 next_agent = "prefix+]"
 
-# worktree: 만들기는 기본 prefix+shift+g, 열기/지우기는 기본이 비어 있다
-open_worktree = "prefix+o"
-remove_worktree = "prefix+shift+o"
+# 워크스페이스 순회 (번호 점프로 안 되는 경우용)
+previous_workspace = "prefix+shift+["
+next_workspace = "prefix+shift+]"
 
-# Lazygit popup (tmux prefix+g)
-[[keys.command]]
-key = "prefix+g"
-type = "popup"
-command = "lazygit"
-width = "90%"
-height = "90%"
+# worktree 만들기는 기본 prefix+shift+g, 열기는 기본이 비어 있다
+# (삭제는 단축키를 두지 않는다 — herdr worktree remove 로 한다)
+open_worktree = "prefix+o"
 
 [ui.sound]
 enabled = true
@@ -48,6 +40,16 @@ delivery = "system"
 show_agent_labels_on_pane_borders = true
 agent_panel_sort = "spaces"
 
-# 기본 rows 에는 state_icon 만 있어서 idle/working/blocked 가 글자로 안 뜬다.
+# 기본 rows 는 아이콘만이라 상태가 글자로 안 뜬다. 어느 워크스페이스인지(workspace),
+# 이름을 붙였다면 어느 페인인지(pane), 그리고 지금 무슨 작업인지(터미널 제목)까지 보여준다.
+# pane 은 `herdr pane rename` 을 해야 채워진다 — harness 의 dev/qe 가 그 경우.
 [ui.sidebar.agents]
-rows = [["state_icon", "state_text", "workspace", "tab"], ["agent"]]
+rows = [["state_icon", "state_text", "workspace", "pane"], ["terminal_title_stripped"]]
+
+[experimental]
+# 한글 IME 가 켜진 상태에서도 prefix 가 먹도록, prefix 모드 동안만 ASCII 자판으로 전환한다.
+switch_ascii_input_source_in_prefix = true
+
+# Claude Code 처럼 자기 커서를 직접 그리는 TUI 에서 한글 후보창이 커서를 따라오게 한다.
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["claude"]
