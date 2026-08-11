@@ -1,0 +1,53 @@
+# ~/.tmux.conf 에 맞춘 키바인딩 (기본값과 같은 건 안 적음)
+[keys]
+# Prefix: C-b → C-Space
+prefix = "ctrl+space"
+
+# Split: tmux 의 | (좌우) / - (위아래)
+split_vertical = "prefix+|"
+
+# Window(=tab) 이동: Alt+←/→ (prefix 없이)
+previous_tab = "alt+left"
+next_tab = "alt+right"
+
+# tmux 는 prefix+r 이 reload — resize_mode 와 자리 교환
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+
+# tmux prefix+p 는 window 점퍼로 재사용중
+goto = "prefix+p"
+
+# prefix+1..9 는 탭, prefix+shift+1..9 는 워크스페이스.
+# 에이전트 점프는 prefix 없이 ctrl+1..9 직행 — alt 는 AeroSpace, cmd 는 iTerm 이 먹는다.
+switch_workspace = "prefix+shift+1..9"
+focus_agent = "ctrl+1..9"
+
+# 에이전트 패널을 attention queue 로 쓸 때 앞뒤로 훑기
+previous_agent = "prefix+["
+next_agent = "prefix+]"
+
+# worktree: 만들기는 기본 prefix+shift+g, 열기/지우기는 기본이 비어 있다
+open_worktree = "prefix+o"
+remove_worktree = "prefix+shift+o"
+
+# Lazygit popup (tmux prefix+g)
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "lazygit"
+width = "90%"
+height = "90%"
+
+[ui.sound]
+enabled = true
+
+[ui.toast]
+delivery = "system"
+
+[ui]
+show_agent_labels_on_pane_borders = true
+agent_panel_sort = "spaces"
+
+# 기본 rows 에는 state_icon 만 있어서 idle/working/blocked 가 글자로 안 뜬다.
+[ui.sidebar.agents]
+rows = [["state_icon", "state_text", "workspace", "tab"], ["agent"]]
