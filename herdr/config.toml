@@ -26,9 +26,10 @@ next_agent = "prefix+]"
 previous_workspace = "prefix+shift+["
 next_workspace = "prefix+shift+]"
 
-# worktree 만들기는 기본 prefix+shift+g, 열기는 기본이 비어 있다
-# (삭제는 단축키를 두지 않는다 — herdr worktree remove 로 한다)
+# worktree 만들기는 기본 prefix+shift+g, 열기·삭제는 기본이 비어 있다.
+# harness 가 spec 마다 워크트리를 만드므로 정리도 자주 한다 (삭제는 확인창이 뜬다)
 open_worktree = "prefix+o"
+remove_worktree = "prefix+shift+o"
 
 [ui.sound]
 enabled = true
