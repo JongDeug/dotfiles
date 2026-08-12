@@ -45,7 +45,16 @@ clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는
 
 자세한 연결 표와 선택 항목(gstack·텔레그램)은 [ai/SETUP.md](ai/SETUP.md).
 
-나머지 설정은 각 도구의 설정 경로에 심링크한다 (`tmux` → `~/.config/tmux` 등).
+`ai/` 밖의 설정은 `setup.sh`가 다루지 않는다 — 도구마다 경로가 달라서 손으로 건다. 새 PC에서 필요한 만큼만:
+
+```bash
+ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
+ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # win-menu, pane-jump, smug-devops 도 같은 자리
+ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yaml     # devops.yaml 도 마찬가지
+ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
+```
+
+`~/.local/bin/devops`는 `~/.tmux/smug-devops.sh`를 가리키는 런처다(repo가 아니라 홈을 경유).
 
 ### settings.json
 

@@ -67,6 +67,21 @@ git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack
 
 훅 스크립트(`scripts/*.sh`)의 실체는 여기다. 예전엔 `personal-harness` repo가 원본이고 이쪽이 낡은 사본이었는데, 봇 머신의 `~/.claude/channels/telegram/scripts/`가 이 repo를 가리키도록 통합했다.
 
+## 선택 3 — herdr
+
+[herdr](https://herdr.dev)는 에이전트용 터미널 워크스페이스 매니저다. 키맵은 `herdr/config.toml`에 있고, `~/.config/herdr/config.toml`로 심링크한다(`ai/setup.sh`가 아니라 손으로 — 자세한 건 [README](../README.md#새-pc-세팅)).
+
+`ai/claude/hooks/herdr-agent-state.sh`는 **herdr가 설치·관리하는 파일**이다. Claude Code의 `SessionStart` 훅으로 돌면서, 그 페인의 Claude가 어떤 대화 세션인지(`session_id`, `transcript_path`)를 herdr 소켓에 보고한다 — herdr 서버가 재시작돼도 각 페인의 대화가 되살아나는 게 이것 덕분이다. `settings.json`의 `SessionStart` 항목이 짝이다.
+
+**직접 편집하지 않는다.** 새 PC나 herdr 업데이트 후에는 다시 깔면 된다:
+
+```bash
+herdr integration install claude   # 현재 v7
+herdr integration status           # 버전 확인
+```
+
+herdr를 안 쓰는 머신에서는 이 훅이 조용히 빠진다(`$HERDR_ENV`가 없으면 즉시 종료). **없어도 나머지는 전부 정상 동작한다.**
+
 ## 확인
 
 `./ai/setup.sh --check`가 링크 상태를 판정한다. 그 외에 **새 세션을 열고** 눈으로 볼 것:

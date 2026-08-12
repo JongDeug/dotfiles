@@ -25,10 +25,11 @@ argument-hint: <spec 경로 또는 러프한 요청>
 git worktree add <repo>/.claude/worktrees/<slug> -b harness/<slug> <base>
 ```
 
-herdr 안(`$HERDR_ENV` = 1)이면 대신 이걸 쓴다 — 워크스페이스가 같이 생겨서 dev/qe 페인이 그 안에 놓인다:
+herdr 안(`$HERDR_ENV` = 1)이면 대신 이걸 쓴다 — 워크스페이스가 같이 생겨서 dev/qe 페인이 그 안에 놓인다. **`--path`를 반드시 준다**: 안 주면 herdr 기본 위치(`~/.herdr/worktrees`)에 만들어져서 위와 다른 곳에 흩어진다.
 
 ```bash
-herdr worktree create --branch harness/<slug> --base <base> --no-focus
+herdr worktree create --branch harness/<slug> --base <base> \
+  --path <repo>/.claude/worktrees/<slug> --no-focus
 ```
 
 응답의 체크아웃 경로(와 herdr면 워크스페이스 ID)를 기록하고, **이후 모든 단계에 이 작업 경로를 전달한다.** dev/qe/ops가 경로를 스스로 판단하는 일은 없다.
