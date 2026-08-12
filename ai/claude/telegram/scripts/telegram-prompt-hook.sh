@@ -14,7 +14,7 @@ fi
 # user_id 추출
 USER_ID=$(echo "$PROMPT" | grep -oP 'user_id="\K[^"]+' | head -1)
 
-BASE="/home/jongdeug/.claude/channels/telegram"
+BASE="$HOME/.claude/channels/telegram"
 
 # user_id → workspace 매핑
 case "$USER_ID" in
@@ -48,7 +48,7 @@ parts.append("""[텔레그램 채널 운영 규칙]
 [음성 메시지 처리]
 수신 메시지에 attachment_file_id가 있고 파일이 음성/오디오 형식(voice, audio, .ogg, .mp3, .m4a 등)인 경우:
 1. download_attachment로 파일 다운로드
-2. python3 /home/jongdeug/.claude/channels/telegram/scripts/transcribe.py <파일경로> 실행 → 텍스트 추출
+2. python3 ~/.claude/channels/telegram/scripts/transcribe.py <파일경로> 실행 → 텍스트 추출
 3. 변환된 텍스트를 마치 사용자가 텍스트로 보낸 것처럼 처리
 4. reply 첫 줄에 "음성 인식: <변환된 텍스트>" 형태로 인식 결과 표시
 변환 중 edit_message로 "음성 인식 중..." 중간 메시지 표시
