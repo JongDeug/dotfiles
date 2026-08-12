@@ -3,6 +3,9 @@
 # Prefix: C-b → C-Space
 prefix = "ctrl+space"
 
+# Detach: tmux 의 prefix+d (herdr 기본은 prefix+q)
+detach = "prefix+d"
+
 # Split: tmux 의 | (좌우) / - (위아래)
 split_vertical = "prefix+|"
 
