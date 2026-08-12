@@ -6,6 +6,8 @@
 set -u
 S=devops
 
+command -v smug >/dev/null || { echo "smug 없음: go install github.com/ivaaaan/smug@latest" >&2; exit 1; }
+
 # 구조 생성 (없으면 만들고, 있으면 그대로). --detach: 클라이언트 안 뺏김.
 smug start "$S" --detach >/dev/null 2>&1
 
