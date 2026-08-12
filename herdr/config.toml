@@ -68,3 +68,10 @@ cjk_ime_agents = ["claude"]
 [theme]
 name = "gruvbox"
 auto_switch = false
+
+[remote]
+# `herdr --remote jongdeug` (라즈베리파이) 용. 기본값 true 는 herdr 가 자체 생성 ssh config 로
+# 붙으면서 attach 마다 전용 control 소켓을 만든다 — Pi 는 키+비번 2단계라 그때마다 재인증이고,
+# 반복 인증은 fail2ban 을 부른다. false 로 두면 ~/.ssh/config 의 ControlPersist 4h 마스터를
+# 그대로 탄다. true 가 얹어주는 ServerAliveInterval 도 이미 ssh config 에 있어서 잃는 게 없다.
+manage_ssh_config = false
