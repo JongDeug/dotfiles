@@ -49,8 +49,8 @@ clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는
 
 ```bash
 ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
-ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # win-menu, pane-jump, smug-devops 도 같은 자리
-ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yaml     # devops.yaml 도 마찬가지
+ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, smug-devops.sh 도 같은 자리
+ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # devops.yml 도 마찬가지 — smug 는 .yml 만 찾는다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ```
 
