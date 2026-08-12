@@ -6,6 +6,11 @@ prefix = "ctrl+space"
 # Detach: tmux 의 prefix+d (herdr 기본은 prefix+q)
 detach = "prefix+d"
 
+# 이름 변경도 tmux 대응대로. tmux 의 window=herdr 의 tab, session=workspace.
+# , = rename-window → 탭, $ = rename-session → 워크스페이스
+rename_tab = "prefix+,"
+rename_workspace = "prefix+$"
+
 # Split: tmux 의 | (좌우) / - (위아래)
 split_vertical = "prefix+|"
 
