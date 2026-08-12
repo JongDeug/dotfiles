@@ -14,7 +14,7 @@
 │   ├── claude/                  #   Claude Code 전용 배선
 │   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
-│   │   ├── hooks/notify.sh      #     작업 완료 시 tmux + OS 알림
+│   │   ├── hooks/               #     notify.sh(작업 완료 알림) · herdr-agent-state.sh(herdr 연동)
 │   │   ├── telegram/            #     텔레그램 연동 설정
 │   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
@@ -54,23 +54,23 @@ ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yaml     # devops.yaml
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ```
 
-`~/.local/bin/devops`는 `~/.tmux/smug-devops.sh`를 가리키는 런처다(repo가 아니라 홈을 경유).
+`devops`는 `~/.tmux/smug-devops.sh`를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias devops='~/.tmux/smug-devops.sh'`.
 
 ### settings.json
 
-`~/.claude/settings.json`은 이 repo의 `claude/settings.json`을 가리키는 심링크다. 따라서 Claude Code에서 설정을 바꾸면 이 repo 파일이 직접 수정되고, `git status`에 잡힌다 — 커밋하면 그대로 다음 PC로 넘어간다.
+`~/.claude/settings.json`은 이 repo의 `ai/claude/settings.json`을 가리키는 심링크다. 따라서 Claude Code에서 설정을 바꾸면 이 repo 파일이 직접 수정되고, `git status`에 잡힌다 — 커밋하면 그대로 다음 PC로 넘어간다.
 
 여기 담긴 것 중 손으로 복원하기 어려운 것:
 
 - `enabledPlugins` — 설치해둔 외부 플러그인 목록 (ponytail, humanize-korean, karpathy-skills 등)
 - `extraKnownMarketplaces` — 그 플러그인들을 받아오는 마켓플레이스 URL
-- `hooks` — `PostToolUse`(sync-readme), `Notification`/`Stop`(notify.sh)
+- `hooks` — `PostToolUse`(sync-readme), `Notification`/`Stop`(notify.sh), `SessionStart`(herdr-agent-state.sh)
 
 훅 커맨드는 전부 `~/.claude/...` 를 경유한다(`bash ~/.claude/hooks/notify.sh`). repo 경로가 들어있지 않으므로 repo를 어디에 두든 그대로 동작한다.
 
 ## 상태줄 (statusline)
 
-`claude/statusline.sh`는 Claude Code가 넘겨주는 JSON에서 프로젝트·브랜치·모델·컨텍스트·비용과 `rate_limits`(5시간/7일 사용률, 리셋 시각)를 뽑아 한 줄로 렌더링한다.
+`ai/claude/statusline.sh`는 Claude Code가 넘겨주는 JSON에서 프로젝트·브랜치·모델·컨텍스트·비용과 `rate_limits`(5시간/7일 사용률, 리셋 시각)를 뽑아 한 줄로 렌더링한다.
 
 ```
 📁 chaos 🌿 develop*2 · Opus 5 1M(xhigh) · 🧠 6% 62k/1M · 💰 $1.03 · 5h █░░░░░░░░░ 11%(16m) · 7d █████████░ 91%(67h 46m)
