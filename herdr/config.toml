@@ -39,6 +39,10 @@ next_workspace = "prefix+shift+]"
 open_worktree = "prefix+o"
 remove_worktree = "prefix+shift+o"
 
+# prefix+o 는 herdr 기본이 open_notification_target 이다. 비우지 않으면 한 키에
+# 두 액션이 걸려 어느 쪽이 뜨는지 알 수 없다 — worktree 열기 쪽을 쓴다.
+open_notification_target = ""
+
 [ui.sound]
 enabled = true
 

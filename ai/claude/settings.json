@@ -7,17 +7,6 @@
   },
   "model": "opus[1m]",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/skills/sync-readme/scripts/detect-structure-change.sh"
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "matcher": "",

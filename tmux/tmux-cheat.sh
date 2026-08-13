@@ -64,7 +64,6 @@ RIGHT=(
   "$(K '마우스 드래그' '드래그만으로 복사')"
   ""
   "$(H 'TOOLS / POPUP  팝업')"
-  "$(K 'prefix g' 'lazygit')"
   "$(K 'prefix G' 'git worktree → 열면 claude 자동')"
   "$(SUBL '└ Enter=분할 · C-w=새창 · C-d=삭제')"
   "$(K 'prefix p' 'window 점퍼 (에이전트 목록→점프)')"

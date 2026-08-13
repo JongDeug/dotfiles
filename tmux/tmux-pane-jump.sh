@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # fzf window 점퍼 — 모든 세션의 window 를 나열해 즉시 점프.
-# tmux 안에서: prefix + p  (display-popup 로 실행)
+# tmux 안에서: prefix + P  (display-popup 로 실행 — 소문자 p 는 display-menu 점퍼)
 # 벨 울린(에이전트 완료/입력대기) window 는 🔔 로 표시. 활성 pane 의 명령·경로도 함께.
 
 set -u

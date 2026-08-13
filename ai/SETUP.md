@@ -46,6 +46,7 @@ ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째�
 ## 전제 조건
 
 - 평범한 `git clone`이면 된다 (submodule 없음).
+- **`jq`** — `statusline.sh`가 이걸로 Claude Code 입력 JSON을 파싱한다. 없으면 상태줄이 빈 줄로 뜬다 (`brew install jq`).
 - **`ponytail` 플러그인** — `settings.json`의 `enabledPlugins`로 자동 설치되지만 첫 세팅 땐 아직 안 받아졌을 수 있다. 스킬 목록에 ponytail 패밀리가 없으면 `/plugin` → Marketplaces에서 수동 설치. harness의 dev·ops가 런타임에 불러 쓴다.
 
 ## 선택 1 — gstack

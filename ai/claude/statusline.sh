@@ -6,12 +6,6 @@ set -uo pipefail
 
 input=$(cat)
 
-# ── 기존 ccburn 사용량 수집 유지 (출력은 버림) ───────────────────────────────
-if command -v ccburn >/dev/null 2>&1; then
-  printf '%s' "$input" | ccburn collect >/dev/null 2>&1 &
-  disown 2>/dev/null || true
-fi
-
 STYLE="${CLAUDE_STATUSLINE_STYLE:-}"
 [[ -z $STYLE && -r ~/.claude/statusline.style ]] && STYLE=$(<~/.claude/statusline.style)
 STYLE=${STYLE//[[:space:]]/}

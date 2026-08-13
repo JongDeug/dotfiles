@@ -1,12 +1,23 @@
 {
-    "vim.handleKeys": {
-        "<C-j>": false,
-        "<C-b>": false,
-        "<C-c>": false,
-        "<C-v>": false,
-        "<C-x>": false,
-        "<C-a>": false,
-        "<C-f>": false,
-        "<C-p>": false
-    }
+    "terminal.integrated.mouseWheelZoom": true,
+    "editor.mouseWheelZoom": true,
+    "geminicodeassist.project": "effortless-pulsar-mdpsm",
+    "claudeCode.preferredLocation": "panel",
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilot:gpt-4.1",
+    "security.workspace.trust.untrustedFiles": "open",
+    "workbench.colorTheme": "Dark Modern",
+    "remote.autoForwardPortsSource": "hybrid",
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "explorer.confirmDragAndDrop": false,
+    "typescript.experimental.useTsgo": true,
+    "go.toolsManagement.autoUpdate": true,
+    "terminal.integrated.suggest.enabled": false,
+    "git.openRepositoryInParentFolders": "always",
+    "explorer.confirmDelete": false
 }

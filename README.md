@@ -52,6 +52,8 @@ ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
 ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, smug-devops.sh 도 같은 자리
 ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # devops.yml 도 마찬가지 — smug 는 .yml 만 찾는다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
+ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
+ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
 ```
 
 `devops`는 `~/.tmux/smug-devops.sh`를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias devops='~/.tmux/smug-devops.sh'`.
@@ -64,7 +66,7 @@ ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 
 - `enabledPlugins` — 설치해둔 외부 플러그인 목록 (ponytail, humanize-korean, karpathy-skills 등)
 - `extraKnownMarketplaces` — 그 플러그인들을 받아오는 마켓플레이스 URL
-- `hooks` — `PostToolUse`(sync-readme), `Notification`/`Stop`(notify.sh), `SessionStart`(herdr-agent-state.sh)
+- `hooks` — `Notification`/`Stop`(notify.sh), `SessionStart`(herdr-agent-state.sh)
 
 훅 커맨드는 전부 `~/.claude/...` 를 경유한다(`bash ~/.claude/hooks/notify.sh`). repo 경로가 들어있지 않으므로 repo를 어디에 두든 그대로 동작한다.
 
