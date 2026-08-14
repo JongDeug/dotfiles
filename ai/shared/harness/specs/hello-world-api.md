@@ -2,7 +2,7 @@
 
 ## Goal
 
-harness 파이프라인(Planner→Dev→QE→Ops)이 실제로 동작하는지 검증하기 위한 최소 토이 API.
+cosmos 파이프라인(Planner→Dev→QE→Ops)이 실제로 동작하는지 검증하기 위한 최소 토이 API.
 
 ## Requirements
 
