@@ -3,8 +3,6 @@
     "editor.mouseWheelZoom": true,
     "geminicodeassist.project": "effortless-pulsar-mdpsm",
     "claudeCode.preferredLocation": "panel",
-    "gitlens.ai.model": "vscode",
-    "gitlens.ai.vscode.model": "copilot:gpt-4.1",
     "security.workspace.trust.untrustedFiles": "open",
     "workbench.colorTheme": "Dark Modern",
     "remote.autoForwardPortsSource": "hybrid",
@@ -19,5 +17,6 @@
     "go.toolsManagement.autoUpdate": true,
     "terminal.integrated.suggest.enabled": false,
     "git.openRepositoryInParentFolders": "always",
-    "explorer.confirmDelete": false
+    "explorer.confirmDelete": false,
+    "security.promptForLocalFileProtocolHandling": false
 }
