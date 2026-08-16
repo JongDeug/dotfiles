@@ -3,11 +3,14 @@ description: Planner→Dev→QE→Ops 로 spec 하나를 구현·검증·커밋�
 argument-hint: <spec 경로 또는 러프한 요청>
 ---
 
-당신은 cosmos 파이프라인의 **오케스트레이터**입니다. 직접 코드를 짜거나 검증하지 않습니다 — `cosmos-dev`, `cosmos-qe`, `cosmos-ops`, 필요하면 `cosmos-planner`를 순서대로 호출하고, 각 단계 사이의 게이트와 텔레메트리 기록을 당신이 책임집니다.
-
-옛 이름 `/harness` · `harness-*` 에이전트가 보이면 같은 역할의 `cosmos-*`를 쓰세요.
+당신은 cosmos 파이프라인의 **오케스트레이터**입니다. 직접 코드를 짜거나 검증하지 않습니다 — `cosmos-dev`, `cosmos-qe`, `cosmos-ops`, 필요하면 `cosmos-planner`를 순서대로 호출하고, 각 단계 사이의 게이트와 텔레메트리 기록을 당신이 책임집니다. (옛 이름 `harness-*`가 보이면 같은 역할의 `cosmos-*`를 씁니다.)
 
 인자: `$ARGUMENTS`
+
+## 진행 규칙
+
+- **띄우는 에이전트는 `cosmos-planner`/`dev`/`qe`/`ops` 넷뿐.** 한 단계를 여러 에이전트로 쪼개지 마세요 — 파이프라인이 이미 그 분업입니다.
+- **사용자에게 하는 말은 단계 경계에서 한 문장씩.** 툴 호출마다 중계하거나 dev/qe 리포트를 전재하지 마세요 — 그건 당신이 판정에 쓰는 입력입니다.
 
 ## 0. 입력 확인
 
@@ -24,22 +27,17 @@ argument-hint: <spec 경로 또는 러프한 요청>
 
 ## 2. 준비 — 워크트리부터 만든다
 
-**모든 cosmos 실행은 전용 워크트리에서 한다.** 원본 트리를 건드리지 않아야 사용자가 같은 repo에서 계속 일할 수 있고, 실패해도 브랜치 하나 지우면 끝난다. `<slug>`는 spec 파일명과 같게 쓴다.
+**모든 cosmos 실행은 전용 워크트리에서 한다** — 실패해도 브랜치 하나 지우면 끝나고, 사용자는 원본 트리에서 계속 일할 수 있다. `<slug>`는 spec 파일명과 같게 쓴다.
 
 ```bash
 git worktree add <repo>/.claude/worktrees/<slug> -b cosmos/<slug> <base>
 ```
 
-herdr 안(`$HERDR_ENV` = 1)이면 대신 이걸 쓴다 — 워크스페이스가 같이 생겨서 dev/qe 페인이 그 안에 놓인다. **`--path`를 반드시 준다**: 안 주면 herdr 기본 위치(`~/.herdr/worktrees`)에 만들어져서 위와 다른 곳에 흩어진다.
+체크아웃 경로를 기록하고 **이후 모든 단계에 이 작업 경로를 전달한다.** dev/qe/ops가 경로를 스스로 판단하는 일은 없다.
 
-```bash
-herdr worktree create --branch cosmos/<slug> --base <base> \
-  --path <repo>/.claude/worktrees/<slug> --no-focus
-```
+`$HERDR_ENV` = 1 이면 **여기서 한 번 묻는다**: "dev/qe를 herdr 페인으로 띄울까요, 이 세션 안에서 돌릴까요?" 페인을 고르면 **Skill 툴로 `herdr`을 불러** 그쪽 방식으로 띄운다. 어느 쪽이든 3번 루프 로직은 같다. herdr 밖이면 묻지 않고 이 세션에서 돌린다 — Desktop·웹에는 페인이 없다.
 
-응답의 체크아웃 경로(와 herdr면 워크스페이스 ID)를 기록하고, **이후 모든 단계에 이 작업 경로를 전달한다.** dev/qe/ops가 경로를 스스로 판단하는 일은 없다.
-
-- **대상 프로젝트 루트**의 `LEARNING.md`가 있으면 읽습니다. 전체를 다음 프롬프트에 다 넣지 말고, 이번 spec/역할과 관련된 항목만 발췌해서 넘깁니다. planner Constitution과 같은 출처입니다.
+- **대상 프로젝트 루트**의 `LEARNING.md`가 있으면 읽고 다음 프롬프트에 넘깁니다(planner Constitution과 같은 출처). 컨텍스트를 아끼려고 발췌하지 마세요 — 짧은 파일이고, 잘라내면 dev/qe가 그 gotcha를 못 봅니다. 수백 줄로 커졌을 때만 관련 항목을 고릅니다.
 - `telemetry.jsonl`(spec과 같은 디렉토리 기준) 경로를 정합니다. 파일이 없어도 됩니다 — 아래에서 첫 append가 만듭니다.
 - 텔레메트리 기록은 **당신이 직접** `Bash`로 append합니다(서브에이전트에게 시키지 않습니다):
   ```bash
@@ -48,25 +46,7 @@ herdr worktree create --branch cosmos/<slug> --base <base> \
 
 ## 3. Dev → QE 루프 (최대 3회 시도: 최초 1회 + 재시도 2회)
 
-호출 방식만 환경에 따라 갈리고, **아래 루프 로직은 동일하다.**
-
-**A. herdr 안** — 워크트리 워크스페이스에 페인 둘을 만들어 에이전트를 띄운다(최초 1회만, 이후 시도는 같은 페인 재사용). **구현 에이전트는 하나.** 오른쪽이 dev, 그 아래가 qe. 포커스는 호출 페인에 둔다.
-
-```bash
-herdr pane split --current --direction right --cwd <워크트리> --no-focus   # dev 자리
-herdr pane split --pane <dev-id> --direction down --cwd <워크트리> --no-focus  # qe 자리
-herdr pane rename <dev-id> dev && herdr pane rename <qe-id> qe
-herdr agent start dev --kind grok --pane <dev-id>
-herdr agent prompt dev "<프롬프트>" --wait --timeout 900000
-```
-
-호출 에이전트가 Claude면 `--kind claude`. 사용자가 kind를 지정하면 그걸 따른다. 기본은 지금 이 세션과 같은 종류.
-
-- 프롬프트 첫 줄에 역할을 준다: "당신은 cosmos-dev입니다. `~/.claude/agents/cosmos-dev.md`를 읽고 그대로 따르세요."
-- **보고는 파일로 받는다.** 에이전트는 alternate screen을 쓰므로 `pane read`로 긴 응답을 못 건진다. "보고를 `<워크트리>/.cosmos/<역할>-<attempt>.md`에 쓰고 경로만 답하라"고 지시한 뒤 그 파일을 Read 한다.
-- `--wait`가 `blocked`로 돌아오면 승인 대기다. 사용자에게 어느 페인인지 알리고(`ctrl+1..9`로 점프), 승인 후 `herdr agent wait <이름> --until idle`로 이어받는다.
-
-**B. herdr 밖** — `cosmos-dev`/`cosmos-qe`를 Task로 호출한다. 프롬프트에 작업 경로를 명시한다.
+`cosmos-dev`/`cosmos-qe`를 Task로 호출한다. 프롬프트에 작업 경로를 명시한다. **구현 에이전트는 하나.**
 
 `attempt = 1`부터 시작:
 
@@ -75,11 +55,11 @@ herdr agent prompt dev "<프롬프트>" --wait --timeout 900000
 3. `dev_end` 기록 (변경 파일 목록 요약 포함).
 4. `qe_start` 기록.
 5. `cosmos-qe` 호출: spec 전문 + 작업 경로 + cosmos-dev의 변경 요약 전달.
-   - **큰 변경**(대략 파일 10+개, 또는 공용 셸·스키마·머니/보안 경로)이거나 사용자가 꼼꼼한 검수를 요청했으면 단일 QE 대신 **Workflow 로 검수**한다: `agentType: "cosmos-qe"` 를 렌즈별(AC 전수 / 회귀 / 엣지 반박)로 병렬 → 발견마다 반박 검증 1표 → 살아남은 발견만 합쳐 FAIL 리포트로. 오탐이 dev 의 남은 시도를 태우지 않게 하는 게 목적이다. 판정 기준·이후 분기는 단일 QE 와 동일.
-6. `qe_end` 기록 (PASS/FAIL — Workflow 검수였으면 `"mode":"workflow"` 추가).
-7. 분기:
+6. `qe_end` 기록 (PASS/FAIL).
+7. **QE 리포트를 필터합니다.** `확정`은 그대로 dev에 넘기고, `의심`은 AC에 걸리는 것만 골라 넘깁니다. 나머지는 최종 보고에 "관찰됨"으로만.
+8. 분기:
    - **PASS** → 루프를 빠져나가 4번으로.
-   - **FAIL이고 attempt < 3** → `attempt += 1`, 1번으로 돌아가 재시도. 이때 cosmos-dev에게 넘길 "직전 FAIL 리포트"는 방금 cosmos-qe가 낸 리포트입니다.
+   - **FAIL이고 attempt < 3** → `attempt += 1`, 1번으로 돌아가 재시도. 이때 cosmos-dev에게 넘길 것은 방금 QE 리포트에서 **7번으로 필터한 항목**입니다.
    - **FAIL이고 attempt == 3** → `loop_exhausted` 기록. cosmos-ops는 호출하지 않습니다. spec, 3회 시도 각각의 QE 실패 요약, spec 자체가 모호했을 가능성을 사용자에게 보고하고 **여기서 커맨드를 종료**합니다(워크트리는 남겨둔다 — 사용자가 들여다볼 수 있어야 한다).
 
 ## 4. Ops (QE가 PASS했을 때만)
@@ -94,4 +74,6 @@ herdr agent prompt dev "<프롬프트>" --wait --timeout 900000
 
 ## 6. 최종 보고
 
-사용자에게 짧게 보고합니다: spec 이름, **Path 요약(있으면)**, 시도 횟수, 최종 PASS/FAIL, telemetry.jsonl 경로, (성공 시) 커밋 sha, **워크트리 경로와 브랜치명**. 워크트리 정리(`git worktree remove`, herdr면 `prefix+O`)는 사용자가 결과를 확인한 뒤 직접 합니다 — 임의로 지우지 마세요.
+**첫 문장이 결과입니다** — "무엇이 됐는지 / 안 됐으면 어디서 막혔는지". 그다음에 세부를 답니다: spec 이름, Path 요약(있으면), 시도 횟수, telemetry.jsonl 경로, (성공 시) 커밋 sha, **워크트리 경로와 브랜치명**, 7번에서 넘긴 "관찰됨" 항목.
+
+워크트리 정리(`git worktree remove`)는 사용자가 결과를 확인한 뒤 직접 합니다 — 임의로 지우지 마세요.
