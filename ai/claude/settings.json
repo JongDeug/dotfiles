@@ -1,6 +1,8 @@
 {
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3"
   },
   "permissions": {
     "defaultMode": "bypassPermissions"
@@ -60,7 +62,8 @@
     "frontend-design@claude-plugins-official": true,
     "humanize-korean@im-not-ai": true,
     "figma@claude-plugins-official": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "obsidian@obsidian-skills": true
   },
   "extraKnownMarketplaces": {
     "frontend-slides": {
@@ -86,10 +89,16 @@
         "source": "github",
         "repo": "DietrichGebert/ponytail"
       }
+    },
+    "obsidian-skills": {
+      "source": {
+        "source": "github",
+        "repo": "kepano/obsidian-skills"
+      }
     }
   },
   "language": "Korean",
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "tui": "fullscreen",
   "voice": {
     "enabled": true,
@@ -100,6 +109,7 @@
   "theme": "dark",
   "editorMode": "vim",
   "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true
 }
