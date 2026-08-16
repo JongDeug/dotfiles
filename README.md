@@ -2,7 +2,7 @@
 
 개인 설정 저장소. 새 PC에서 이걸 clone하면 내 Claude Code 설정이 한 번에 서는 것이 목적이다. 내용의 대부분은 Claude Code 설정(스킬·에이전트·훅)이고, 나머지는 터미널/에디터/윈도우 매니저 설정이다.
 
-**여기 담기는 건 내가 쓴 것만이다.** 외부 스킬 묶음(gstack)이나 플러그인은 repo에 벤더링하지 않고, 각 머신에서 설치하는 방법만 문서로 남긴다.
+**여기 담기는 건 내가 쓴 것만이다.** 외부 플러그인은 repo에 벤더링하지 않고, 각 머신에서 설치하는 방법만 문서로 남긴다.
 
 ## 구조
 
@@ -43,7 +43,7 @@ clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는
 
 심링크가 아닌 실물이 이미 자리에 있으면 건너뛰고 경고한다 — 남의 파일을 지우지 않는다.
 
-자세한 연결 표와 선택 항목(gstack·텔레그램)은 [ai/SETUP.md](ai/SETUP.md).
+자세한 연결 표와 선택 항목(텔레그램)은 [ai/SETUP.md](ai/SETUP.md).
 
 `ai/` 밖의 설정은 `setup.sh`가 다루지 않는다 — 도구마다 경로가 달라서 손으로 건다. 새 PC에서 필요한 만큼만:
 
@@ -97,28 +97,6 @@ ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/s
 |---|---|---|
 | 직접 만든 것 | `ai/claude/skills/<name>/` — 이 repo | `ai/setup.sh` |
 | 외부 플러그인 | `settings.json`의 `enabledPlugins` | Claude Code가 자동 설치 |
-| gstack | `~/.claude/skills/gstack` — repo 밖 | 아래 절차 (선택) |
-
-### gstack (repo에 넣지 않는다)
-
-[gstack](https://github.com/garrytan/gstack)은 marketplace 배포가 없어서 `enabledPlugins`로 못 받는다. 그렇다고 submodule로 벤더링하지도 않는다 — 내 설정이 아니고, `browse`의 실행 바이너리(`browse/dist`)는 어차피 추적 대상이 아니라 벤더링해도 각 머신에서 `setup`을 돌려야 하기 때문이다. 그래서 **repo 밖에 직접 clone**한다.
-
-```bash
-git clone https://github.com/garrytan/gstack ~/.claude/skills/gstack
-~/.claude/skills/gstack/setup       # bun 필요
-```
-
-`setup`은 자기 부모 디렉토리(`~/.claude/skills/`)에 `gstack-*` 디렉토리를 만들어 스킬을 노출한다. `~/.claude/skills`가 실제 디렉토리라서(위 세팅 참고) 설치물이 이 repo로 새지 않는다.
-
-업데이트는 그 자리에서:
-
-```bash
-cd ~/.claude/skills/gstack && git pull && ./setup
-```
-
-`/skills` 목록이 길어지는 게 싫으면 안 쓰는 `gstack-*` 디렉토리를 지운다 (`setup`을 다시 돌리면 되살아난다). 실사용은 `gstack-browse` · `gstack-design-review` · `gstack-office-hours` · `gstack-plan-eng-review` 정도.
-
-gstack을 안 깐 머신에서도 나머지 설정은 전부 정상 동작한다.
 
 ## clone 시 참고
 

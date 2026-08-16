@@ -43,7 +43,7 @@ link() {
 }
 
 # 여러 출처가 한 곳으로 모이는 자리는 실제 디렉토리여야 한다.
-# skills 는 외부 스킬(gstack 등)이 자기 것을 설치하는 곳이기도 해서, repo 를
+# skills 는 외부 스킬이 자기 것을 설치하는 곳이기도 해서, repo 를
 # 통째로 걸면 설치물이 repo 로 샌다.
 as_real_dir() {
   [ "$CHECK_ONLY" = 1 ] && return 0
@@ -87,8 +87,8 @@ for p in "$AI"/claude/*; do
 done
 
 # ── repo 에서 사라진 것의 노출도 걷어낸다. 스킬을 지웠으면 ~/.claude 에서도
-# 사라져야 한다. 우리가 건 링크(= repo 를 가리키는 것)만 손대므로 gstack 처럼
-# 밖에서 설치된 것은 건드리지 않는다.
+# 사라져야 한다. 우리가 건 링크(= repo 를 가리키는 것)만 손대므로 밖에서
+# 설치된 것은 건드리지 않는다.
 pruned=0
 for bucket in skills agents commands; do
   for l in "$CLAUDE/$bucket"/*; do
