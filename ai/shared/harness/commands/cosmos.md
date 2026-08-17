@@ -66,19 +66,31 @@ Workflow({
 
 `$HERDR_ENV`에서 페인을 골랐더라도 dev/qe는 워크플로가 직접 띄웁니다 — 페인에는 뜨지 않습니다. 진행은 `/workflows`로 봅니다.
 
-## 4. LEARNING.md 갱신
+## 4. LEARNING.md 갱신 — 기억이 아니라 기록에서
 
-- 이번 실행에서 반복될 만한 gotcha(예: "이 프로젝트는 repo-root에서 스테이징해야 함")를 발견했다면 **대상 프로젝트 루트**의 `LEARNING.md`에 한 줄 추가합니다(없으면 새로 만듭니다). 사소하거나 이번만 있는 문제라면 적지 않습니다. 같은 줄이 여러 프로젝트에서 반복되면 cosmos 프롬프트로 승격하고 각 LEARNING.md에서 지웁니다.
+**당신 문맥에 올라온 요약으로 쓰지 마세요.** dev/qe가 실제로 친 명령과 받은 에러는 서브에이전트 안에서 끝나고, 당신에게는 정리된 리포트만 옵니다. gotcha는 그 정리 과정에서 지워집니다.
+
+워크플로 결과의 **transcript 디렉토리**(호출 결과에 `Transcript dir:`로 돌아온 경로)를 근거로 씁니다.
+
+- `agent-<id>.meta.json`의 `agentType`으로 어느 트랜스크립트가 dev이고 qe인지 가릅니다.
+- `agent-<id>.jsonl`에서 **실패한 시도**를 읽습니다 — 에러 원문, 우회한 방법, 재시도가 왜 통했는지가 거기 있습니다.
+- `result`가 `loop_exhausted`거나 `attempts`가 2 이상이면 **반드시 읽습니다.** 배울 게 가장 많은 실행이고, 지금까지 가장 흐릿하게 기록되던 자리입니다. 첫 시도에 PASS면 읽을 실패가 없으니 건너뜁니다.
+
+거기서 **반복될 만한** gotcha(예: "이 프로젝트는 repo-root에서 스테이징해야 함")를 뽑아 **대상 프로젝트 루트**의 `LEARNING.md`에 한 줄 추가합니다(없으면 새로 만듭니다). 이번만 있는 문제라면 적지 않습니다. 같은 줄이 여러 프로젝트에서 반복되면 cosmos 프롬프트로 승격하고 각 LEARNING.md에서 지웁니다.
+
+`LEARNING.md`가 git에 미추적이면 커밋 대상인지 사용자에게 한 번 물어봅니다 — 미추적이면 워크트리로 전파되지 않고 다른 PC에도 가지 않습니다.
 
 ## 5. 텔레메트리 한 줄
 
 워크플로가 돌려준 객체를 **그대로 옮겨** `telemetry.jsonl`에 한 줄 append합니다. 필드를 새로 짓지 마세요 — 이름을 바꾸거나 접두어를 붙이면 집계가 깨집니다.
 
 ```bash
-echo '{"spec":"<specPath>","result":"<result>","attempts":<attempts 길이>,"verdicts":["<시도별 verdict>"],"sha":"<ops.sha 또는 null>","branch":"<ops.branch 또는 null>","worktree":"<worktree>","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' >> <telemetry.jsonl 경로>
+echo '{"spec":"<specPath>","result":"<result>","attempts":<attempts 길이>,"verdicts":["<시도별 verdict>"],"sha":"<ops.sha 또는 null>","branch":"<ops.branch 또는 null>","worktree":"<worktree>","transcript":"<transcript 디렉토리>","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' >> <telemetry.jsonl 경로>
 ```
 
-실행 1건 = 1줄입니다. 단계별 이벤트는 워크플로 journal에 이미 있습니다.
+실행 1건 = 1줄입니다. 단계별 이벤트는 워크플로 transcript에 이미 있습니다.
+
+**`transcript` 필드를 빠뜨리지 마세요.** 그 디렉토리는 세션 UUID 아래에 있어서, 경로를 남기지 않으면 이 실행의 에이전트 기록으로 되돌아갈 방법이 없습니다. 4번이 읽은 바로 그 경로입니다.
 
 ## 6. 최종 보고
 
