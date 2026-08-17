@@ -19,7 +19,7 @@
 │   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
 │   └── shared/                  #   호스트 무관 — 다른 AI 도구에도 그대로 쓸 것
-│       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·spec)
+│       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·워크플로·spec)
 ├── aerospace/                   # AeroSpace 윈도우 매니저
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
 ├── tmux/                        # tmux

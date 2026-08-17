@@ -6,6 +6,7 @@
 #   ai/**/skills/<name>/     →  ~/.claude/skills/<name>      (개별)
 #   ai/**/agents/<name>.md   →  ~/.claude/agents/<name>.md   (개별)
 #   ai/**/commands/<name>.md →  ~/.claude/commands/<name>.md (개별)
+#   ai/**/workflows/<name>.js → ~/.claude/workflows/<name>.js (개별)
 #   ai/claude/telegram       →  ~/.claude/channels/telegram  (이름만 다름)
 #   ai/claude/<그 외>         →  ~/.claude/<같은 이름>          (통째로)
 #
@@ -52,7 +53,7 @@ as_real_dir() {
 }
 
 [ "$CHECK_ONLY" = 1 ] || mkdir -p "$CLAUDE" "$CLAUDE/channels"
-for bucket in skills agents commands; do as_real_dir "$CLAUDE/$bucket"; done
+for bucket in skills agents commands workflows; do as_real_dir "$CLAUDE/$bucket"; done
 
 # ── 규칙 1: ai/ 아래 어디에 있든 skills/·agents/·commands/ 의 내용물을 모은다.
 #
@@ -75,12 +76,13 @@ collect() {  # collect <버킷> <d|f> <이름패턴>
 collect skills   d '*'
 collect agents   f '*.md'
 collect commands f '*.md'
+collect workflows f '*.js'
 
 # ── 규칙 2: ai/claude 의 나머지는 이름 그대로 ~/.claude 로
 for p in "$AI"/claude/*; do
   [ -e "$p" ] || continue
   case "$(basename "$p")" in
-    skills|agents|commands) ;;                                  # 규칙 1이 처리함
+    skills|agents|commands|workflows) ;;                        # 규칙 1이 처리함
     telegram) link "$p" "$CLAUDE/channels/telegram" ;;          # 이름만 다른 유일한 예외
     *) link "$p" "$CLAUDE/$(basename "$p")" ;;
   esac
@@ -90,7 +92,7 @@ done
 # 사라져야 한다. 우리가 건 링크(= repo 를 가리키는 것)만 손대므로 밖에서
 # 설치된 것은 건드리지 않는다.
 pruned=0
-for bucket in skills agents commands; do
+for bucket in skills agents commands workflows; do
   for l in "$CLAUDE/$bucket"/*; do
     [ -L "$l" ] || continue
     case "$(readlink "$l")" in "$REPO"/*) ;; *) continue ;; esac
@@ -114,7 +116,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
   echo "점검: 연결됨 $skipped · 미연결/불일치 $refused · 깨짐 $broken"
 else
   echo "연결 $linked · 이미 맞음 $skipped · 정리 $pruned · 건너뜀 $refused · 깨짐 $broken"
-  echo "노출: 스킬 $(count skills) · 에이전트 $(count agents) · 커맨드 $(count commands)"
+  echo "노출: 스킬 $(count skills) · 에이전트 $(count agents) · 커맨드 $(count commands) · 워크플로 $(count workflows)"
 fi
 
 [ "$broken" -eq 0 ] && [ "$refused" -eq 0 ] || exit 1

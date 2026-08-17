@@ -35,46 +35,54 @@ git worktree add <repo>/.claude/worktrees/<slug> -b cosmos/<slug> <base>
 
 체크아웃 경로를 기록하고 **이후 모든 단계에 이 작업 경로를 전달한다.** dev/qe/ops가 경로를 스스로 판단하는 일은 없다.
 
-`$HERDR_ENV` = 1 이면 **여기서 한 번 묻는다**: "dev/qe를 herdr 페인으로 띄울까요, 이 세션 안에서 돌릴까요?" 페인을 고르면 **Skill 툴로 `herdr`을 불러** 그쪽 방식으로 띄운다. 어느 쪽이든 3번 루프 로직은 같다. herdr 밖이면 묻지 않고 이 세션에서 돌린다 — Desktop·웹에는 페인이 없다.
-
 - **대상 프로젝트 루트**의 `LEARNING.md`가 있으면 읽고 다음 프롬프트에 넘깁니다(planner Constitution과 같은 출처). 컨텍스트를 아끼려고 발췌하지 마세요 — 짧은 파일이고, 잘라내면 dev/qe가 그 gotcha를 못 봅니다. 수백 줄로 커졌을 때만 관련 항목을 고릅니다.
-- `telemetry.jsonl`(spec과 같은 디렉토리 기준) 경로를 정합니다. 파일이 없어도 됩니다 — 아래에서 첫 append가 만듭니다.
-- 텔레메트리 기록은 **당신이 직접** `Bash`로 append합니다(서브에이전트에게 시키지 않습니다):
-  ```bash
-  echo '{"event":"<이벤트명>","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","attempt":<N>}' >> <telemetry.jsonl 경로>
-  ```
+- `telemetry.jsonl`(spec과 같은 디렉토리 기준) 경로를 정합니다. 파일이 없어도 됩니다 — 5번의 첫 append가 만듭니다.
+- **단계마다 이벤트를 찍지 마세요.** 단계별 기록은 워크플로가 `journal.jsonl`로 남깁니다. 당신이 쓰는 건 실행이 끝난 뒤 **요약 한 줄뿐**입니다(5번).
 
-## 3. Dev → QE 루프 (최대 3회 시도: 최초 1회 + 재시도 2회)
+## 3. Dev → QE → Ops (워크플로 한 번)
 
-`cosmos-dev`/`cosmos-qe`를 Task로 호출한다. 프롬프트에 작업 경로를 명시한다. **구현 에이전트는 하나.**
+**여기서부터는 당신이 단계를 진행하지 않습니다.** 루프 횟수·PASS/FAIL 분기·QE 리포트 필터·ops 호출은 전부 `cosmos-loop` 워크플로 안의 코드입니다. 당신은 인자를 넘기고 결과를 받습니다.
 
-`attempt = 1`부터 시작:
+```
+Workflow({
+  scriptPath: "<홈 절대경로>/.claude/workflows/cosmos-loop.js",
+  args: { spec, specPath, worktree, learning, deploy }
+})
+```
 
-1. `dev_start` 기록.
-2. `cosmos-dev` 호출: spec 전문 + 작업 경로 + (attempt > 1이면 직전 cosmos-qe의 FAIL 리포트 전문을 그대로) 전달.
-3. `dev_end` 기록 (변경 파일 목록 요약 포함).
-4. `qe_start` 기록.
-5. `cosmos-qe` 호출: spec 전문 + 작업 경로 + cosmos-dev의 변경 요약 전달.
-6. `qe_end` 기록 (PASS/FAIL).
-7. **QE 리포트를 필터합니다.** `확정`은 그대로 dev에 넘기고, `의심`은 AC에 걸리는 것만 골라 넘깁니다. 나머지는 최종 보고에 "관찰됨"으로만.
-8. 분기:
-   - **PASS** → 루프를 빠져나가 4번으로.
-   - **FAIL이고 attempt < 3** → `attempt += 1`, 1번으로 돌아가 재시도. 이때 cosmos-dev에게 넘길 것은 방금 QE 리포트에서 **7번으로 필터한 항목**입니다.
-   - **FAIL이고 attempt == 3** → `loop_exhausted` 기록. cosmos-ops는 호출하지 않습니다. spec, 3회 시도 각각의 QE 실패 요약, spec 자체가 모호했을 가능성을 사용자에게 보고하고 **여기서 커맨드를 종료**합니다(워크트리는 남겨둔다 — 사용자가 들여다볼 수 있어야 한다).
+- `scriptPath`는 **절대경로여야 합니다.** `~`는 확장되지 않고 cwd 뒤에 붙습니다 — `$HOME`을 편 경로를 쓰세요(예: `/Users/<you>/.claude/workflows/cosmos-loop.js`). 이름(`name: "cosmos-loop"`)으로는 잡히지 않습니다.
+- `spec`: spec **전문**(경로 아님). `specPath`: 그 경로. `worktree`: 2번에서 만든 체크아웃 경로. `learning`: 2번에서 읽은 LEARNING.md 내용(없으면 생략). `deploy`: 사용자가 push/PR까지 원한다고 밝힌 경우에만 그 지시 문장, 아니면 생략(생략 시 로컬 커밋까지만).
+- 워크플로가 진행 중인 동안 dev/qe에 끼어들지 마세요. 같은 일을 Task로 다시 띄우지도 마세요.
 
-## 4. Ops (QE가 PASS했을 때만)
+결과 객체의 `result`로 갈립니다:
 
-- `ops_start` 기록.
-- `cosmos-ops`를 Task로 호출: 작업 경로 + 변경 요약 + **"로컬 커밋까지만 진행하고, push나 PR은 만들지 마세요"를 명시**. (사용자가 애초에 push/PR까지 원한다고 밝힌 경우에만 그 지시를 그대로 전달합니다.)
-- `ops_end` 기록 (커밋 sha 포함).
+| `result` | 뜻 | 할 일 |
+|---|---|---|
+| `committed` | QE PASS + 커밋됨 | 4번으로 |
+| `loop_exhausted` | 3회 모두 FAIL | ops 없음. spec, 시도별 QE 실패 요약, **spec 자체가 모호했을 가능성**을 보고하고 4번으로 (워크트리는 남긴다) |
+| `aborted` | QE 판정을 못 받음 | 중단 지점을 그대로 보고. 재시도는 사용자가 정한다 |
 
-## 5. LEARNING.md 갱신
+`attempts[]`에 시도별 `{attempt, dev, qe}`가 들어 있습니다. `qe.confirmed`는 이미 dev에게 전달된 것이고, `qe.suspected`는 판정에 쓰이지 않은 관찰이니 **6번 보고에 "관찰됨"으로만** 옮깁니다.
+
+`$HERDR_ENV`에서 페인을 골랐더라도 dev/qe는 워크플로가 직접 띄웁니다 — 페인에는 뜨지 않습니다. 진행은 `/workflows`로 봅니다.
+
+## 4. LEARNING.md 갱신
 
 - 이번 실행에서 반복될 만한 gotcha(예: "이 프로젝트는 repo-root에서 스테이징해야 함")를 발견했다면 **대상 프로젝트 루트**의 `LEARNING.md`에 한 줄 추가합니다(없으면 새로 만듭니다). 사소하거나 이번만 있는 문제라면 적지 않습니다. 같은 줄이 여러 프로젝트에서 반복되면 cosmos 프롬프트로 승격하고 각 LEARNING.md에서 지웁니다.
 
+## 5. 텔레메트리 한 줄
+
+워크플로가 돌려준 객체를 **그대로 옮겨** `telemetry.jsonl`에 한 줄 append합니다. 필드를 새로 짓지 마세요 — 이름을 바꾸거나 접두어를 붙이면 집계가 깨집니다.
+
+```bash
+echo '{"spec":"<specPath>","result":"<result>","attempts":<attempts 길이>,"verdicts":["<시도별 verdict>"],"sha":"<ops.sha 또는 null>","branch":"<ops.branch 또는 null>","worktree":"<worktree>","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' >> <telemetry.jsonl 경로>
+```
+
+실행 1건 = 1줄입니다. 단계별 이벤트는 워크플로 journal에 이미 있습니다.
+
 ## 6. 최종 보고
 
-**첫 문장이 결과입니다** — "무엇이 됐는지 / 안 됐으면 어디서 막혔는지". 그다음에 세부를 답니다: spec 이름, Path 요약(있으면), 시도 횟수, telemetry.jsonl 경로, (성공 시) 커밋 sha, **워크트리 경로와 브랜치명**, 7번에서 넘긴 "관찰됨" 항목.
+**첫 문장이 결과입니다** — "무엇이 됐는지 / 안 됐으면 어디서 막혔는지". 그다음에 세부를 답니다: spec 이름, Path 요약(있으면), 시도 횟수, telemetry.jsonl 경로, 워크플로 transcript 디렉토리(journal.jsonl이 있는 곳), (성공 시) 커밋 sha, **워크트리 경로와 브랜치명**, `qe.suspected`의 "관찰됨" 항목.
 
 워크트리 정리(`git worktree remove`)는 사용자가 결과를 확인한 뒤 직접 합니다 — 임의로 지우지 마세요.
 
