@@ -1,3 +1,4 @@
+onboarding = false
 # ~/.tmux.conf 에 맞춘 키바인딩 (기본값과 같은 건 안 적음)
 [keys]
 # Prefix: C-b → C-Space
