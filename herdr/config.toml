@@ -1,4 +1,12 @@
 onboarding = false
+
+# 기본값 "auto" 는 macOS 에서만 로그인 셸을 쓰고, 리눅스에서는 비로그인 셸로 띄운다.
+# 그러면 .zshrc 를 읽지 않아 oh-my-zsh·테마·alias 가 전부 빠진 판이 열린다.
+# 양쪽을 로그인 셸로 통일한다.
+#
+# default_shell 은 일부러 비워 둔다. $SHELL 을 그대로 따르게 해야 맥(/bin/zsh)과
+# 리눅스(/usr/bin/zsh)가 같은 파일을 공유할 수 있다.
+shell_mode = "login"
 # ~/.tmux.conf 에 맞춘 키바인딩 (기본값과 같은 건 안 적음)
 [keys]
 # Prefix: C-b → C-Space
