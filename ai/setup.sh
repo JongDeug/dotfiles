@@ -105,6 +105,10 @@ for bucket in skills agents commands workflows; do
   done
 done
 
+# ── grok: 설정 파일 하나. ~/.grok 의 세션·로그는 머신 로컬로 둔다.
+[ "$CHECK_ONLY" = 1 ] || mkdir -p "$HOME/.grok"
+link "$AI/grok/config.toml" "$HOME/.grok/config.toml"
+
 # 도달하지 못하는 링크가 남았는지
 broken=0
 while IFS= read -r l; do

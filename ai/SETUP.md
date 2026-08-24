@@ -29,6 +29,7 @@ ai/**/commands/<name>.md   →  ~/.claude/commands/<name>.md   개별
 
 ai/claude/telegram         →  ~/.claude/channels/telegram    (이름만 다른 유일한 예외)
 ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째로
+ai/grok/config.toml        →  ~/.grok/config.toml
 ```
 
 그래서:

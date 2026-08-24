@@ -11,6 +11,7 @@
 ├── ai/                          # AI 도구 설정 전부
 │   ├── setup.sh                 #   ← 세팅은 이거 하나 돌리면 끝 (멱등)
 │   ├── SETUP.md                 #   그 절차의 설명·선택 항목
+│   ├── grok/                    #   Grok Build — config.toml → ~/.grok/config.toml
 │   ├── claude/                  #   Claude Code 전용 배선
 │   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
@@ -51,6 +52,7 @@ clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는
 ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
 ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, smug-devops.sh 도 같은 자리
 ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # devops.yml 도 마찬가지 — smug 는 .yml 만 찾는다
+ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh 가 같이 건다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
