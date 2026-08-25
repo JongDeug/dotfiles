@@ -23,6 +23,7 @@
 │       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·워크플로·spec)
 ├── aerospace/                   # AeroSpace 윈도우 매니저
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
+├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
 └── vscode/                      # VS Code
 ```
@@ -54,9 +55,12 @@ ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-me
 ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # devops.yml 도 마찬가지 — smug 는 .yml 만 찾는다
 ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh 가 같이 건다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
+ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
 ```
+
+herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).
 
 `devops`는 `~/.tmux/smug-devops.sh`를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias devops='~/.tmux/smug-devops.sh'`.
 

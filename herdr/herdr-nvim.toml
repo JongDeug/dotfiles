@@ -1,0 +1,7 @@
+[sidebar]
+nvim_bin = "nvim"
+position = "right"
+
+[picker]
+scan_lines = 300
+max_files = 20
