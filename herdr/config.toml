@@ -1,19 +1,14 @@
 onboarding = false
 
-# 기본값 "auto" 는 macOS 에서만 로그인 셸을 쓰고, 리눅스에서는 비로그인 셸로 띄운다.
-# 그러면 .zshrc 를 읽지 않아 oh-my-zsh·테마·alias 가 전부 빠진 판이 열린다.
-# 양쪽을 로그인 셸로 통일한다.
-#
-# default_shell 은 일부러 비워 둔다. $SHELL 을 그대로 따르게 해야 맥(/bin/zsh)과
-# 리눅스(/usr/bin/zsh)가 같은 파일을 공유할 수 있다.
+# default_shell 은 비워 둔다. $SHELL 을 그대로 따른다.
+# 기본값 "auto" 는 맥만 login 셸이라 리눅스에서 .zshrc 가 빠진다.
+[terminal]
 shell_mode = "login"
+
 # ~/.tmux.conf 에 맞춘 키바인딩 (기본값과 같은 건 안 적음)
 [keys]
 # Prefix: C-b → C-Space
 prefix = "ctrl+space"
-
-# Detach: tmux 의 prefix+d (herdr 기본은 prefix+q)
-detach = "prefix+d"
 
 # 이름 변경도 tmux 대응대로. tmux 의 window=herdr 의 tab, session=workspace.
 # , = rename-window → 탭, $ = rename-session → 워크스페이스
@@ -52,33 +47,8 @@ remove_worktree = "prefix+shift+o"
 # 두 액션이 걸려 어느 쪽이 뜨는지 알 수 없다 — worktree 열기 쪽을 쓴다.
 open_notification_target = ""
 
-# vim-herdr-navigation: nvim 창과 herdr 페인을 Ctrl+h/j/k/l 로 같이 넘긴다.
-# nvim 쪽 맵은 ~/.config/nvim/lua/config/keymaps.lua
-[[keys.command]]
-key = "ctrl+h"
-type = "plugin_action"
-command = "vim-herdr-navigation.left"
-description = "navigate left (vim/herdr)"
-
-[[keys.command]]
-key = "ctrl+j"
-type = "plugin_action"
-command = "vim-herdr-navigation.down"
-description = "navigate down (vim/herdr)"
-
-[[keys.command]]
-key = "ctrl+k"
-type = "plugin_action"
-command = "vim-herdr-navigation.up"
-description = "navigate up (vim/herdr)"
-
-[[keys.command]]
-key = "ctrl+l"
-type = "plugin_action"
-command = "vim-herdr-navigation.right"
-description = "navigate right (vim/herdr)"
-
 # herdr-nvim. prefix+e 는 edit_scrollback, prefix+o 는 open_worktree 그대로 둔다.
+# 페인 이동은 herdr 기본 prefix+h/j/k/l (Ctrl+Space 다음 h/j/k/l).
 [[keys.command]]
 key = "prefix+v"
 type = "plugin_action"

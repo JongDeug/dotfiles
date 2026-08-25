@@ -17,25 +17,19 @@ prefix는 `ctrl+space`. 키 전체는 herdr 안에서 `prefix+?`.
 
 ## 마켓플레이스에서 쓰는 플러그인
 
-지금 머신에 켜 둔 것. 새 PC에서도 이 두 개만 깔면 된다.
+지금 머신에 켜 둔 것. 새 PC에서도 이 한 개만 깔면 된다.
 
 | 플러그인 | GitHub | 하는 일 |
 |---|---|---|
-| [vim-herdr-navigation](https://github.com/paulbkim-dev/vim-herdr-navigation) | `paulbkim-dev/vim-herdr-navigation` | `Ctrl+h/j/k/l`로 nvim 창과 herdr 페인을 같이 넘김 |
 | [herdr-nvim](https://github.com/ChmaraX/herdr-nvim) | `ChmaraX/herdr-nvim` | 탭 오른쪽에 nvim 사이드바. 에이전트가 만진 파일 피커 |
 
 ```bash
-herdr plugin install paulbkim-dev/vim-herdr-navigation --yes
 herdr plugin install ChmaraX/herdr-nvim --yes
 ```
 
 확인: `herdr plugin list`
 
-### vim-herdr-navigation
-
-키는 `config.toml`의 `[[keys.command]]` (`ctrl+h/j/k/l`). nvim 쪽은 `nvim/lua/config/keymaps.lua`.
-
-셸 페인에서 `Ctrl+l` 화면 지우기는 안 된다. 클리어는 `clear` 또는 `prefix+l`.
+페인 이동은 herdr 기본 `prefix+h/j/k/l` (`Ctrl+Space` 다음 `h/j/k/l`).
 
 ### herdr-nvim
 

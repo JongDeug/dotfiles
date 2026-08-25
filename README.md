@@ -25,7 +25,8 @@
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
-└── vscode/                      # VS Code
+├── vscode/                      # VS Code
+└── zsh/                         # macOS ls NFC. oh-my-zsh custom 에 심링크
 ```
 
 **`ai/claude` vs `ai/shared` 기준:** 그 도구가 없으면 의미가 없는 것은 `claude/`(훅·statusline·settings, Agent Teams 의존인 chaos-blog-team), 역할 프롬프트처럼 호스트를 갈아끼워도 살아남는 것은 `shared/`. Codex·Cursor 등을 쓰게 되면 `ai/codex/` 를 형제로 추가하고 `shared/` 를 양쪽에서 노출한다 — **쓰기 전까지는 만들지 않는다.**
@@ -58,6 +59,7 @@ ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
+ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls 한글 파일명 NFC
 ```
 
 herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).

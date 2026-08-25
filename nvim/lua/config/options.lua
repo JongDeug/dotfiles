@@ -2,6 +2,9 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+-- 파일 열 때 줄이 미끄러지는 snacks scroll/animate 끔
+vim.g.snacks_animate = false
+
 -- herdr-nvim 사이드바는 nvim --listen …/herdr-nvim/<tab>.sock
 -- servername 은 설정 로드 직후엔 비어 있을 수 있어서, 이벤트 때 다시 본다.
 local function is_herdr_sidebar()
