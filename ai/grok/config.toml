@@ -16,3 +16,5 @@ fork_secondary_model = "grok-4.5"
 yolo = false
 compact_mode = false
 page_flip_on_send = false
+vim_mode = true
+permission_mode = "always-approve"
