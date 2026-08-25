@@ -17,17 +17,17 @@ prefix는 `ctrl+space`. 키 전체는 herdr 안에서 `prefix+?`.
 
 ## 마켓플레이스에서 쓰는 플러그인
 
-지금 머신에 켜 둔 것. 새 PC에서도 이 한 개만 깔면 된다.
+지금 머신에 켜 둔 것.
 
-| 플러그인 | GitHub | 하는 일 |
+| 플러그인 | 설치 | 하는 일 |
 |---|---|---|
-| [herdr-nvim](https://github.com/ChmaraX/herdr-nvim) | `ChmaraX/herdr-nvim` | 탭 오른쪽에 nvim 사이드바. 에이전트가 만진 파일 피커 |
-
-```bash
-herdr plugin install ChmaraX/herdr-nvim --yes
-```
+| [herdr-nvim](https://github.com/ChmaraX/herdr-nvim) | `herdr plugin install ChmaraX/herdr-nvim --yes` | nvim 사이드바 |
+| [numberer-manager](https://github.com/yuritada/numberer-manager) | `herdr plugin install yuritada/numberer-manager --yes` | 워크스페이스/탭 `1:` `2:` |
+| agent-numbers | `herdr plugin link "$REPO/herdr/plugins/agent-numbers"` | 에이전트 사이드바 `1` `2` (`Ctrl+1..9`) |
 
 확인: `herdr plugin list`
+
+점프: 워크스페이스 `Ctrl+Space` `Shift+1..9`, 탭 `Ctrl+Space` `1..9`, 에이전트 `Ctrl+1..9`.
 
 페인 이동은 herdr 기본 `prefix+h/j/k/l` (`Ctrl+Space` 다음 `h/j/k/l`).
 

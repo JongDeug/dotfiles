@@ -77,7 +77,7 @@ agent_panel_sort = "spaces"
 # 소속을 보여주는 건 이 workspace 토큰뿐이라 반드시 남겨둔다 (herdr 기본 rows 도 같은 이유로 포함).
 # pane 은 `herdr pane rename` 을 해야 채워지고 36칸을 넘겨서 뺐다 — 필요하면 tab 대신 넣는다.
 [ui.sidebar.agents]
-rows = [["state_icon", "state_text", "workspace", "tab"], ["terminal_title_stripped"]]
+rows = [["state_icon", "$n", "state_text", "workspace", "tab"], ["terminal_title_stripped"]]
 
 [experimental]
 # 한글 IME 가 켜진 상태에서도 prefix 가 먹도록, prefix 모드 동안만 ASCII 자판으로 전환한다.

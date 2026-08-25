@@ -1,0 +1,41 @@
+id = "dotfiles.agent-numbers"
+name = "Agent numbers"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "Sidebar $n for Ctrl+1..9 agent jumps"
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["python3", "number.py"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "pane.closed"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "pane.moved"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "workspace.focused"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "workspace.created"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "workspace.closed"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "workspace.moved"
+command = ["python3", "number.py"]
