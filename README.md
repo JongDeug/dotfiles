@@ -60,6 +60,7 @@ ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls 한글 파일명 NFC
+ln -sfn "$REPO/zsh/gh-account.zsh"    ~/.oh-my-zsh/custom/gh-account.zsh  # tnh/개인 gh 계정 전환
 ```
 
 herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).
