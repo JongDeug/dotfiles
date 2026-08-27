@@ -39,3 +39,19 @@ command = ["python3", "number.py"]
 [[events]]
 on = "workspace.moved"
 command = ["python3", "number.py"]
+
+[[events]]
+on = "tab.created"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "tab.closed"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "tab.moved"
+command = ["python3", "number.py"]
+
+[[events]]
+on = "tab.renamed"
+command = ["python3", "number.py"]

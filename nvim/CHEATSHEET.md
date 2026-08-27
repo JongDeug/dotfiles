@@ -29,10 +29,9 @@ leader 는 **Space**.
 
 | 키 | 동작 |
 |---|---|
-| `Space gs` | diff (status) |
-| `Space ge` | 변경 파일 트리 |
-| `Space gt` | 커밋 그래프 |
-| `Space gg` | lazygit |
+| `Space gs` | 변경 파일 목록. `Esc` 로 닫기 |
+| `Space gl` | 커밋 로그 |
+| `Space gg` | lazygit (stage/커밋/브랜치) |
 | `Space hs` | 지금 hunk stage |
 
 ## Markdown

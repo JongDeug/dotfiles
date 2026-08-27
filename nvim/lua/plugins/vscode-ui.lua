@@ -25,6 +25,7 @@ return {
     opts = {
       options = {
         always_show_bufferline = true,
+        tabpages = false,
         separator_style = "thin",
         show_close_icon = false,
         indicator = { style = "underline" },

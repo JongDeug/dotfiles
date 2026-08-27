@@ -1,11 +1,22 @@
--- Git status panel + commit graph (VS Code SCM / Git Graph 느낌)
+-- Git status 는 탭을 안 만드는 picker. 커밋/브랜치는 lazygit (Space gg).
 return {
+  {
+    "folke/snacks.nvim",
+    keys = {
+      {
+        "<leader>gs",
+        function()
+          Snacks.picker.git_status()
+        end,
+        desc = "Git Status",
+      },
+    },
+  },
   {
     "sindrets/diffview.nvim",
     cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewFileHistory", "DiffviewToggleFiles" },
     opts = {},
     keys = {
-      { "<leader>gs", "<cmd>DiffviewOpen<cr>", desc = "Git Status (Diffview)" },
       { "<leader>gH", "<cmd>DiffviewFileHistory %<cr>", desc = "Git File History" },
     },
   },

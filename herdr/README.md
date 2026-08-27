@@ -22,8 +22,7 @@ prefix는 `ctrl+space`. 키 전체는 herdr 안에서 `prefix+?`.
 | 플러그인 | 설치 | 하는 일 |
 |---|---|---|
 | [herdr-nvim](https://github.com/ChmaraX/herdr-nvim) | `herdr plugin install ChmaraX/herdr-nvim --yes` | nvim 사이드바 |
-| [numberer-manager](https://github.com/yuritada/numberer-manager) | `herdr plugin install yuritada/numberer-manager --yes` | 워크스페이스/탭 `1:` `2:` |
-| agent-numbers | `herdr plugin link "$REPO/herdr/plugins/agent-numbers"` | 에이전트 사이드바 `1` `2` (`Ctrl+1..9`) |
+| agent-numbers | `herdr plugin link "$REPO/herdr/plugins/agent-numbers"` | 워크스페이스/탭 `1:` 와 에이전트 `$n` |
 
 확인: `herdr plugin list`
 
