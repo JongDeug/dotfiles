@@ -13,7 +13,7 @@ fpath=("$HOME/.grok/completions/zsh" $fpath)
 
 # --- oh-my-zsh ----------------------------------------------
 # custom/*.zsh 는 아래 source 시점에 자동 로드
-# (macos-nfc, gh-account, editor).
+# (macos-nfc, editor).
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 plugins=()

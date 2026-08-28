@@ -26,7 +26,7 @@
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
 ├── vscode/                      # VS Code
-└── zsh/                         # zshrc · zprofile · oh-my-zsh custom (nfc, gh-account, editor)
+└── zsh/                         # zshrc · zprofile · oh-my-zsh custom (nfc, editor)
 ```
 
 **`ai/claude` vs `ai/shared` 기준:** 그 도구가 없으면 의미가 없는 것은 `claude/`(훅·statusline·settings, Agent Teams 의존인 chaos-blog-team), 역할 프롬프트처럼 호스트를 갈아끼워도 살아남는 것은 `shared/`. Codex·Cursor 등을 쓰게 되면 `ai/codex/` 를 형제로 추가하고 `shared/` 를 양쪽에서 노출한다 — **쓰기 전까지는 만들지 않는다.**
@@ -62,7 +62,6 @@ ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/s
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
 ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC
-ln -sfn "$REPO/zsh/gh-account.zsh"    ~/.oh-my-zsh/custom/gh-account.zsh  # tnh/개인 gh 계정 전환
 ln -sfn "$REPO/zsh/editor.zsh"        ~/.oh-my-zsh/custom/editor.zsh      # EDITOR=nvim
 ```
 

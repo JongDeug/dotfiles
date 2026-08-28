@@ -6,9 +6,6 @@
 session: main
 
 windows:
-  - name: starfruit
-    root: ~/Documents/tnh/starfruit-back
-
   - name: nats
     root: ~/Documents/nats
 
