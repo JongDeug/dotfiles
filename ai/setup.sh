@@ -8,6 +8,8 @@
 #   ai/**/commands/<name>.md →  ~/.claude/commands/<name>.md (개별)
 #   ai/**/workflows/<name>.js → ~/.claude/workflows/<name>.js (개별)
 #   ai/claude/telegram       →  ~/.claude/channels/telegram  (이름만 다름)
+#   ai/claude/hooks/<file>   →  ~/.claude/hooks/<file>       (개별.
+#                                herdr-agent-state.sh 는 복사만 — herdr 가 덮어쓴다)
 #   ai/claude/<그 외>         →  ~/.claude/<같은 이름>          (통째로)
 #
 # 그래서 스킬·에이전트·커맨드를 추가하든, ai/claude 에 mcp.json 같은 걸 새로 넣든
@@ -84,6 +86,28 @@ for p in "$AI"/claude/*; do
   case "$(basename "$p")" in
     skills|agents|commands|workflows) ;;                        # 규칙 1이 처리함
     telegram) link "$p" "$CLAUDE/channels/telegram" ;;          # 이름만 다른 유일한 예외
+    hooks)
+      # 통째 심링크면 `herdr integration install claude` 가 repo 파일을 직접 수정한다.
+      as_real_dir "$CLAUDE/hooks"
+      for f in "$p"/*; do
+        [ -e "$f" ] || continue
+        base="$(basename "$f")"
+        if [ "$base" = "herdr-agent-state.sh" ]; then
+          if [ -e "$CLAUDE/hooks/$base" ]; then
+            skipped=$((skipped + 1))
+          elif [ "$CHECK_ONLY" = 1 ]; then
+            echo "  - .claude/hooks/$base 없음 (herdr integration install claude)"
+            refused=$((refused + 1))
+          else
+            cp "$f" "$CLAUDE/hooks/$base"
+            chmod +x "$CLAUDE/hooks/$base"
+            linked=$((linked + 1))
+          fi
+        else
+          link "$f" "$CLAUDE/hooks/$base"
+        fi
+      done
+      ;;
     *) link "$p" "$CLAUDE/$(basename "$p")" ;;
   esac
 done
@@ -92,7 +116,7 @@ done
 # 사라져야 한다. 우리가 건 링크(= repo 를 가리키는 것)만 손대므로 밖에서
 # 설치된 것은 건드리지 않는다.
 pruned=0
-for bucket in skills agents commands workflows; do
+for bucket in skills agents commands workflows hooks; do
   for l in "$CLAUDE/$bucket"/*; do
     [ -L "$l" ] || continue
     case "$(readlink "$l")" in "$REPO"/*) ;; *) continue ;; esac

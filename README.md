@@ -15,7 +15,7 @@
 │   ├── claude/                  #   Claude Code 전용 배선
 │   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
-│   │   ├── hooks/               #     notify.sh(작업 완료 알림) · herdr-agent-state.sh(herdr 연동)
+│   │   ├── hooks/               #     notify.sh 링크 · herdr-agent-state.sh 는 herdr 가 관리
 │   │   ├── telegram/            #     텔레그램 연동 설정
 │   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
@@ -26,7 +26,7 @@
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
 ├── vscode/                      # VS Code
-└── zsh/                         # macOS ls NFC. oh-my-zsh custom 에 심링크
+└── zsh/                         # zshrc · zprofile · oh-my-zsh custom (nfc, gh-account, editor)
 ```
 
 **`ai/claude` vs `ai/shared` 기준:** 그 도구가 없으면 의미가 없는 것은 `claude/`(훅·statusline·settings, Agent Teams 의존인 chaos-blog-team), 역할 프롬프트처럼 호스트를 갈아끼워도 살아남는 것은 `shared/`. Codex·Cursor 등을 쓰게 되면 `ai/codex/` 를 형제로 추가하고 `shared/` 를 양쪽에서 노출한다 — **쓰기 전까지는 만들지 않는다.**
@@ -59,8 +59,21 @@ ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
-ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls 한글 파일명 NFC
+ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
+ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
+ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC
 ln -sfn "$REPO/zsh/gh-account.zsh"    ~/.oh-my-zsh/custom/gh-account.zsh  # tnh/개인 gh 계정 전환
+ln -sfn "$REPO/zsh/editor.zsh"        ~/.oh-my-zsh/custom/editor.zsh      # EDITOR=nvim
+```
+
+zsh 플러그인은 `~/.zsh/plugins` 에 clone (repo 에 안 넣음):
+
+```bash
+mkdir -p ~/.zsh/plugins
+git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
+git clone https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugins/zsh-history-substring-search
+git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-completions
 ```
 
 herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).

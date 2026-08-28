@@ -13,7 +13,14 @@ ln -sfn "$REPO/herdr/config.toml" ~/.config/herdr/config.toml
 
 적용: herdr에서 `prefix+shift+r`, 또는 `herdr server reload-config`.
 
-prefix는 `ctrl+space`. 키 전체는 herdr 안에서 `prefix+?`.
+prefix는 `ctrl+space` — tmux와 같다. 키 전체는 herdr 안에서 `prefix+?`.
+tmux를 herdr 페인 안에서 쓰면 prefix가 겹친다. tmux는 `Ctrl+Space`를 한 번 더 보내 `send-prefix`한다.
+
+공식 에이전트 스킬 (`/herdr`):
+
+```bash
+npx skills add herdrdev/herdr --skill herdr -g
+```
 
 ## 마켓플레이스에서 쓰는 플러그인
 

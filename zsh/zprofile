@@ -1,0 +1,6 @@
+# Homebrew (login shells). interactive 는 zshrc 가 다시 돈다.
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+typeset -U path PATH
+path=("$HOME/.local/bin" $path)

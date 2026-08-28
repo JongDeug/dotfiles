@@ -28,6 +28,7 @@ ai/**/agents/<name>.md     →  ~/.claude/agents/<name>.md     개별
 ai/**/commands/<name>.md   →  ~/.claude/commands/<name>.md   개별
 
 ai/claude/telegram         →  ~/.claude/channels/telegram    (이름만 다른 유일한 예외)
+ai/claude/hooks/<file>     →  ~/.claude/hooks/<file>         개별. herdr-agent-state.sh 는 복사만
 ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째로
 ai/grok/config.toml        →  ~/.grok/config.toml
 ```
@@ -62,12 +63,22 @@ ai/grok/config.toml        →  ~/.grok/config.toml
 
 `ai/claude/hooks/herdr-agent-state.sh`는 **herdr가 설치·관리하는 파일**이다. Claude Code의 `SessionStart` 훅으로 돌면서, 그 페인의 Claude가 어떤 대화 세션인지(`session_id`, `transcript_path`)를 herdr 소켓에 보고한다 — herdr 서버가 재시작돼도 각 페인의 대화가 되살아나는 게 이것 덕분이다. `settings.json`의 `SessionStart` 항목이 짝이다.
 
+`~/.claude/hooks`는 디렉토리 통째 심링크가 아니다. `notify.sh`만 repo 링크이고, `herdr-agent-state.sh`는 없을 때 repo에서 **복사**한다. 그래서 `herdr integration install claude`가 버전을 올려도 git이 더러워지지 않는다.
+
 **직접 편집하지 않는다.** 새 PC나 herdr 업데이트 후에는 다시 깔면 된다:
 
 ```bash
-herdr integration install claude   # 현재 v7
+herdr integration install claude   # 현재 v8
 herdr integration status           # 버전 확인
 ```
+
+에이전트가 herdr CLI를 쓰려면 공식 스킬을 전역 설치한다 (`ai/setup.sh`는 링크만 한다):
+
+```bash
+npx skills add herdrdev/herdr --skill herdr -g
+```
+
+Grok herdr 훅(`~/.grok/hooks/herdr-agent-state.sh`)은 머신 로컬이다. repo에 넣지 않는다.
 
 herdr를 안 쓰는 머신에서는 이 훅이 조용히 빠진다(`$HERDR_ENV`가 없으면 즉시 종료). **없어도 나머지는 전부 정상 동작한다.**
 

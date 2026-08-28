@@ -1,6 +1,10 @@
 # Place a copy of this config to ~/.aerospace.toml
 # After that, you can edit ~/.aerospace.toml to your liking
 
+# 생략하면 1 로 취급되고 reload-config 가 v2 마이그레이션을 경고한다.
+config-version = 2
+persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+
 # You can use it to add commands that run after login to macOS user session.
 # 'start-at-login' needs to be 'true' for 'after-login-command' to work
 # Available commands: https://nikitabobko.github.io/AeroSpace/commands
@@ -74,6 +78,7 @@ automatically-unhide-macos-hidden-apps = false
     6 = 'secondary'
     7 = 'secondary'
     8 = 'secondary'
+    9 = 'secondary'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
@@ -112,6 +117,7 @@ automatically-unhide-macos-hidden-apps = false
     alt-comma = 'layout accordion horizontal vertical'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
+    # alt-h 는 nvim 숨김 토글을 먹는다. 피커/트리는 H 로 우회 (picker.lua).
     alt-h = 'focus left'
     alt-j = 'focus down'
     alt-k = 'focus up'

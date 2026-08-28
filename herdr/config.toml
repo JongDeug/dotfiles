@@ -7,7 +7,7 @@ shell_mode = "login"
 
 # ~/.tmux.conf 에 맞춘 키바인딩 (기본값과 같은 건 안 적음)
 [keys]
-# Prefix: C-b → C-Space
+# Prefix: C-b → C-Space. tmux 와 같은 키. 중첩이면 tmux 쪽 send-prefix.
 prefix = "ctrl+space"
 
 # 이름 변경: , = 탭, . = 워크스페이스

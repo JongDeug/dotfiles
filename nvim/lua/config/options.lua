@@ -2,6 +2,9 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+-- iTerm 에 JetBrainsMono Nerd Font 가 깔려 있다. 아이콘(neo-tree 등)용.
+vim.g.have_nerd_font = true
+
 -- 파일 열 때 줄이 미끄러지는 snacks scroll/animate 끔
 vim.g.snacks_animate = false
 
