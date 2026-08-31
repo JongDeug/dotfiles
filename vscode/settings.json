@@ -20,6 +20,7 @@
     "explorer.confirmDelete": false,
     "security.promptForLocalFileProtocolHandling": false,
     "vscode-neovim.neovimExecutablePaths.darwin": "/opt/homebrew/bin/nvim",
+    "lazygit.command": "/opt/homebrew/bin/lazygit && exit",
     "extensions.experimental.affinity": {
         "asvetliakov.vscode-neovim": 1
     },
