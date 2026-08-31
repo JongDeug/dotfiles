@@ -58,7 +58,8 @@ ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
-ln -sfn "$REPO/vscode/settings.json"  ~/Library/Application\ Support/Code/User/settings.json   # macOS 경로
+ln -sfn "$REPO/vscode/settings.json"      ~/Library/Application\ Support/Code/User/settings.json      # macOS
+ln -sfn "$REPO/vscode/keybindings.json"   ~/Library/Application\ Support/Code/User/keybindings.json
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
 ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC

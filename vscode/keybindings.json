@@ -1,0 +1,80 @@
+[
+  {
+    "key": "shift+enter",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": {
+      "text": "\\\r\n"
+    },
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+space",
+    "command": "-editor.action.triggerSuggest",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+j",
+    "command": "-workbench.action.togglePanel"
+  },
+  {
+    "key": "ctrl+h",
+    "command": "-editor.action.startFindReplaceAction",
+    "when": "editorFocus || editorIsOpen"
+  },
+  {
+    "key": "space shift+/",
+    "command": "vscode-neovim.send",
+    "args": "<Space>?",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space e",
+    "command": "workbench.view.explorer",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space e",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "escape",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "filesExplorerFocus && !inputFocus"
+  },
+  {
+    "key": "space f f",
+    "command": "workbench.action.quickOpen",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space /",
+    "command": "workbench.action.findInFiles",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space b d",
+    "command": "workbench.action.closeActiveEditor",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space g s",
+    "command": "workbench.view.scm",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space g g",
+    "command": "lazygit.openLazygit",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space g l",
+    "command": "git-graph.view",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  },
+  {
+    "key": "space d b",
+    "command": "editor.debug.action.toggleBreakpoint",
+    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+  }
+]

@@ -68,4 +68,10 @@ Go / Python / TypeScript. `launch.json` 있으면 그걸 쓴다.
 
 처음 `Space dc` 하면 Mason이 해당 언어 어댑터를 받을 수 있다.
 
-vscode-neovim 안에서는 VS Code 디버거(`F5`)를 쓴다.
+## vscode-neovim
+
+터미널 nvim(LazyVim)과 설정을 나누었다. VS Code 안에서는 모션(`hjkl`, `d`, `ci"` …)은 기본 nvim, `Space …` 는 VS Code UI.
+
+코드 파일을 연 뒤 `Esc` → `Space` 바로 `ff`. 목록은 `Space ?`. `Space gg` 는 lazygit.
+
+**VSCodeVim은 끄고 vscode-neovim만 켠다.** Reload Window 말고 VS Code를 완전히 종료했다가 연다.
