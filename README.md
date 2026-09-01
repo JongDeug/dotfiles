@@ -22,6 +22,7 @@
 │   └── shared/                  #   호스트 무관 — 다른 AI 도구에도 그대로 쓸 것
 │       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·워크플로·spec)
 ├── aerospace/                   # AeroSpace 윈도우 매니저
+├── git/                         # git 신원 규칙 — 기본 신원(~/.gitconfig-local)은 머신 로컬
 ├── karabiner/                   # Karabiner-Elements — 오른쪽 Command = 한/영
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
@@ -66,6 +67,14 @@ ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
 ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC
 ln -sfn "$REPO/zsh/editor.zsh"        ~/.oh-my-zsh/custom/editor.zsh      # EDITOR=nvim
+ln -sfn "$REPO/git/gitconfig"          ~/.gitconfig
+ln -sfn "$REPO/git/gitconfig-personal" ~/.gitconfig-personal
+```
+
+`~/.gitconfig-local`은 링크하지 않는다 — 머신 기본 신원이라 repo 에 담지 않는다. 새 PC 에서 손으로 만든다:
+
+```bash
+printf '[user]\n\temail = 이_머신의_기본_메일\n' > ~/.gitconfig-local
 ```
 
 zsh 플러그인은 `~/.zsh/plugins` 에 clone (repo 에 안 넣음):

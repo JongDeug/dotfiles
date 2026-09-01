@@ -1,0 +1,16 @@
+# 신원은 머신마다 다르다 — 이 파일에는 규칙만 담고, 기본 신원은 추적하지 않는다.
+#
+#   ~/.gitconfig-local      머신 기본 신원 (미추적). 회사 PC 면 회사 메일.
+#   git/gitconfig-personal  개인 GitHub 신원. remote 가 걸리면 위를 덮어쓴다.
+#
+# 디렉토리(gitdir:)가 아니라 remote URL 로 가르는 이유 — 개인 repo 와 회사 repo 가
+# 같은 ~/Documents 밑에 섞여 있어서, 경로로 나누면 repo 를 만들 때마다 깨진다.
+
+[user]
+	name = Jonghwan Kim
+
+[include]
+	path = ~/.gitconfig-local
+
+[includeIf "hasconfig:remote.*.url:git@github.com:JongDeug/**"]
+	path = ~/.gitconfig-personal
