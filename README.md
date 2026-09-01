@@ -22,6 +22,7 @@
 │   └── shared/                  #   호스트 무관 — 다른 AI 도구에도 그대로 쓸 것
 │       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·워크플로·spec)
 ├── aerospace/                   # AeroSpace 윈도우 매니저
+├── karabiner/                   # Karabiner-Elements — 오른쪽 Command = 한/영
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
@@ -58,6 +59,7 @@ ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
+ln -sfn "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json
 ln -sfn "$REPO/vscode/settings.json"      ~/Library/Application\ Support/Code/User/settings.json      # macOS
 ln -sfn "$REPO/vscode/keybindings.json"   ~/Library/Application\ Support/Code/User/keybindings.json
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
