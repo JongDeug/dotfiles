@@ -59,7 +59,7 @@ ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
-ln -sfn "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json
+cp "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json   # 심링크 금지 — Karabiner 데몬이 못 연다
 ln -sfn "$REPO/vscode/settings.json"      ~/Library/Application\ Support/Code/User/settings.json      # macOS
 ln -sfn "$REPO/vscode/keybindings.json"   ~/Library/Application\ Support/Code/User/keybindings.json
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc

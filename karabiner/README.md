@@ -12,13 +12,20 @@ macOS 입력 소스 단축키 **다음 입력 소스**가 F6다. Karabiner는 �
 
 내장 키보드는 identifiers가 `{ is_keyboard: true }` 뿐이라 그 항목에 매핑한다. Magic Keyboard는 vendor/product가 있어서 **별도 기기 항목**이 없으면 규칙이 안 먹는다. `vendor_id: 76`, `product_id: 800` 이 지금 쓰는 Magic Keyboard다.
 
-## 심링크
+## 설치
+
+Karabiner-Elements가 설치돼 있어야 한다. **심링크는 쓰지 않는다** — Core Service 데몬이 `karabiner.json` 심링크를 열지 못해서 매핑이 전부 빠진다. 복사한다.
 
 ```bash
-ln -sfn "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json
+mkdir -p ~/.config/karabiner
+cp "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json
 ```
 
-Karabiner-Elements가 설치돼 있어야 한다. 설정 파일만 바꿔도 바로 다시 읽는다.
+GUI에서 매핑을 바꿨으면 repo로 다시 복사한다.
+
+```bash
+cp ~/.config/karabiner/karabiner.json "$REPO/karabiner/karabiner.json"
+```
 
 ## 새 키보드
 
