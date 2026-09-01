@@ -3,7 +3,7 @@
 
 # 생략하면 1 로 취급되고 reload-config 가 v2 마이그레이션을 경고한다.
 config-version = 2
-persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+persistent-workspaces = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13']
 
 # You can use it to add commands that run after login to macOS user session.
 # 'start-at-login' needs to be 'true' for 'after-login-command' to work
@@ -80,6 +80,10 @@ automatically-unhide-macos-hidden-apps = false
     7 = 'built-in'
     8 = 'built-in'
     9 = 'built-in'
+    10 = ['LG ULTRAFINE', 'built-in']
+    11 = ['LG ULTRAFINE', 'built-in']
+    12 = ['LG ULTRAFINE', 'built-in']
+    13 = ['LG ULTRAFINE', 'built-in']
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
@@ -152,6 +156,10 @@ automatically-unhide-macos-hidden-apps = false
     alt-w = 'workspace 7'
     alt-e = 'workspace 8'
     alt-r = 'workspace 9'
+    alt-a = 'workspace 10'
+    alt-s = 'workspace 11'
+    alt-d = 'workspace 12'
+    alt-f = 'workspace 13'
     alt-leftSquareBracket = 'workspace --wrap-around prev'
     alt-rightSquareBracket = 'workspace --wrap-around next'
 
@@ -165,6 +173,10 @@ automatically-unhide-macos-hidden-apps = false
     alt-shift-w = 'move-node-to-workspace 7'
     alt-shift-e = 'move-node-to-workspace 8'
     alt-shift-r = 'move-node-to-workspace 9'
+    alt-shift-a = 'move-node-to-workspace 10'
+    alt-shift-s = 'move-node-to-workspace 11'
+    alt-shift-d = 'move-node-to-workspace 12'
+    alt-shift-f = 'move-node-to-workspace 13'
 
     alt-shift-m = 'fullscreen'
 
