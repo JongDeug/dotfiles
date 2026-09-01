@@ -19,6 +19,7 @@
     "git.openRepositoryInParentFolders": "always",
     "explorer.confirmDelete": false,
     "security.promptForLocalFileProtocolHandling": false,
+    "keyboard.dispatch": "keyCode",
     "vscode-neovim.neovimExecutablePaths.darwin": "/opt/homebrew/bin/nvim",
     "lazygit.command": "/opt/homebrew/bin/lazygit && exit",
     "extensions.experimental.affinity": {

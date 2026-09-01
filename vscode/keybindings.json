@@ -25,12 +25,29 @@
     "key": "space shift+/",
     "command": "vscode-neovim.send",
     "args": "<Space>?",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space e",
-    "command": "workbench.view.explorer",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "workbench.view.explorer",
+        "workbench.files.action.focusFilesExplorer"
+      ]
+    },
+    "when": "neovim.mode == normal && !terminalFocus && !suggestWidgetVisible && !filesExplorerFocus"
+  },
+  {
+    "key": "space e",
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "workbench.view.explorer",
+        "workbench.files.action.focusFilesExplorer"
+      ]
+    },
+    "when": "!editorTextFocus && !terminalFocus && !inputFocus && !filesExplorerFocus"
   },
   {
     "key": "space e",
@@ -45,36 +62,36 @@
   {
     "key": "space f f",
     "command": "workbench.action.quickOpen",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space /",
     "command": "workbench.action.findInFiles",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space b d",
     "command": "workbench.action.closeActiveEditor",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space g s",
     "command": "workbench.view.scm",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space g g",
     "command": "lazygit.openLazygit",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space g l",
     "command": "git-graph.view",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   },
   {
     "key": "space d b",
     "command": "editor.debug.action.toggleBreakpoint",
-    "when": "editorTextFocus && !terminalFocus && neovim.init && neovim.mode == normal"
+    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
   }
 ]

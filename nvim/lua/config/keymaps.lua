@@ -6,3 +6,7 @@ vim.keymap.set("n", "<leader>sk", function()
   Snacks.picker.keymaps()
 end, { desc = "Keymaps" })
 
+vim.keymap.set("n", "<leader>e", function()
+  require("neo-tree.command").execute({ toggle = true, dir = LazyVim.root() })
+end, { desc = "Explorer NeoTree (Root Dir)", nowait = true })
+

@@ -72,6 +72,7 @@ Go / Python / TypeScript. `launch.json` 있으면 그걸 쓴다.
 
 터미널 nvim(LazyVim)과 설정을 나누었다. VS Code 안에서는 모션(`hjkl`, `d`, `ci"` …)은 기본 nvim, `Space …` 는 VS Code UI.
 
-코드 파일을 연 뒤 `Esc` → `Space` 바로 `ff`. 목록은 `Space ?`. `Space gg` 는 lazygit.
+코드 파일을 연 뒤 `Esc`(Normal) → `Space` **바로** `e` / `ff`. 목록은 `Space ?`. `Space gg` 는 lazygit.
+nvim처럼 0.3초 기다리면 VS Code 코드가 풀려서 안 먹는다. 탐색기에서 다시 `Space e` 하면 닫힌다.
 
 **VSCodeVim은 끄고 vscode-neovim만 켠다.** Reload Window 말고 VS Code를 완전히 종료했다가 연다.
