@@ -10,6 +10,8 @@
 #   ai/claude/telegram       →  ~/.claude/channels/telegram  (이름만 다름)
 #   ai/claude/hooks/<file>   →  ~/.claude/hooks/<file>       (개별.
 #                                herdr-agent-state.sh 는 복사만 — herdr 가 덮어쓴다)
+#   ai/claude/settings.json  →  ~/.claude/settings.json      (복사만 — Claude Code 가
+#                                덮어쓴다. 라이브 → repo 는 --save)
 #   ai/claude/<그 외>         →  ~/.claude/<같은 이름>          (통째로)
 #
 # 그래서 스킬·에이전트·커맨드를 추가하든, ai/claude 에 mcp.json 같은 걸 새로 넣든
@@ -17,6 +19,7 @@
 #
 #   ./ai/setup.sh          연결 + 결과 요약
 #   ./ai/setup.sh --check  연결하지 않고 현재 상태만 점검
+#   ./ai/setup.sh --save   ~/.claude/settings.json 을 repo 로 되돌린다
 
 set -euo pipefail
 
@@ -25,6 +28,12 @@ AI="$REPO/ai"
 CLAUDE="$HOME/.claude"
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
+
+if [ "${1:-}" = "--save" ]; then
+  cp "$HOME/.claude/settings.json" "$AI/claude/settings.json"
+  echo "저장: ai/claude/settings.json ← ~/.claude/settings.json"
+  exit 0
+fi
 
 linked=0 skipped=0 refused=0
 
@@ -86,6 +95,17 @@ for p in "$AI"/claude/*; do
   case "$(basename "$p")" in
     skills|agents|commands|workflows) ;;                        # 규칙 1이 처리함
     telegram) link "$p" "$CLAUDE/channels/telegram" ;;          # 이름만 다른 유일한 예외
+    # Claude Code 가 설정을 바꿀 때마다 통째로 다시 써서 심링크를 실물로 갈아치운다.
+    # 그래서 여기서는 새 머신에 씨앗만 심고, 이후 동기화는 `./ai/setup.sh --save` 로 라이브 → repo.
+    settings.json)
+      if [ -e "$CLAUDE/settings.json" ]; then
+        skipped=$((skipped + 1))
+      elif [ "$CHECK_ONLY" = 1 ]; then
+        echo "  - .claude/settings.json 없음"; refused=$((refused + 1))
+      else
+        cp "$p" "$CLAUDE/settings.json"; linked=$((linked + 1))
+      fi
+      ;;
     hooks)
       # 통째 심링크면 `herdr integration install claude` 가 repo 파일을 직접 수정한다.
       as_real_dir "$CLAUDE/hooks"

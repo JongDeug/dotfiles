@@ -84,7 +84,10 @@ herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.
 
 ### settings.json
 
-`~/.claude/settings.json`은 이 repo의 `ai/claude/settings.json`을 가리키는 심링크다. 따라서 Claude Code에서 설정을 바꾸면 이 repo 파일이 직접 수정되고, `git status`에 잡힌다 — 커밋하면 그대로 다음 PC로 넘어간다.
+`~/.claude/settings.json`만은 심링크가 아니라 복사본이다. Claude Code가 설정을 바꿀 때 파일을 통째로 다시 써서 심링크를 실물로 갈아치우기 때문이다. 그래서 방향이 둘로 나뉜다.
+
+- 새 PC: `ai/setup.sh`가 repo → `~/.claude`로 씨앗을 심는다 (이미 있으면 건드리지 않는다)
+- 설정을 바꾼 뒤: `ai/setup.sh --save`로 `~/.claude` → repo로 되돌리고 커밋한다
 
 여기 담긴 것 중 손으로 복원하기 어려운 것:
 
