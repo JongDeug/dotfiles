@@ -68,22 +68,22 @@ automatically-unhide-macos-hidden-apps = false
     outer.top =        10
     outer.right =      10
 
-# 1–4 = 외장(LG), 5–9 = 맥북. macOS "Main Display" 와 무관하게 이름으로 고정.
-# LG 가 빠지면 1–4 는 built-in 으로 떨어진다.
+# 1–9 (숫자 1-5 + qwer) = 외장(LG), 10–13 (asdf) = 맥북. 이름으로 고정.
+# LG 가 빠지면 1–9 는 built-in 으로 떨어진다.
 [workspace-to-monitor-force-assignment]
     1 = ['LG ULTRAFINE', 'built-in']
     2 = ['LG ULTRAFINE', 'built-in']
     3 = ['LG ULTRAFINE', 'built-in']
     4 = ['LG ULTRAFINE', 'built-in']
-    5 = 'built-in'
-    6 = 'built-in'
-    7 = 'built-in'
-    8 = 'built-in'
-    9 = 'built-in'
-    10 = ['LG ULTRAFINE', 'built-in']
-    11 = ['LG ULTRAFINE', 'built-in']
-    12 = ['LG ULTRAFINE', 'built-in']
-    13 = ['LG ULTRAFINE', 'built-in']
+    5 = ['LG ULTRAFINE', 'built-in']
+    6 = ['LG ULTRAFINE', 'built-in']
+    7 = ['LG ULTRAFINE', 'built-in']
+    8 = ['LG ULTRAFINE', 'built-in']
+    9 = ['LG ULTRAFINE', 'built-in']
+    10 = 'built-in'
+    11 = 'built-in'
+    12 = 'built-in'
+    13 = 'built-in'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
