@@ -54,8 +54,8 @@ clone 위치는 상관없다 — 스크립트가 자기 위치로 repo를 찾는
 
 ```bash
 ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
-ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, smug-devops.sh 도 같은 자리
-ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # devops.yml 도 마찬가지 — smug 는 .yml 만 찾는다
+ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, m1.sh 도 같은 자리
+ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # smug 는 .yml 만 찾는다
 ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh 가 같이 건다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
@@ -89,7 +89,7 @@ git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-comple
 
 herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).
 
-`devops`는 `~/.tmux/smug-devops.sh`를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias devops='~/.tmux/smug-devops.sh'`.
+`m1`은 `~/.tmux/m1.sh`(순수 tmux, m1ucs dev/io 세션)를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias m1='~/.tmux/m1.sh'`.
 
 ### settings.json
 
