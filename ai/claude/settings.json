@@ -1,123 +1,130 @@
 {
-	"env": {
-		"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-		"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1",
-		"CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3"
-	},
-	"permissions": {
-		"defaultMode": "auto"
-	},
-	"model": "opus[1m]",
-	"hooks": {
-		"Notification": [
-			{
-				"matcher": "",
-				"hooks": [
-					{
-						"type":    "command",
-						"command": "bash ~/.claude/hooks/notify.sh"
-					}
-				]
-			}
-		],
-		"Stop": [
-			{
-				"matcher": "",
-				"hooks": [
-					{
-						"type":    "command",
-						"command": "NOTIFY_ONLY_BG=1 NOTIFY_DEFAULT_MSG=\"✅ 작업 완료\" bash ~/.claude/hooks/notify.sh"
-					}
-				]
-			}
-		],
-		"SessionStart": [
-			{
-				"matcher": "*",
-				"hooks": [
-					{
-						"type":    "command",
-						"command": "bash ~/.claude/hooks/herdr-agent-state.sh session",
-						"timeout": 10
-					}
-				]
-			}
-		]
-	},
-	"statusLine": {
-		"type":    "command",
-		"command": "bash ~/.claude/statusline.sh",
-		"padding": 0
-	},
-	"enabledPlugins": {
-		"andrej-karpathy-skills@karpathy-skills":       true,
-		"claude-code-setup@claude-plugins-official":    true,
-		"claude-md-management@claude-plugins-official": true,
-		"code-review@claude-plugins-official":          true,
-		"figma@claude-plugins-official":                true,
-		"frontend-design@claude-plugins-official":      true,
-		"frontend-slides@frontend-slides":              true,
-		"gitkraken-hooks@gitkraken":                    true,
-		"gopls-lsp@claude-plugins-official":            true,
-		"humanize-korean@im-not-ai":                    true,
-		"lua-lsp@claude-plugins-official":              true,
-		"obsidian@obsidian-skills":                     true,
-		"ponytail@ponytail":                            true,
-		"skill-creator@claude-plugins-official":        true,
-		"telegram@claude-plugins-official":             false
-	},
-	"extraKnownMarketplaces": {
-		"frontend-slides": {
-			"source": {
-				"repo":   "zarazhangrui/frontend-slides",
-				"source": "github"
-			}
-		},
-		"gitkraken": {
-			"source": {
-				"path":   "/Users/jongdeug/.claude/plugins/marketplaces/gitkraken",
-				"source": "directory"
-			}
-		},
-		"im-not-ai": {
-			"source": {
-				"repo":   "epoko77-ai/im-not-ai",
-				"source": "github"
-			}
-		},
-		"karpathy-skills": {
-			"source": {
-				"repo":   "forrestchang/andrej-karpathy-skills",
-				"source": "github"
-			}
-		},
-		"obsidian-skills": {
-			"source": {
-				"repo":   "kepano/obsidian-skills",
-				"source": "github"
-			}
-		},
-		"ponytail": {
-			"source": {
-				"repo":   "DietrichGebert/ponytail",
-				"source": "github"
-			}
-		}
-	},
-	"language":    "Korean",
-	"effortLevel": "high",
-	"tui":         "fullscreen",
-	"voice": {
-		"enabled": true,
-		"mode":    "hold"
-	},
-	"showThinkingSummaries":             true,
-	"skipDangerousModePermissionPrompt": true,
-	"skipWorkflowUsageWarning":          true,
-	"theme":                             "dark",
-	"editorMode":                        "vim",
-	"remoteControlAtStartup":            true,
-	"agentPushNotifEnabled":             true,
-	"skipAutoPermissionPrompt":          true,
-	"voiceEnabled":                      true
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "model": "opus[1m]",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "NOTIFY_ONLY_BG=1 NOTIFY_DEFAULT_MSG=\"✅ 작업 완료\" bash ~/.claude/hooks/notify.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/herdr-agent-state.sh session",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "andrej-karpathy-skills@karpathy-skills": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "figma@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "frontend-slides@frontend-slides": true,
+    "gitkraken-hooks@gitkraken": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "humanize-korean@im-not-ai": true,
+    "lua-lsp@claude-plugins-official": true,
+    "obsidian@obsidian-skills": true,
+    "ponytail@ponytail": true,
+    "skill-creator@claude-plugins-official": true,
+    "telegram@claude-plugins-official": false,
+    "eli5@claude-community": true
+  },
+  "extraKnownMarketplaces": {
+    "frontend-slides": {
+      "source": {
+        "source": "github",
+        "repo": "zarazhangrui/frontend-slides"
+      }
+    },
+    "gitkraken": {
+      "source": {
+        "source": "directory",
+        "path": "/Users/jongdeug/.claude/plugins/marketplaces/gitkraken"
+      }
+    },
+    "im-not-ai": {
+      "source": {
+        "source": "github",
+        "repo": "epoko77-ai/im-not-ai"
+      }
+    },
+    "karpathy-skills": {
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
+    },
+    "obsidian-skills": {
+      "source": {
+        "source": "github",
+        "repo": "kepano/obsidian-skills"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "claude-community": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-community"
+      }
+    }
+  },
+  "language": "Korean",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "editorMode": "vim",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }
