@@ -14,3 +14,6 @@
 
 [includeIf "hasconfig:remote.*.url:git@github.com:JongDeug/**"]
 	path = ~/.gitconfig-personal
+# chaos 셀프호스티드 러너의 checkout 은 소유자가 달라 safe.directory 가 필요하다.
+[safe]
+	directory = /Users/jongdeug/actions-runner-chaos/_work/chaos/chaos
