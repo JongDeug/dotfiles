@@ -27,5 +27,7 @@
     },
     "makefile.configureOnOpen": false,
     "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
-    "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose"
+    "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
+    "diffEditor.ignoreTrimWhitespace": true,
+    "claudeCode.hideOnboarding": true
 }
