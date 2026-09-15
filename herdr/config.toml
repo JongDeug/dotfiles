@@ -86,6 +86,14 @@ type = "plugin_action"
 command = "chmarax.herdr-nvim.pick-file"
 description = "open file from agent output"
 
+# iurysza/herdr-pane-layouts (Python, 빌드 없음). 현재 탭 페인을 세로 컬럼으로 균등 분할.
+# prefix+e 는 edit_scrollback 이라 shift+e 를 쓴다.
+[[keys.command]]
+key = "prefix+shift+e"
+type = "plugin_action"
+command = "layouts.equalize"
+description = "equalize panes"
+
 [ui.sound]
 enabled = true
 
