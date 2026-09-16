@@ -21,7 +21,15 @@
     "security.promptForLocalFileProtocolHandling": false,
     "keyboard.dispatch": "keyCode",
     "vscode-neovim.neovimExecutablePaths.darwin": "/opt/homebrew/bin/nvim",
-    "lazygit.command": "/opt/homebrew/bin/lazygit && exit",
+    "zenMode.fullScreen": false,
+    "zenMode.centerLayout": false,
+    "zenMode.showTabs": "multiple",
+    "zenMode.hideLineNumbers": false,
+    "terminal.integrated.commandsToSkipShell": [
+        "workbench.action.toggleSidebarVisibility",
+        "workbench.action.toggleAuxiliaryBar",
+        "workbench.action.toggleZenMode"
+    ],
     "extensions.experimental.affinity": {
         "asvetliakov.vscode-neovim": 1
     },
@@ -29,5 +37,22 @@
     "containers.containerClient": "com.microsoft.visualstudio.containers.docker",
     "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.dockercompose",
     "diffEditor.ignoreTrimWhitespace": true,
-    "claudeCode.hideOnboarding": true
+    "claudeCode.hideOnboarding": true,
+    "gitlens.graph.details.location": "auto",
+    "gitlens.views.scm.grouped.views": {
+        "commits": true,
+        "branches": true,
+        "remotes": true,
+        "stashes": true,
+        "tags": true,
+        "worktrees": true,
+        "contributors": true,
+        "fileHistory": false,
+        "repositories": true,
+        "searchAndCompare": true,
+        "launchpad": false
+    },
+    "window.zoomLevel": -1,
+    "gitlens.graph.scrollMarkers.additionalTypes": [],
+    "gitlens.graph.layout": "editor"
 }

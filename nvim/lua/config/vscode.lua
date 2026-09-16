@@ -22,7 +22,6 @@ local help = {
   { label = "Space bd", description = "탭 닫기", command = "workbench.action.closeActiveEditor" },
   { label = "Shift+h / l", description = "탭 이동" },
   { label = "Space gs", description = "Git SCM", command = "workbench.view.scm" },
-  { label = "Space gg", description = "lazygit", command = "lazygit.openLazygit" },
   { label = "Space gl", description = "커밋 로그", command = "git-graph.view" },
   { label = "Space hs", description = "hunk stage", command = "git.stageSelectedRanges" },
   { label = "Space cp", description = "마크다운 미리보기", command = "markdown.showPreviewToSide" },
@@ -60,12 +59,7 @@ vim.keymap.set("n", "<leader>bd", action("workbench.action.closeActiveEditor"), 
 
 vim.keymap.set("n", "<S-h>", action("workbench.action.previousEditor"), { desc = "Prev Buffer" })
 vim.keymap.set("n", "<S-l>", action("workbench.action.nextEditor"), { desc = "Next Buffer" })
-vim.keymap.set("n", "<C-h>", action("workbench.action.navigateLeft"), { desc = "Go to Left Window" })
-vim.keymap.set("n", "<C-j>", action("workbench.action.navigateDown"), { desc = "Go to Lower Window" })
-vim.keymap.set("n", "<C-k>", action("workbench.action.navigateUp"), { desc = "Go to Upper Window" })
-vim.keymap.set("n", "<C-l>", action("workbench.action.navigateRight"), { desc = "Go to Right Window" })
 
-vim.keymap.set("n", "<leader>gg", action("lazygit.openLazygit"), { desc = "Lazygit" })
 vim.keymap.set("n", "<leader>gs", action("workbench.view.scm"), { desc = "Git Status" })
 vim.keymap.set("n", "<leader>gl", action("git-graph.view"), { desc = "Git Log" })
 vim.keymap.set({ "n", "x" }, "<leader>hs", action("git.stageSelectedRanges"), { desc = "Stage Hunk" })

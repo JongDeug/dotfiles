@@ -36,7 +36,7 @@
         "workbench.files.action.focusFilesExplorer"
       ]
     },
-    "when": "neovim.mode == normal && !terminalFocus && !suggestWidgetVisible && !filesExplorerFocus"
+    "when": "neovim.mode == normal && !terminalFocus && !inputFocus && !suggestWidgetVisible && !filesExplorerFocus"
   },
   {
     "key": "space e",
@@ -77,21 +77,78 @@
   {
     "key": "space g s",
     "command": "workbench.view.scm",
-    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
-  },
-  {
-    "key": "space g g",
-    "command": "lazygit.openLazygit",
-    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
+    "when": "!terminalFocus && !inputFocus && neovim.mode != insert"
   },
   {
     "key": "space g l",
-    "command": "git-graph.view",
-    "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
+    "command": "runCommands",
+    "args": {
+      "commands": [
+        "workbench.action.focusFirstEditorGroup",
+        "gitlens.showGraphPage"
+      ]
+    },
+    "when": "!terminalFocus && !inputFocus && neovim.mode != insert"
   },
   {
     "key": "space d b",
     "command": "editor.debug.action.toggleBreakpoint",
     "when": "editorTextFocus && neovim.mode == normal && !terminalFocus"
+  },
+  {
+    "key": "ctrl+space h",
+    "command": "workbench.action.navigateLeft"
+  },
+  {
+    "key": "ctrl+space l",
+    "command": "workbench.action.navigateRight"
+  },
+  {
+    "key": "ctrl+space j",
+    "command": "workbench.action.navigateDown"
+  },
+  {
+    "key": "ctrl+space k",
+    "command": "workbench.action.navigateUp"
+  },
+  {
+    "key": "ctrl+space ;",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+space ;",
+    "command": "workbench.action.terminal.focus",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+h",
+    "command": "workbench.action.toggleSidebarVisibility",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+l",
+    "command": "workbench.action.toggleAuxiliaryBar",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+j",
+    "command": "workbench.action.togglePanel",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+k",
+    "command": "workbench.action.toggleZenMode",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+/",
+    "command": "workbench.action.terminal.toggleTerminal",
+    "when": "!terminalFocus && !inputFocus"
+  },
+  {
+    "key": "ctrl+/",
+    "command": "workbench.action.togglePanel",
+    "when": "terminalFocus"
   }
 ]
