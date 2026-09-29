@@ -9,6 +9,8 @@ S=m1
 HOSTS=(
   "dev:m1-dev"
   "io:m1-io"
+  "gw:m1-gw"
+  "nas:m1-nas"
 )
 
 # 이미 있으면 그냥 붙는다
