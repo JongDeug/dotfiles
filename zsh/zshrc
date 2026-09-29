@@ -161,9 +161,9 @@ if (( $+commands[zoxide] )); then
       | awk '!seen[$0]++' | fzf -q "$*" -1
   }
 
-  # Open the pick in VS Code + GitKraken. GitKraken has no PATH binary and no
+  # Open the pick in Zed + GitKraken. GitKraken has no PATH binary and no
   # document type -- gitkraken://repo/<abs path> is how a running instance takes it.
-  c() { local d; d=$(_pick_dir "$@") || return; code "$d"; open "gitkraken://repo$d"; }
+  c() { local d; d=$(_pick_dir "$@") || return; zed "$d"; open "gitkraken://repo$d"; }
   j() { local d; d=$(_pick_dir "$@") && cd "$d"; }     # cd to the pick
 
   # herdr prefix+shift+J calls this from a popup. A custom command runs in its own

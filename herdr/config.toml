@@ -66,7 +66,7 @@ type = "plugin_action"
 command = "chmarax.herdr-nvim.toggle"
 description = "nvim sidebar"
 
-# fzf 로 레포를 골라 C 는 VSCode 만 띄우고(.zshrc 의 c), J 는 그 폴더에 새 페인을
+# fzf 로 레포를 골라 C 는 Zed 만 띄우고(.zshrc 의 c), J 는 그 폴더에 새 페인을
 # 연다(_pane_at). 커스텀 커맨드는 별도 프로세스라 살아 있는 페인의 cwd 를 못 바꾼다
 # — 그래서 cd 가 아니라 split 이다.
 # shell 타입은 detached 라 TTY 가 없어 fzf 가 죽는다. popup 이어야 한다.
@@ -75,7 +75,7 @@ description = "nvim sidebar"
 key = "prefix+shift+c"
 type = "popup"
 command = 'exec "${SHELL:-sh}" -ic c'
-description = "pick repo -> VSCode"
+description = "pick repo -> Zed"
 width = "70%"
 height = "60%"
 
