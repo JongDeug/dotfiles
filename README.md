@@ -26,7 +26,7 @@
 ├── karabiner/                   # Karabiner-Elements — 오른쪽 Command = 한/영
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
-├── tmux/                        # tmux
+├── tmux/                        # tmux — m1.sh 는 사무실 서버 세션 (아래 m1)
 ├── vscode/                      # VS Code
 ├── zed/                         # Zed — keymap 은 herdr 처럼 ctrl-space prefix
 └── zsh/                         # zshrc · zprofile · oh-my-zsh custom (nfc, editor)
@@ -93,7 +93,49 @@ git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-comple
 
 herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).
 
-`m1`은 `~/.tmux/m1.sh`(순수 tmux, m1ucs dev/io 세션)를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias m1='~/.tmux/m1.sh'`.
+### m1 (사무실 서버 tmux 세션)
+
+`m1`은 `~/.tmux/m1.sh`를 부르는 셸 alias 다(repo가 아니라 홈을 경유). `.zshrc`에 `alias m1='~/.tmux/m1.sh'`. 순수 tmux, 플러그인 없음.
+
+치면 `m1` 세션에 창 하나당 서버 하나로 ssh 가 붙는다. 세션이 이미 있으면 새로 만들지 않고 붙기만 한다.
+
+| 창 | ssh alias | 대상 | 경로 |
+|---|---|---|---|
+| `dev` | `m1-dev` | 192.168.0.17 M1UCS 개발서버 | `m1ucs.dev:2222` (gateway HAProxy TCP passthrough) |
+| `io` | `m1-io` | 192.168.0.15 M1UCS 스테이지 | `m1ucs.dev:2223` (〃) |
+| `gw` | `m1-gw` | 192.168.0.100 M1 Gateway (HAProxy) | 사무실 LAN 직결 — 밖에선 안 붙는다 |
+| `nas` | `m1-nas` | 192.168.0.127 M1 NAS | 사무실 LAN 직결 |
+
+창을 늘리려면 `tmux/m1.sh` 의 `HOSTS` 에 `"창이름:ssh-alias"` 한 줄.
+
+**ssh alias 는 repo 에 없다.** `~/.ssh/config` 는 머신 로컬이라 새 PC 에서 손으로 넣는다. 키는 `ssh-copy-id <alias>` 로 한 번 올린다(계정·비번은 노션 사내 PC 표).
+
+```sshconfig
+Host m1-dev
+    Port 2222
+Host m1-io
+    Port 2223
+Host m1-apps            # 192.168.0.16 Apps — 창은 안 띄움
+    Port 2224
+Host m1-dev m1-io m1-apps
+    HostName m1ucs.dev
+    User m1
+    IdentityFile ~/.ssh/id_ed25519
+
+Host m1-gw
+    HostName 192.168.0.100
+    User m1
+Host m1-nas
+    HostName 192.168.0.127
+    User M1NAS
+
+Host m1-*
+    ServerAliveInterval 60
+    ServerAliveCountMax 240
+    ControlMaster auto
+    ControlPath ~/.ssh/cm/%r@%h:%p   # mkdir -p ~/.ssh/cm
+    ControlPersist 4h
+```
 
 ### settings.json
 
