@@ -1,0 +1,108 @@
+// ctrl-space prefix, mirroring ~/.config/herdr/config.toml.
+[
+  {
+    // Free ctrl-space so the prefix sequences below are not swallowed.
+    "context": "Editor",
+    "bindings": { "ctrl-space": null }
+  },
+  {
+    "context": "Workspace",
+    "bindings": {
+      // Panes (herdr: prefix+h/j/k/l, |, -, z, x)
+      "ctrl-space h": "workspace::ActivatePaneLeft",
+      "ctrl-space j": "workspace::ActivatePaneDown",
+      "ctrl-space k": "workspace::ActivatePaneUp",
+      "ctrl-space l": "workspace::ActivatePaneRight",
+      "ctrl-space |": "pane::SplitRight",
+      "ctrl-space -": "pane::SplitDown",
+      "ctrl-space z": "workspace::ToggleZoom",
+      "ctrl-space x": "pane::CloseActiveItem",
+      "ctrl-space t": "terminal_panel::Toggle",
+      "ctrl-space ;": "multi_workspace::ToggleWorkspaceSidebar",
+
+      // Tabs (herdr: prefix+1..9, prefix+n/p)
+      "ctrl-space 1": ["pane::ActivateItem", 0],
+      "ctrl-space 2": ["pane::ActivateItem", 1],
+      "ctrl-space 3": ["pane::ActivateItem", 2],
+      "ctrl-space 4": ["pane::ActivateItem", 3],
+      "ctrl-space 5": ["pane::ActivateItem", 4],
+      "ctrl-space 6": ["pane::ActivateItem", 5],
+      "ctrl-space 7": ["pane::ActivateItem", 6],
+      "ctrl-space 8": ["pane::ActivateItem", 7],
+      "ctrl-space 9": ["pane::ActivateItem", 8],
+      "ctrl-space n": "pane::ActivateNextItem",
+      "ctrl-space p": "pane::ActivatePreviousItem",
+
+      // Same intent as herdr: f = open file, shift-c = pick repo, v = side panel
+      "ctrl-space f": "file_finder::Toggle",
+      "ctrl-space shift-c": "projects::OpenRecent",
+      "ctrl-space v": "agent::ToggleFocus",
+
+      // Zed-only
+      "ctrl-space e": "project_panel::ToggleFocus",
+      "ctrl-space g": "git_panel::ToggleFocus",
+      "ctrl-space o": "outline_panel::ToggleFocus",
+      "ctrl-space d": "debug_panel::ToggleFocus",
+      "ctrl-space /": "pane::DeploySearch",
+      "ctrl-space a": "agent::NewThread",
+      "ctrl-space b": "git::Blame",
+      "ctrl-space space": "workspace::CloseAllDocks",
+      "ctrl-space w": "tab_switcher::Toggle",
+      "ctrl-space c": "workspace::ToggleCenteredLayout",
+      "ctrl-space :": "command_palette::Toggle",
+      "ctrl-space s": "outline::Toggle",
+      "ctrl-space shift-s": "project_symbols::Toggle",
+      "ctrl-space !": "diagnostics::Deploy",
+      "ctrl-space shift-g": "git::Diff",
+      "ctrl-space shift-l": ["task::Spawn", { "task_name": "LazyGit", "reveal_target": "center" }],
+      "ctrl-space r": "editor::FindAllReferences"
+    }
+  },
+  // Same key closes the panel when it has focus (no per-panel toggle action exists).
+  {
+    "context": "ProjectPanel",
+    "bindings": { "ctrl-space e": "workspace::CloseActiveDock" }
+  },
+  {
+    // neo-tree style file ops.
+    "context": "ProjectPanel && not_editing",
+    "bindings": {
+      "a": "project_panel::NewFile",
+      "shift-a": "project_panel::NewDirectory",
+      "r": "project_panel::Rename",
+      "d": ["project_panel::Trash", { "skip_prompt": false }],
+      "shift-d": ["project_panel::Trash", { "skip_prompt": false }], // default is permanent delete
+      "y": "project_panel::Copy",
+      "x": "project_panel::Cut",
+      "p": "project_panel::Paste",
+      "c": "project_panel::Duplicate",
+      "shift-y": "workspace::CopyRelativePath",
+      "shift-o": "project_panel::RevealInFileManager",
+      "s": "project_panel::OpenSplitVertical",
+      "shift-s": "project_panel::OpenSplitHorizontal",
+      "q": "workspace::CloseActiveDock"
+    }
+  },
+  {
+    // ctrl-space alone is StageAll here; free it for the prefix.
+    "context": "GitPanel",
+    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::CloseActiveDock" }
+  },
+  {
+    "context": "AgentPanel",
+    "bindings": { "ctrl-space v": "workspace::CloseActiveDock" }
+  },
+  {
+    "context": "OutlinePanel",
+    "bindings": { "ctrl-space o": "workspace::CloseActiveDock" }
+  },
+  {
+    "context": "DebugPanel",
+    "bindings": { "ctrl-space d": "workspace::CloseActiveDock" }
+  },
+  {
+    // Claude Code newline, carried over from VS Code.
+    "context": "Terminal",
+    "bindings": { "shift-enter": ["terminal::SendText", "\\\r\n"] }
+  }
+]

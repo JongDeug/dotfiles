@@ -28,6 +28,7 @@
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux
 ├── vscode/                      # VS Code
+├── zed/                         # Zed — keymap 은 herdr 처럼 ctrl-space prefix
 └── zsh/                         # zshrc · zprofile · oh-my-zsh custom (nfc, editor)
 ```
 
@@ -63,6 +64,9 @@ ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 cp "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json   # 심링크 금지 — Karabiner 데몬이 못 연다
 ln -sfn "$REPO/vscode/settings.json"      ~/Library/Application\ Support/Code/User/settings.json      # macOS
 ln -sfn "$REPO/vscode/keybindings.json"   ~/Library/Application\ Support/Code/User/keybindings.json
+ln -sfn "$REPO/zed/settings.json"      ~/.config/zed/settings.json
+ln -sfn "$REPO/zed/keymap.json"        ~/.config/zed/keymap.json
+ln -sfn "$REPO/zed/tasks.json"         ~/.config/zed/tasks.json
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
 ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC
