@@ -44,6 +44,7 @@
       "ctrl-space o": "outline_panel::ToggleFocus",
       "ctrl-space d": "debug_panel::ToggleFocus",
       "ctrl-space /": "pane::DeploySearch",
+      "ctrl-space shift-f": "pane::DeploySearch",
       "ctrl-space a": "agent::NewThread",
       "ctrl-space b": "git::Blame",
       "ctrl-space space": "workspace::CloseAllDocks",
