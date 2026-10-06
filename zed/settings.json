@@ -7,6 +7,20 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "ssh_connections": [
+    {
+      "host": "m1-jdiu",
+      "args": [],
+      "projects": [
+        {
+          "paths": [
+            "/home/jdiu"
+          ]
+        }
+      ]
+    }
+  ],
+  "diff_view_style": "split",
   "edit_predictions": {
     "mode": "eager"
   },
@@ -82,10 +96,17 @@
     "message_editor_min_lines": 3,
     "play_sound_when_agent_done": "when_hidden",
     // Terminal threads start the real Claude Code CLI with the work config.
-    "terminal_init_command": "CLAUDE_CONFIG_DIR=$HOME/.claude-work claude"
+    "terminal_init_command": "CLAUDE_CONFIG_DIR=$HOME/.claude-work claude",
+    // VS Code layout: chat on the right, threads list with it.
+    "dock": "right",
+    "threads_sidebar": { "position": "right" }
   },
+  // VS Code layout: explorer, source control, outline share the left sidebar.
+  "project_panel": { "dock": "left" },
+  "git_panel": { "dock": "left" },
+  "outline_panel": { "dock": "left" },
   // No padding setting for the terminal; taller lines are the closest.
-  "terminal": { "line_height": "comfortable" },
+  "terminal": { "line_height": "comfortable", "dock": "bottom" },
   "telemetry": {
     "diagnostics": false,
     "metrics": false
