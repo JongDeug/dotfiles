@@ -27,3 +27,8 @@ test('칸 수는 비율을 지키고 한도를 넘지 않는다', () => {
   expect(gridFor(900, 1600, 100, 30)).toEqual({ columns: 37, rows: 30 })
 })
 
+
+test('공백이 든 경로', () => {
+  const [seg] = splitImages('![배경](/System/Library/Desktop Pictures/iMac Blue.heic)')
+  expect(seg).toEqual({ kind: 'image', pictures: [{ alt: '배경', path: '/System/Library/Desktop Pictures/iMac Blue.heic' }], raw: '![배경](/System/Library/Desktop Pictures/iMac Blue.heic)' })
+})

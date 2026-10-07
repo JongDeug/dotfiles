@@ -1,6 +1,6 @@
 {
   "name": "img",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "이미지·영상을 대화 안에 그림으로 — Read 로 읽은 이미지는 그 줄 아래, 답 속 ![설명](/경로) 줄은 그 자리에(여러 장이면 나란히, 영상은 프레임 6장). macOS sips·ffmpeg.",
   "author": {
     "name": "JongDeug",

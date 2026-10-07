@@ -13,7 +13,8 @@ export type Segment = { kind: 'text'; text: string } | { kind: 'image'; pictures
 
 // 줄 하나가 통째로 `![설명](/절대/경로.png)` 들인 것만 그림으로 바꾼다 — 여러 개면 나란히.
 // 문장 중간의 이미지 문법·URL 은 글로 둔다.
-const ONE = '!\\[([^\\]\\n]*)\\]\\((\\/[^)\\s]+)\\)'
+// 경로에 공백이 있어도 된다(macOS 의 `Desktop Pictures` 같은) — 닫는 괄호까지.
+const ONE = '!\\[([^\\]\\n]*)\\]\\((\\/[^)\\n]+)\\)'
 const LINE = new RegExp(`^${ONE}(?:[ \\t]+${ONE})*[ \\t]*$`, 'gm')
 const EACH = new RegExp(ONE, 'g')
 
