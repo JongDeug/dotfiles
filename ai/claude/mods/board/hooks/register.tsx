@@ -25,6 +25,10 @@ const busy = { git: false, ci: false, usage: false }
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
 let last: { seconds: number; tools: number; edits: number } | null = null
+// 프롬프트 캐시는 마지막 요청 뒤 1시간(구독 기본) 지나면 식는다. 이 세션에서 본 마지막 요청 시각.
+// 리로드 직후엔 모른다 — 다음 턴까지 알약을 숨긴다.
+const CACHE_TTL = 60 * 60_000
+let lastRequestAt = 0
 
 type Usage = {
   tokens: number
@@ -137,12 +141,15 @@ export const register: Register = on => {
     try {
       return await next(e)
     } finally {
+      // 도구 결과는 곧 다음 요청으로 이어진다.
+      lastRequestAt = await $.clock.now()
       if (t && e.tool === 'Agent') t.agents -= 1
       if (e.tool === 'Bash' || EDITS.has(e.tool)) void refreshGit($)
     }
   }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
+    lastRequestAt = await $.clock.now()
     if (turn) last = { seconds: Math.round(((await $.clock.now()) - turn.startedAt) / 1000), tools: turn.tools, edits: turn.edits.size }
     turn = null
     void refreshGit($)
@@ -245,6 +252,15 @@ export const register: Register = on => {
           </Text>,
         )
       }
+    }
+    if (turn) bottom.push(label(C.teal, '☕ 캐시 데우는 중'))
+    else if (lastRequestAt) {
+      const left = lastRequestAt + CACHE_TTL - now
+      bottom.push(
+        left > 0
+          ? <Text>{label(left < 10 * 60_000 ? C.yellow : C.teal, '☕ 캐시')}<Text backgroundColor={C.surface} color={C.text}>{` ${untilText(lastRequestAt + CACHE_TTL, now)} 남음 `}</Text></Text>
+          : <Text>{label(C.red, '🧊 캐시 식음')}<Text backgroundColor={C.surface} color={C.sub}>{usage ? ` 다음 요청이 ${tokensOf(usage.tokens)} 다시 씀 ` : ' '}</Text></Text>,
+      )
     }
     if (top.length === 0 && bottom.length === 0) return below
 
