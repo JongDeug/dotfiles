@@ -54,7 +54,8 @@
       "ctrl-space s": "outline::Toggle",
       "ctrl-space shift-s": "project_symbols::Toggle",
       "ctrl-space !": "diagnostics::Deploy",
-      "ctrl-space shift-g": "git::Diff",
+      "ctrl-space shift-u": "git::Diff",
+      "ctrl-space shift-g": "git_graph::Open",
       "ctrl-space shift-l": ["task::Spawn", { "task_name": "LazyGit", "reveal_target": "center" }],
       "ctrl-space r": "editor::FindAllReferences"
     }
