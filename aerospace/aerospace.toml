@@ -101,6 +101,10 @@ if.app-id = 'com.googlecode.iterm2'
 run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
+if.app-id = 'net.kovidgoyal.kitty'
+run = 'move-node-to-workspace 1'
+
+[[on-window-detected]]
 if.app-id = 'com.microsoft.VSCode'
 run = 'move-node-to-workspace 2'
 
@@ -219,6 +223,9 @@ run = 'move-node-to-workspace 8'
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     alt-tab = 'workspace-back-and-forth'
     alt-shift-tab = 'focus-monitor --wrap-around next'
+
+    # kitty 드롭다운 터미널 — 화면 위에서 내려오고, 다시 누르면 들어간다 (kitty/quick-access-terminal.conf).
+    alt-backtick = 'exec-and-forget /Applications/kitty.app/Contents/MacOS/kitten quick-access-terminal'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     alt-shift-semicolon = 'mode service'

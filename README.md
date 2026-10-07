@@ -26,6 +26,7 @@
 ├── git/                         # git 신원 규칙 — 기본 신원(~/.gitconfig-local)은 머신 로컬
 ├── karabiner/                   # Karabiner-Elements — 오른쪽 Command = 한/영
 ├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
+├── kitty/                       # kitty — iTerm2 에서 옮긴 폰트·Option 키, 테마는 머신마다 받는다
 ├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux — m1.sh 는 사무실 서버 세션 (아래 m1)
 ├── vscode/                      # VS Code
@@ -61,6 +62,8 @@ ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # smug 는 .y
 ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh 가 같이 건다
 ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
 ln -sfn "$REPO/nvim"                  ~/.config/nvim
+ln -sfn "$REPO/kitty"                 ~/.config/kitty
+kitten themes Catppuccin-Macchiato                                  # kitty/current-theme.conf 생성 (gitignore)
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
 cp "$REPO/karabiner/karabiner.json" ~/.config/karabiner/karabiner.json   # 심링크 금지 — Karabiner 데몬이 못 연다
 ln -sfn "$REPO/vscode/settings.json"      ~/Library/Application\ Support/Code/User/settings.json      # macOS
