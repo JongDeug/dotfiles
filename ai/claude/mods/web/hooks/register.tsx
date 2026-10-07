@@ -17,6 +17,8 @@ let frame: { file: string; generation: number } | null = null
 let page = { url: '', title: '' }
 let lastError = ''
 let loading = false
+// /web debug 용 — 클릭·키가 실제로 들어오는지.
+let inputs = { clicks: 0, keys: 0 }
 let sent = { width: 0, height: 0 }
 // /web debug 가 보여 줄 마지막 상태.
 let lastBlit = '아직 없음'
@@ -108,6 +110,7 @@ export const register: Register = (on, options) => {
           `frame: ${frame ? `#${frame.generation} ${frame.file}` : '없음'}, browser ${sent.width}x${sent.height}`,
           `render: ${lastRender}`,
           `blit: ${lastBlit}`,
+          `input: 클릭 ${inputs.clicks}번, 키 ${inputs.keys}번 받음`,
           `panes: ${JSON.stringify(panes)}`,
           `presentation: ${JSON.stringify(e.presentation)}`,
           `env: TERM=${await $.env.get('TERM')} TERM_PROGRAM=${await $.env.get('TERM_PROGRAM')} KITTY_WINDOW_ID=${await $.env.get('KITTY_WINDOW_ID')}`,
@@ -181,10 +184,12 @@ export const register: Register = (on, options) => {
         </Box>
         <Box width={cols} height={rows}>
           {frame && helper ? (
+            // 클릭 영역은 제자리에, 그림은 그 위에 띄운다. 띄운(absolute) 요소에 온 마우스는
+            // 부모가 받아서, 거꾸로 하면 클릭이 클릭 영역에 닿지 않는다.
             <>
-              <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
+              <Client key="input" module="./input.tsx" width={cols} height={rows} />
               <Box position="absolute" top={0} left={0}>
-                <Client key="input" module="./input.tsx" width={cols} height={rows} />
+                <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
               </Box>
             </>
           ) : null}
@@ -197,8 +202,13 @@ export const register: Register = (on, options) => {
   // 그림 위 클릭·키 (input.tsx 가 보낸다).
   on('ui.message', { requestId: PANE }, async ($, e, next) => {
     const data = e.data as { type: 'click'; x: number; y: number } | { type: 'key'; key: string; ctrl: boolean; meta: boolean; shift: boolean }
-    if (data.type === 'click') await call($, 'click', { x: data.x, y: data.y })
-    else await call($, 'key', data)
+    if (data.type === 'click') {
+      inputs.clicks += 1
+      await call($, 'click', { x: data.x, y: data.y })
+    } else {
+      inputs.keys += 1
+      await call($, 'key', data)
+    }
     return next(e)
   })
 
