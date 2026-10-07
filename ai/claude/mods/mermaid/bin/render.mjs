@@ -5,6 +5,8 @@
 //   -> { results: [{ key, png, columns, rows } | { key, text } | { key, error }] }
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
+import os from 'node:os'
+import path from 'node:path'
 
 import { THEMES, renderMermaidASCII, renderMermaidSVG } from 'beautiful-mermaid'
 
@@ -26,13 +28,59 @@ export function renderText(source) {
 const ROW_SVG_PX = 17
 // PNG 1행 높이(px) — 선명도만 정한다. 터미널이 칸에 맞춰 늘이고 줄인다.
 const ROW_PNG_PX = 40
-// 한글이 들어 있는 맥 기본 글꼴. 파일 하나만 읽으면 30ms, 시스템 글꼴 전부면 1.3초다.
+// 한글이 들어 있는 맥 기본 글꼴. 시스템 글꼴 전부를 읽으면 1.3초다.
 // 없는 머신(리눅스)에선 시스템 글꼴 전부로 물러난다.
 const FONT = 'Apple SD Gothic Neo'
 const FONT_FILE = '/System/Library/Fonts/AppleSDGothicNeo.ttc'
-const fontOptions = fs.existsSync(FONT_FILE)
-  ? { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }
-  : { loadSystemFonts: true, defaultFontFamily: 'sans-serif' }
+// .ttc 는 굵기 18개를 한 파일에 묶었다 — resvg 가 라벨마다 그걸 뒤져 라벨 11개에 1초가 든다.
+// 라벨이 쓰는 굵기(400 Regular · 500 Medium)만 한 번 떼어 캐시해 두면 25ms 다.
+const FACES = [0, 2]
+
+// TTC 의 한 글꼴(얼굴)을 단독 TTF 로 옮긴다: 표 목록을 다시 쓰고 표를 그대로 붙인다.
+export function extractFace(ttc, index) {
+  if (ttc.toString('latin1', 0, 4) !== 'ttcf') throw new Error('not a ttc')
+  const start = ttc.readUInt32BE(12 + index * 4)
+  const count = ttc.readUInt16BE(start + 4)
+  const tables = Array.from({ length: count }, (_, i) => {
+    const at = start + 12 + i * 16
+    return { record: ttc.subarray(at, at + 16), offset: ttc.readUInt32BE(at + 8), length: ttc.readUInt32BE(at + 12) }
+  })
+  const head = Buffer.from(ttc.subarray(start, start + 12 + count * 16))
+  const parts = [head]
+  let offset = head.length
+  tables.forEach(({ offset: from, length }, i) => {
+    head.writeUInt32BE(offset, 12 + i * 16 + 8)
+    const padded = Buffer.alloc((length + 3) & ~3)
+    ttc.copy(padded, 0, from, from + length)
+    parts.push(padded)
+    offset += padded.length
+  })
+  return Buffer.concat(parts)
+}
+
+function cachedFaces() {
+  const dir = path.join(os.tmpdir(), 'claude-mermaid-fonts')
+  const files = FACES.map(i => path.join(dir, `AppleSDGothicNeo-${i}.ttf`))
+  if (files.every(f => fs.existsSync(f))) return files
+  fs.mkdirSync(dir, { recursive: true })
+  const ttc = fs.readFileSync(FONT_FILE)
+  files.forEach((file, i) => {
+    const tmp = `${file}.${process.pid}`
+    fs.writeFileSync(tmp, extractFace(ttc, FACES[i]))
+    fs.renameSync(tmp, file)  // 동시에 두 번 그려도 반쯤 쓴 파일을 읽지 않는다
+  })
+  return files
+}
+
+function fontSetup() {
+  if (!fs.existsSync(FONT_FILE)) return { loadSystemFonts: true, defaultFontFamily: 'sans-serif' }
+  try {
+    return { loadSystemFonts: false, fontFiles: cachedFaces(), defaultFontFamily: FONT }
+  } catch {
+    return { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }  // 느려도 그린다
+  }
+}
+const fontOptions = fontSetup()
 
 function mix(a, b, p) {
   const ch = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)

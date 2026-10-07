@@ -30,6 +30,7 @@ Claude Code 가 설치하면서 `package-lock.json` 대로 npm 의존성을 받�
 ```
 claude plugin validate .
 claude plugin test .
+node bin/check.mjs      # 렌더러 글꼴 점검 (npm ci 뒤)
 claude --plugin-dir .      # 이 폴더를 한 세션만 불러온다 (먼저 npm install)
 ```
 
