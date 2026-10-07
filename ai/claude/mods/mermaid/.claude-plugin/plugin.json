@@ -1,6 +1,6 @@
 {
   "name": "mermaid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그린다. 한글 라벨 칸 맞춤.",
   "author": {
     "name": "JongDeug",
@@ -12,7 +12,7 @@
     "mode": {
       "type": "string",
       "title": "그리는 방식",
-      "description": "auto: kitty·Ghostty 면 그림, 아니면 선 도형. on: 항상 그림 (kitty 안 herdr). text: 항상 선 도형. off: 코드 그대로.",
+      "description": "auto: kitty·Ghostty 면 그림, 아니면 선 도형. on: 항상 그림. text: 항상 선 도형. off: 코드 그대로.",
       "default": "auto",
       "options": [
         "auto",

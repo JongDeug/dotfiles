@@ -10,6 +10,11 @@
       "name": "mermaid",
       "source": "./ai/claude/mods/mermaid",
       "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그리는 mod. 한글 라벨 칸 맞춤."
+    },
+    {
+      "name": "web",
+      "source": "./ai/claude/mods/web",
+      "description": "/web <주소> — 헤드리스 Chrome 화면을 Claude Code pane 에 띄우는 mod. 클릭·스크롤·입력, Claude 도 같은 탭을 조작."
     }
   ]
 }

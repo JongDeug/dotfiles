@@ -20,4 +20,6 @@ test('auto 는 kitty·Ghostty 에서만 그림, tmux 안에선 선 도형', () =
   expect(pickMode('auto', { TERM: 'xterm-kitty', TMUX: '/tmp/x' })).toBe('text')
   expect(pickMode('auto', { TERM_PROGRAM: 'iTerm.app' })).toBe('text')
   expect(pickMode('on', { TERM_PROGRAM: 'iTerm.app' })).toBe('pictures')
+  // herdr 안: TERM 은 서버를 띄운 터미널 것이라 못 믿고, 강제 변수를 따른다.
+  expect(pickMode('auto', { TERM_PROGRAM: 'iTerm.app', CLAUDE_CODE_FORCE_TERMINAL_IMAGES: '1' })).toBe('pictures')
 })

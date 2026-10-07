@@ -16,7 +16,7 @@
 │   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
 │   │   ├── hooks/               #     notify.sh 링크 · herdr-agent-state.sh 는 herdr 가 관리
-│   │   ├── mods/                #     직접 만든 mod (mermaid) — 루트 .claude-plugin/marketplace.json 으로 설치
+│   │   ├── mods/                #     직접 만든 mod (mermaid, web) — 루트 .claude-plugin/marketplace.json 으로 설치
 │   │   ├── telegram/            #     텔레그램 연동 설정
 │   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향

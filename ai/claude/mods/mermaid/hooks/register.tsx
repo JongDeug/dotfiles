@@ -49,6 +49,7 @@ export const register: Register = (on, options) => {
       TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
       KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
       TMUX: await $.env.get('TMUX'),
+      CLAUDE_CODE_FORCE_TERMINAL_IMAGES: await $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES'),
     })
     if (mode !== 'off') $.clock.every(150, () => void drain($, theme, cellAspect))
     return next(e)
