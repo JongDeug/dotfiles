@@ -1,5 +1,7 @@
 # web
 
+> 꺼 둠 — 공식 terminal-browser 플러그인(`/browser`)으로 대체했다. 기록으로 남겨 둔다.
+
 Claude Code 안 pane 에 브라우저를 띄우는 mod. herdr 창을 나누지 않고, Claude 창을 zoom 한 채로 대화 옆에서 웹을 본다.
 
 ```

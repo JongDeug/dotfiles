@@ -15,3 +15,9 @@
 - 그림 요소(kitty 그래픽)가 되는 터미널 필요 — herdr 안이면 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`.
 - **크게 보기 · PNG 저장** — 차트에 포인터를 올리면 밑에 `⤢ 크게 보기` `↓ PNG 저장`. 크게 보기는 pane 크기에 맞춰 다시 그리고, 저장은 `~/Downloads`.
 - **나란히** — `{"hconcat":[…,…]}` 면 폭을 나눠 갖는다.
+
+## 설정 (`/plugin` → chart → configure)
+
+| 키 | 기본 | |
+|---|---|---|
+| `cell_aspect` | `2.2` | 칸 높이÷너비. 차트가 길쭉하면 줄이고 납작하면 키운다 |
