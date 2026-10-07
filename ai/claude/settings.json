@@ -45,12 +45,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "ccstatusline",
-    "padding": 0,
-    "refreshInterval": 10
-  },
   "enabledPlugins": {
     "andrej-karpathy-skills@karpathy-skills": true,
     "claude-code-setup@claude-plugins-official": true,

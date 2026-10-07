@@ -18,7 +18,6 @@
 │   │   ├── hooks/               #     notify.sh 링크 · herdr-agent-state.sh 는 herdr 가 관리
 │   │   ├── mods/                #     직접 만든 mod — 목록·내보내기·함정은 mods/README.md
 │   │   ├── telegram/            #     텔레그램 연동 설정
-│   │   ├── statusline.sh        #     상태줄 렌더러 (아래 참고)
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
 │   └── shared/                  #   호스트 무관 — 다른 AI 도구에도 그대로 쓸 것
 │       └── harness/             #     Planner→Dev→QE→Ops (역할 프롬프트·커맨드·워크플로·spec)
@@ -158,22 +157,7 @@ Host m1-*
 
 ## 상태줄 (statusline)
 
-`ai/claude/statusline.sh`는 Claude Code가 넘겨주는 JSON에서 프로젝트·브랜치·모델·컨텍스트·비용과 `rate_limits`(5시간/7일 사용률, 리셋 시각)를 뽑아 한 줄로 렌더링한다.
-
-```
-📁 chaos 🌿 develop*2 · Opus 5 1M(xhigh) · 🧠 6% 62k/1M · 💰 $1.03 · 5h █░░░░░░░░░ 11%(16m) · 7d █████████░ 91%(67h 46m)
-```
-
-게이지 색은 사용률에 따라 바뀐다 (`<50%` 초록 → `50~74%` 노랑 → `75~89%` 주황 → `≥90%` 빨강). 브랜치 뒤 `*2`는 커밋되지 않은 변경 파일 수, 괄호 안은 리밋 리셋까지 남은 시간.
-
-스타일은 `~/.claude/statusline.style`에 한 단어를 넣어 전환한다 (기본 `full`).
-
-| 스타일 | 구성 |
-|--------|------|
-| `full` | 위 예시 — 컨텍스트·비용 포함 1줄 |
-| `classic` | 프로젝트·브랜치·모델·5h·7d 만 |
-| `two` | 2줄 (아래줄에 12칸 게이지 + diff 라인수) |
-| `minimal` | 5칸 게이지 초압축 1줄 |
+statusline 은 쓰지 않는다 — 입력창 위 계기판 mod [board](ai/claude/mods/board/) 가 대신한다(모델·경로·브랜치·컨텍스트·비용·사용량 한도 + git 변경·CI·지금 도는 작업).
 
 ## 스킬
 
