@@ -1,5 +1,5 @@
 {
   "name": "board",
-  "version": "0.1.1",
-  "description": "입력창 위 상황판 — git 변경·CI·지금 도는 작업을 알약 한 줄로. 변경 알약에 포인터를 올리면 파일 목록."
+  "version": "0.2.0",
+  "description": "입력창 위 두 줄 계기판 — statusline 대체. 프롬프트 캐시 keepwarm·식은 채 보내기 경고 포함(cache-tax 2.2.1 포크, MIT)."
 }

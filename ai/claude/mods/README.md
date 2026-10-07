@@ -4,8 +4,7 @@
 
 | mod | 하는 일 | 상태 |
 |---|---|---|
-| [board](board/) | 입력창 위 두 줄 계기판 — statusline 대체 | 사용 |
-| [cache](cache/) | 프롬프트 캐시 keepwarm · 식은 채 보내기 경고 — [cache-tax](https://github.com/karanb192/claude-code-mods) 2.2.1 포크(MIT) | 사용 |
+| [board](board/) | 입력창 위 두 줄 계기판 — statusline 대체. 프롬프트 캐시 keepwarm·식은 채 보내기 경고 포함([cache-tax](https://github.com/karanb192/claude-code-mods) 포크) | 사용 |
 | [mermaid](mermaid/) | 답 속 ```` ```mermaid ```` 를 다이어그램 그림으로 | 사용 |
 | [chart](chart/) | 답 속 ```` ```chart ```` (Vega-Lite JSON) 를 그래프 그림으로 | 사용 |
 | [img](img/) | 이미지·영상 경로를 대화 안에 그림으로 | 사용 |
@@ -50,5 +49,6 @@ done
 
 - **`/reload-plugins` 뒤엔 `session.start` 가 다시 안 온다.** 거기서 타이머를 켜면 리로드 뒤 영영 안 그린다. 그릴 것이 쌓일 때 렌더를 깨우고, 끝나면 그 사이 쌓인 것을 한 번 더 돈다. 모듈 변수도 리로드 때 비워진다.
 - **Button 의 `hover` 는 키(`key`) 있는 Box 안에서만.** 아니면 엔진이 트리를 통째로 거부하고 원래 글로 그린다(`ui.render (AssistantMessage) refused: Button "…" hover has no Box with a key around it`). 버튼은 포인터 아래서 원래 반전되니 대개 필요 없다.
+- **한 플러그인에 훅 모듈은 하나, 같은 이벤트 훅도 하나.** `hooks.json` 의 `modules` 에 두 번째를 넣으면 거부되고, 한 모듈 안에서 같은 이벤트(매처 없이)를 두 번 걸어도 거부된다. `$` 는 같은 파일에 선언된 함수로만 넘길 수 있다(import 한 함수로는 안 됨) — 다른 mod 를 합칠 땐 `$` 를 쓰는 부분은 한 파일로, 순수 계산만 import 로.
 - **경로 정규식** — macOS 경로엔 공백이 흔하다(`/System/Library/Desktop Pictures/…`). `[^)\s]` 말고 닫는 괄호까지.
 - **트리가 거부되면** 대화에 흐린 줄 `<plugin>: ui.render (…) refused: …` 이 남는다. 안 뜨면 이 줄부터 본다.

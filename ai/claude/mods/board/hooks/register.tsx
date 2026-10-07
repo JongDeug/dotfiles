@@ -1,5 +1,10 @@
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, PromptSubmitInput, PromptSubmitResult, Register, TurnCompleteInput, TurnCompleteResult } from 'claude-code'
 
+import {
+  armedText, AUTO_WARM_MS, BIG_TOKENS, card, deadlineKey, DEFAULT_WINDOW_MS, disarm, everyKey, freshState, guardText, KEY_ALWAYS, KEY_DEADLINE, KEY_EVERY, KEY_GUARD,
+  MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
+} from './cache'
+import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { ago, barCells, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText, type Ci, type Git, type Slice } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
@@ -25,10 +30,6 @@ const busy = { git: false, ci: false, usage: false }
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
 let last: { seconds: number; tools: number; edits: number } | null = null
-// 프롬프트 캐시는 마지막 요청 뒤 1시간(구독 기본) 지나면 식는다. 이 세션에서 본 마지막 요청 시각.
-// 리로드 직후엔 모른다 — 다음 턴까지 알약을 숨긴다.
-const CACHE_TTL = 60 * 60_000
-let lastRequestAt = 0
 
 type Usage = {
   tokens: number
@@ -103,6 +104,7 @@ const refreshUsage = ($: EngineInterface) =>
 async function start($: EngineInterface): Promise<void> {
   if (started) return
   started = true
+  await initCache($, 'terminal')
   cwd = await $.session.cwd()
   home = (await $.env.get('HOME')) ?? ''
   // effort 는 훅 모듈에 바로 오지 않는다 — 설정 파일에서 읽는다.
@@ -119,13 +121,305 @@ async function start($: EngineInterface): Promise<void> {
   })
 }
 
+// ── 프롬프트 캐시 keepwarm · 식은 채 보내기 경고 ─────────────────────────────
+// cache-tax 2.2.1(Karan Bansal, MIT — ../LICENSE-cache-tax)의 타이머·핑·저장. 동작은 원본 그대로다.
+const cache: State = freshState()
+
+function updateStatus($: EngineInterface, s: State, now: number) {
+  if (s.hasBand) $.ui.invalidate('ui.render')
+  else $.ui.status(statusText(s, now))
+}
+
+/** Clears this session's own dead window and the bare keys a store written before 2.1.1 still holds. Other sessions' keys are never touched: a read followed by a delete cannot be made atomic against their renewal. */
+async function prune($: EngineInterface, s: State, now: number) {
+  for (const key of [KEY_DEADLINE, deadlineKey(s)]) {
+    const deadline = await $.store.get(key)
+    if (deadline === undefined) continue
+    if (typeof deadline === 'number' && deadline > now) continue
+    await $.store.delete(key)
+    await $.store.delete(KEY_EVERY + key.slice(KEY_DEADLINE.length))
+  }
+}
+
+async function stop($: EngineInterface, s: State, why: string | null, forgetAlways = false) {
+  s.deadline = 0
+  s.every = PING_AFTER_MS
+  s.stopped = why
+  disarm(s)
+  await $.store.delete(deadlineKey(s))
+  await $.store.delete(everyKey(s))
+  if (forgetAlways) {
+    s.always = false
+    await $.store.delete(KEY_ALWAYS)
+  }
+  updateStatus($, s, await $.clock.now())
+}
+
+async function arm($: EngineInterface, s: State) {
+  disarm(s)
+  if (!s.deadline) return
+  const now = await $.clock.now()
+  if (now >= s.deadline) return stop($, s, null)
+  // A cold window still needs expiry cleanup, but must not send a model request.
+  if (s.lastRequestAt && !s.compacted && !isCold(cache, now)) {
+    const untilCold = s.lastRequestAt + TTL_MS - now
+    const delay = Math.min(s.deadline - now, untilCold, Math.max(1000, s.lastRequestAt + s.every - now))
+    s.pending = $.clock.after(delay, () => { void ping($, s) })
+  } else {
+    s.pending = $.clock.after(s.deadline - now, () => { void arm($, s) })
+  }
+  updateStatus($, s, now)
+}
+
+async function ping($: EngineInterface, s: State) {
+  s.pending = null
+  if (!s.deadline) return
+  const now = await $.clock.now()
+  if (now >= s.deadline) return arm($, s)
+  // A turn in the meantime re-armed the timer; this callback is stale.
+  if (isCold(cache, now)) return arm($, s)
+  if (now - s.lastRequestAt < s.every - 1000) return
+  let reply
+  try {
+    reply = await $.model.fork({ prompt: PING_PROMPT })
+  } catch (err) {
+    return stop($, s, `핑 실패, ${err instanceof Error ? err.message : String(err)}`)
+  }
+  if (reply === null) return stop($, s, '엔진이 핑을 보내지 않았다 — 스냅숏이 식었거나 API 호출이 실패했다')
+  if (reply.isAnswered === false) {
+    const reason = reply.reason === 'nothing-to-fork' ? '아직 데울 대화가 없다'
+      : reply.reason === 'api-error' ? `API 호출 실패${reply.status === null ? '' : ` (${reply.status})`}`
+      : reply.reason === 'aborted' ? '핑이 중단됐다'
+      : '핑 답이 비었다'
+    return stop($, s, reason)
+  }
+  const u = reply.usage
+  const price = priceOf(s.lastModel)
+  // A warm ping reads the prefix and writes only its own message; a write of a tenth of the read or more means the prefix broke.
+  const warm = u.cache_read_input_tokens > 0 && u.cache_creation_input_tokens < 0.1 * u.cache_read_input_tokens
+  const usd = price ? pingUsd(u, price) : null
+  s.last = { at: now, read: u.cache_read_input_tokens, write: u.cache_creation_input_tokens, usd, warm }
+  if (!warm) return stop($, s, `핑이 ${fmtTok(u.cache_read_input_tokens)}을 읽고 ${fmtTok(u.cache_creation_input_tokens)}토큰을 썼다(${fmtUsd(usd)}) — 캐시가 이미 사라졌다`)
+  s.lastRequestAt = now
+  await arm($, s)
+}
+
+async function startWindow($: EngineInterface, s: State, windowMs: number, every: number) {
+  const now = await $.clock.now()
+  s.every = every
+  if (every === PING_AFTER_MS) await $.store.delete(everyKey(s))
+  else await $.store.set(everyKey(s), every)
+  s.deadline = now + windowMs
+  s.stopped = null
+  await $.store.set(deadlineKey(s), s.deadline)
+  await arm($, s)
+}
+
+// 세션 시작 때 하는 일(저장된 keepwarm 복원, 명령 등록). /reload-plugins 뒤엔 session.start 가 다시 오지 않으니
+// 계기판이 처음 그려질 때도 부른다 — 한 번만.
+let cacheReady = false
+async function initCache($: EngineInterface, surface: string | null, fresh = false): Promise<void> {
+  // 진짜 session.start 는 매번 새로 읽는다(always 창 다시 켜기 등). 그리기 쪽은 아직 안 했을 때만.
+  if (cacheReady && !fresh) return
+  cacheReady = true
+  cache.hasBand = surface === 'terminal' || surface === 'desktop'
+  if (cache.hasBand) $.ui.status(undefined)
+  cache.sid = await $.session.id()
+  const now = await $.clock.now()
+  await prune($, cache, now)
+  const saved = await $.store.get(deadlineKey(cache))
+  const savedEvery = await $.store.get(everyKey(cache))
+  const savedGuard = await $.store.get(KEY_GUARD)
+  cache.deadline = typeof saved === 'number' && saved > now ? saved : 0
+  cache.every = typeof savedEvery === 'number' && savedEvery >= MIN_PING_MS ? savedEvery : PING_AFTER_MS
+  cache.guard = savedGuard === 'warn' ? 'warn' : 'refuse'
+  cache.always = (await $.store.get(KEY_ALWAYS)) === true
+  // Always means a fresh default window every session, whatever the last one left behind.
+  if (cache.always) await startWindow($, cache, DEFAULT_WINDOW_MS, PING_AFTER_MS)
+  const usage = await $.session.usage()
+  if (usage.context.tokens) cache.ctx = usage.context.tokens
+  await $.command.register({
+    name: 'keepwarm',
+    description: '쉬는 동안 프롬프트 캐시를 데워 둔다: 그냥 치면 6h, 90m 같은 시간, always, off, status',
+    argumentHint: '[6h | always | off | status]',
+    immediate: true,
+  })
+  await $.command.register({
+    name: 'cache',
+    description: '프롬프트 캐시 상태 카드: 식은 비용·keepwarm·이 세션에 낸 식은 쓰기. guard warn|refuse',
+    argumentHint: '[status | guard warn | guard refuse]',
+    immediate: true,
+  })
+  // The hook form of cache-tax ships a /cache-tax:status skill; both installed means two guards.
+  const commands = await $.command.list()
+  if (commands.some(c => c.name === 'cache-tax:status')) {
+    $.ui.log('cache-tax 훅 버전(cache-tax@claude-code-hooks)도 깔려 있어서 식은 채 보내기를 두 번 경고하거나 막는다. 그쪽을 지우거나 여기서 /cache guard warn.')
+  }
+  updateStatus($, cache, now)
+}
+
+// The message that pays. Only its first character is read.
+async function guardColdSend($: EngineInterface, e: PromptSubmitInput, next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>): Promise<PromptSubmitResult> {
+  if (e.origin.kind === 'plugin') return next(e)
+  if (typeof e.text !== 'string' || e.text.trimStart().startsWith('/')) return next(e)
+  const now = await $.clock.now()
+  if (!isCold(cache, now) || cache.ctx < BIG_TOKENS) return next(e)
+  if (cache.guard === 'warn') {
+    $.ui.log(`${guardText(cache, now)} 그대로 보낸다 — 들어가면 keepwarm 이 ${fmtDuration(AUTO_WARM_MS)} 동안 캐시를 데워 둔다.`)
+    cache.coldWritePending = true
+    return next(e)
+  }
+  if (cache.ackedAt === cache.lastRequestAt) {
+    cache.ackedAt = 0
+    cache.coldWritePending = true
+    return next(e)
+  }
+  cache.ackedAt = cache.lastRequestAt
+  return { drop: `cache: ${guardText(cache, now)} 다시 보내면 그 값을 내고 들어가고, 그 뒤 keepwarm 이 ${fmtDuration(AUTO_WARM_MS)} 동안 데워 둔다. 아니면 /clear 하고 메모에서 시작하자.` }
+}
+
+async function scoreTurn($: EngineInterface, e: TurnCompleteInput, next: (e: TurnCompleteInput) => Promise<TurnCompleteResult>): Promise<TurnCompleteResult> {
+  const r = await next(e)
+  if (e.agentId) return r
+  const now = await $.clock.now()
+  // A sleeping host may deliver this turn before the expired window's timer.
+  if (cache.deadline && now >= cache.deadline) await stop($, cache, null)
+  // turn.step stamps the exact request time; when no step of this turn did, the turn's end is the floor.
+  if (now - cache.lastRequestAt > e.durationMs) cache.lastRequestAt = now
+  cache.compacted = false
+  cache.ackedAt = 0
+  const u = e.usage
+  if (u) {
+    if (u.model) cache.lastModel = u.model
+    const prev = cache.ctx
+    // A turn's usage is its responses summed, so a ten-step turn reports ten
+    // reads of the context. The live window is the engine's figure; the sum
+    // is only the fallback for a host that reports no tokens.
+    const write = u.cache_creation_input_tokens
+    const live = (await $.session.usage()).context.tokens
+    cache.ctx = live && live > 0 ? live : u.input_tokens + u.cache_read_input_tokens + write
+    const full = prev > 20000 && write >= 0.5 * prev
+    if (full || cache.coldWritePending) {
+      const price = priceOf(cache.lastModel)
+      const usd = price ? write * price[1] / 1e6 : null
+      cache.misses.push({ at: now, tokens: write, usd })
+      if (cache.deadline < now + AUTO_WARM_MS) {
+        await startWindow($, cache, AUTO_WARM_MS, cache.every)
+        $.ui.log(`식은 쓰기 ${fmtTok(write)}토큰 냈다(${fmtUsd(usd)}). 오늘 또 내지 않게 ${fmtDuration(AUTO_WARM_MS)} 동안 캐시를 데워 둔다 — 그만하려면 /keepwarm off.`)
+      }
+    }
+  }
+  cache.coldWritePending = false
+  await arm($, cache)
+  return r
+}
+
 const level = (percent: number) => (percent >= 80 ? C.red : percent >= 50 ? C.yellow : C.green)
 
+
 export const register: Register = on => {
+
+  on('session.start', async ($, e, next) => {
+    const r = await next(e)
+    await initCache($, e.surface, true)
+    return r
+  })
+
+  // Resume fields seed the guard before any turn of the resumed session has run.
+  on('classic.SessionStart', async ($, e, next) => {
+    const r = await next(e)
+    if (e.source === 'clear') {
+      await stop($, cache, null)
+      cache.stopped = null
+      resetForClear(cache)
+      cache.sid = await $.session.id()
+      updateStatus($, cache, await $.clock.now())
+      return r
+    }
+    const line = seedFromResume(cache, e, await $.clock.now())
+    // The resume payload may omit the model; without it the guard cannot price the cold write.
+    if (!cache.lastModel) cache.lastModel = await $.session.model()
+    if (line) $.ui.log(line)
+    // The seeded clock decides whether a restored or always window pings before the first turn: never when it is cold.
+    await arm($, cache)
+    return r
+  })
+
+  on('command.run', { command: 'keepwarm' }, async ($, e) => {
+    const words = String(e.args ?? '').trim().split(/\s+/).filter(Boolean)
+    const now = await $.clock.now()
+    if (words[0] === 'off') {
+      const wasAlways = cache.always
+      await stop($, cache, null, true)
+      return { text: wasAlways ? 'keepwarm 꺼짐. 세션 시작 때 저절로 켜지지도 않는다' : 'keepwarm 꺼짐' }
+    }
+    if (words[0] === 'always') {
+      cache.always = true
+      await $.store.set(KEY_ALWAYS, true)
+      await startWindow($, cache, DEFAULT_WINDOW_MS, PING_AFTER_MS)
+      const cold = isCold(cache, now) ? `. 지금은 캐시가 식어서 다음 턴 ${fmtDuration(cache.every)} 뒤에 첫 핑이 간다` : ''
+      return { text: `keepwarm 항상 켬: 세션마다 ${fmtDuration(DEFAULT_WINDOW_MS)} 창으로 시작한다. /keepwarm off 하면 아주 꺼진다${cold}` }
+    }
+    if (!words.length) {
+      await startWindow($, cache, DEFAULT_WINDOW_MS, PING_AFTER_MS)
+      return { text: armedText(cache, now, DEFAULT_WINDOW_MS) }
+    }
+    if (words[0] !== 'status') {
+      const window = parseDuration(words[0] ?? '')
+      if (window == null) return { text: 'keepwarm 은 6h · 90m 같은 시간, 또는 always · off · status 를 받는다' }
+      // "every 2m" is a testing knob and lasts only for the window it was given with.
+      let every = PING_AFTER_MS
+      if (words[1] === 'every') {
+        const period = parseDuration(words[2] ?? '')
+        if (period == null || period < MIN_PING_MS) return { text: 'every 는 1m 이상' }
+        every = period
+      }
+      await startWindow($, cache, window, every)
+      return { text: armedText(cache, now, window) }
+    }
+    return { text: statusText(cache, now) ?? 'keepwarm 꺼짐' }
+  })
+
+  on('command.run', { command: 'cache' }, async ($, e) => {
+    const words = String(e.args ?? '').trim().split(/\s+/).filter(Boolean)
+    const now = await $.clock.now()
+    if (words[0] === 'guard') {
+      if (words[1] !== 'warn' && words[1] !== 'refuse') return { text: '/cache guard 는 warn 또는 refuse' }
+      cache.guard = words[1]
+      await $.store.set(KEY_GUARD, cache.guard)
+      return { text: cache.guard === 'refuse' ? '가드: 식은 채 보내면 가격을 보여 주고 한 번 막는다. 다시 보내면 간다' : '가드: 식은 채 보내도 가격만 보여 주고 보낸다' }
+    }
+    return { text: card(cache, now) }
+  })
+
+
+  on('turn.step', async function* ($, e, next) {
+    if (!e.agentId) cache.lastRequestAt = await $.clock.now()
+    yield* next(e)
+  })
+
+
+  on('session.compact', async ($, e, next) => {
+    const r = await next(e)
+    if (!e.agentId) {
+      cache.compacted = true
+      cache.ctx = 0
+      cache.ackedAt = 0
+      disarm(cache)
+      await arm($, cache)
+    }
+    return r
+  })
+
   on('prompt.submit', async ($, e, next) => {
-    turn = { startedAt: await $.clock.now(), tools: 0, current: '생각 중', agents: 0, edits: new Set() }
-    $.ui.invalidate('ui.render')
-    return next(e)
+    const startedAt = await $.clock.now()
+    const r = await guardColdSend($, e, next)
+    // 식은 캐시 경고가 메시지를 막았으면 턴이 시작되지 않는다 — 스피너를 돌리지 않는다.
+    if (r.drop === undefined) {
+      turn = { startedAt, tools: 0, current: '생각 중', agents: 0, edits: new Set() }
+      $.ui.invalidate('ui.render')
+    }
+    return r
   }).catch(($, e, next) => next(e)) // 계기판이 깨져도 프롬프트는 막지 않는다
 
   on('tool.call', async ($, e, next) => {
@@ -141,15 +435,15 @@ export const register: Register = on => {
     try {
       return await next(e)
     } finally {
-      // 도구 결과는 곧 다음 요청으로 이어진다.
-      lastRequestAt = await $.clock.now()
       if (t && e.tool === 'Agent') t.agents -= 1
       if (e.tool === 'Bash' || EDITS.has(e.tool)) void refreshGit($)
     }
   }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
-    lastRequestAt = await $.clock.now()
+    const r = await scoreTurn($, e, next)
+    // 서브에이전트의 턴이 끝난 건 이 대화의 턴이 끝난 게 아니다.
+    if (e.agentId) return r
     if (turn) last = { seconds: Math.round(((await $.clock.now()) - turn.startedAt) / 1000), tools: turn.tools, edits: turn.edits.size }
     turn = null
     void refreshGit($)
@@ -157,7 +451,7 @@ export const register: Register = on => {
       if (usage) history.push(usage.percent)
       if (history.length > 16) history.shift()
     })
-    return next(e)
+    return r
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -253,13 +547,15 @@ export const register: Register = on => {
         )
       }
     }
+    const cachePill = viewOf(cache, now)
     if (turn) bottom.push(label(C.teal, '☕ 캐시 데우는 중'))
-    else if (lastRequestAt) {
-      const left = lastRequestAt + CACHE_TTL - now
+    else if (cachePill) {
+      const bg = cachePill.tone === 'warm' ? C.teal : cachePill.tone === 'cold' ? C.red : C.overlay
       bottom.push(
-        left > 0
-          ? <Text>{label(left < 10 * 60_000 ? C.yellow : C.teal, '☕ 캐시')}<Text backgroundColor={C.surface} color={C.text}>{` ${untilText(lastRequestAt + CACHE_TTL, now)} 남음 `}</Text></Text>
-          : <Text>{label(C.red, '🧊 캐시 식음')}<Text backgroundColor={C.surface} color={C.sub}>{usage ? ` 다음 요청이 ${tokensOf(usage.tokens)} 다시 씀 ` : ' '}</Text></Text>,
+        <Text>
+          <Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{` ${cachePill.head} `}</Text>
+          <Text backgroundColor={C.surface} color={C.text}>{` ${cachePill.body} `}</Text>
+        </Text>,
       )
     }
     if (top.length === 0 && bottom.length === 0) return below

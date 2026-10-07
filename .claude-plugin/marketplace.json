@@ -9,12 +9,7 @@
     {
       "name": "board",
       "source": "./ai/claude/mods/board",
-      "description": "입력창 위 두 줄 계기판 — 모델·경로·브랜치·변경·CI·지금 도는 작업, 분류별 컨텍스트 막대·사용량 한도·비용. statusline 대체."
-    },
-    {
-      "name": "cache",
-      "source": "./ai/claude/mods/cache",
-      "description": "프롬프트 캐시 keepwarm·식은 채 보내기 경고 (cache-tax 포크)"
+      "description": "입력창 위 두 줄 계기판 — 모델·경로·브랜치·변경·CI·지금 도는 작업, 분류별 컨텍스트 막대·사용량 한도·비용·프롬프트 캐시. keepwarm·식은 채 보내기 경고(cache-tax 포크) 포함. statusline 대체."
     },
     {
       "name": "chart",
