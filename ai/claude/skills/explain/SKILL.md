@@ -1,6 +1,6 @@
 ---
 name: explain
-description: Use when the user wants a rich, visual explanation of anything — a conversation we just had, a concept, a system, an architecture, a decision, a codebase, or a code change/diff/PR. Publishes an interactive Claude Artifact (Background / Intuition / Detail / Quiz) with a required flow diagram, falling back to a self-contained HTML file. 트리거는 `/explain`, "이거 시각화해줘", "지금까지 얘기한 거 정리해줘", "이 변경/PR 설명해줘", "그림으로 설명해줘".
+description: Use when the user wants a rich, visual explanation of anything — a conversation we just had, a concept, a system, an architecture, a decision, a codebase, or a code change/diff/PR. Builds an interactive page (Background / Intuition / Detail / Quiz) with a required flow diagram and opens it in the Claude Code browser pane (terminal-browser); publishes a Claude Artifact only when the user wants to share it. 트리거는 `/explain`, "이거 시각화해줘", "지금까지 얘기한 거 정리해줘", "이 변경/PR 설명해줘", "그림으로 설명해줘".
 ---
 
 # Explain
@@ -30,8 +30,11 @@ Always these four, in this order:
 
 ## 3. Output
 
-- **Publish as a Claude Artifact by default.** Load the `artifact-design` skill first, write the page to a file, then call the `Artifact` tool with that path so the user gets a hosted, shareable page. Pass a `favicon` and a one-sentence `description`.
-  - If the Artifact tool is unavailable or the publish fails, fall back to saving the HTML locally and say why. Put it outside the code repo with a filename starting with today's date in `YYYY-MM-DD-` format, so files stay time-sorted and out of version control. For example: /tmp/2026-01-12-explanation-<slug>.html
+- **Show it in the Claude Code browser pane by default.** Load the `artifact-design` skill first for the design pass, write the page to a local HTML file, then open it beside the conversation:
+  - the terminal-browser plugin's `open` tool with `url: "file://<absolute path>"`, or
+  - if that tool isn't loaded, `terminal-browser new-tab file://<path>` when a pane browser is already open (`terminal-browser ls`), or ask the user to run `/browser file://<path>`.
+  - Save it outside the code repo with a filename starting with today's date in `YYYY-MM-DD-` format, so files stay time-sorted and out of version control: `~/.cache/explain/2026-01-12-<slug>.html`.
+- **Publish as a Claude Artifact only when the user wants to share it** (a link for someone else, a teammate, phone). Then call the `Artifact` tool with the same file, passing an `icon` and a one-sentence `description`.
 - Either way it's a single self-contained page with CSS and JavaScript inlined — no external CDNs, fonts, or scripts (the Artifact CSP blocks them). One long scrolling page with section headers and a table of contents; no tabs for the top-level structure. Responsive so it reads on a phone, and theme-aware for light and dark.
 
 ## 4. Style

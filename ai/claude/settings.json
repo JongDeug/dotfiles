@@ -128,5 +128,12 @@
   "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "pluginConfigs": {
+    "terminal-browser@terminal-browser": {
+      "options": {
+        "agentTool": true
+      }
+    }
+  }
 }
