@@ -5,7 +5,8 @@ const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic)$/i
 const VIDEO_EXT = /\.(mp4|mov|mkv|webm|avi|m4v)$/i
 
 export const isImagePath = (path: unknown): path is string => typeof path === 'string' && path.startsWith('/') && IMAGE_EXT.test(path)
-export const isMediaPath = (path: unknown): path is string => isImagePath(path) || (typeof path === 'string' && path.startsWith('/') && VIDEO_EXT.test(path))
+export const isVideoPath = (path: unknown): path is string => typeof path === 'string' && path.startsWith('/') && VIDEO_EXT.test(path)
+export const isMediaPath = (path: unknown): path is string => isImagePath(path) || isVideoPath(path)
 
 export type Picture = { path: string; alt: string }
 export type Segment = { kind: 'text'; text: string } | { kind: 'image'; pictures: Picture[]; raw: string }

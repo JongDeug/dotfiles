@@ -1,8 +1,10 @@
-import type { EngineInterface, Register } from 'claude-code'
+import type { BoxProps, ButtonProps, ElementConstructor, EngineInterface, Register, TextProps } from 'claude-code'
 
 import { gridFor, isImagePath, splitImages } from './images'
 
 type Converted = { file: string; width: number; height: number } | { error: string }
+type Ready = { file: string; width: number; height: number }
+type Parts = { Box: ElementConstructor<BoxProps>; Button: ElementConstructor<ButtonProps>; Text: ElementConstructor<TextProps> }
 
 // 변환 결과는 경로별로 기억한다. 렌더 중엔 기다리지 않고, 없으면 줄에 올려 두었다가 타이머가 한꺼번에 바꾼다.
 // TODO: 같은 경로에 이미지가 새로 써져도 이 세션에선 옛 그림 — 필요하면 mtime 을 키에 넣는다.
@@ -11,11 +13,17 @@ const queue = new Set<string>()
 let busy = false
 let cacheDir = ''
 
+// 크게 보기 pane. 한 번에 하나.
+const VIEW = 'img-view'
+let viewing: { title: string; img: Ready } | null = null
+
+const ACCENT = '#8aadf4'
+
 const PROMPT = [
   '# Images in this terminal',
-  'This terminal shows image files inline. To show the user an image file (a detection frame, a plot, a screenshot), put `![short description](/absolute/path.png)` on a line of its own in your reply.',
-  'To compare images side by side (say the same frame from two models), put them on one line separated by a space: `![v6](/a.png) ![v7](/b.png)`.',
-  'A video path works the same way (`![drone flight](/abs/clip.mp4)`): it is shown as six frames spread over the video.',
+  'This terminal shows image files inline. To show the user an image file (a plot, a screenshot, a photo), put `![short description](/absolute/path.png)` on a line of its own in your reply.',
+  'To compare images side by side, put them on one line separated by a space: `![before](/a.png) ![after](/b.png)`.',
+  'A video path works the same way (`![clip](/abs/clip.mp4)`): it is shown as six frames spread over the video.',
   'Reading an image file with the Read tool also shows it to them under the tool call.',
 ].join('\n')
 
@@ -45,6 +53,24 @@ async function drain($: EngineInterface): Promise<void> {
   $.ui.invalidate('ui.render')
 }
 
+async function openView($: EngineInterface, title: string, img: Ready): Promise<void> {
+  viewing = { title, img }
+  await $.ui.open({ id: VIEW, title: title.slice(0, 40) || '이미지', focus: true, closeOnEscape: true, rows: 40 })
+  $.ui.invalidate('ui.render')
+}
+
+// 그림 밑 한 줄: 설명은 흐리게, 크게 보기는 그림에 포인터를 올렸을 때만.
+function caption($: EngineInterface, { Box, Button, Text }: Parts, scope: string, text: string, img: Ready) {
+  return (
+    <Box flexDirection="row" columnGap={2}>
+      <Text dimColor wrap="truncate-end">{text}</Text>
+      <Box display="none" hover={{ display: 'flex', scope }}>
+        <Button key={`${scope}-big`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void openView($, text, img)}>⤢ 크게 보기</Button>
+      </Box>
+    </Box>
+  )
+}
+
 export const register: Register = (on, options) => {
   const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
   const maxRows = typeof options.max_rows === 'number' ? options.max_rows : 30
@@ -69,13 +95,15 @@ export const register: Register = (on, options) => {
     const row = await next(e)
     const img = lookup(path)
     if (!img || 'error' in img) return row
-    const { Box, Image } = $.ui.resolve(e)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
     const grid = gridFor(img.width, img.height, Math.min(100, (e.viewport?.columns ?? 80) - 6), maxRows, cellAspect)
+    const scope = `img-read-${img.file.split('/').pop() ?? ''}`.slice(0, 64)
     return (
       <Box flexDirection="column">
         {row}
-        <Box paddingLeft={5}>
+        <Box paddingLeft={5} flexDirection="column" hover={{ scope }}>
           <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${path}]`} />
+          {caption($, { Box, Button, Text }, scope, path.split('/').pop() ?? path, img)}
         </Box>
       </Box>
     )
@@ -86,7 +114,7 @@ export const register: Register = (on, options) => {
     if (e.surface !== 'terminal') return next(e)
     const segments = splitImages(e.props.text)
     if (!segments.some(s => s.kind === 'image')) return next(e)
-    const { Box, Image, Text } = $.ui.resolve(e)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
     const maxColumns = Math.min(100, (e.viewport?.columns ?? 80) - 3)
     const rows = []
     let isFirst = e.props.isFirstOfReply
@@ -107,12 +135,14 @@ export const register: Register = (on, options) => {
             <Box width={2} flexShrink={0}><Text>{isFirst ? '⏺' : ' '}</Text></Box>
             <Box flexDirection="row" columnGap={gap}>
               {s.pictures.map((p, i) => {
-                const img = imgs[i] as { file: string; width: number; height: number }
+                const img = imgs[i] as Ready
                 const grid = gridFor(img.width, img.height, each, maxRows, cellAspect)
+                // 같은 그림이 대화에 두 번 나와도 함께 밝아질 뿐이라 캐시 파일 이름으로 묶는다.
+                const scope = `img-${img.file.split('/').pop() ?? i}`.slice(0, 64)
                 return (
-                  <Box flexDirection="column">
+                  <Box flexDirection="column" hover={{ scope }}>
                     <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${p.alt || p.path}]`} />
-                    {p.alt ? <Text dimColor wrap="truncate-end">{p.alt}</Text> : null}
+                    {caption($, { Box, Button, Text }, scope, p.alt || (p.path.split('/').pop() ?? p.path), img)}
                   </Box>
                 )
               })}
@@ -124,4 +154,31 @@ export const register: Register = (on, options) => {
     }
     return <Box flexDirection="column">{rows}</Box>
   })
+
+  // 크게 보기: 위에 제목 줄, 아래 그림을 pane 에 꽉 차게.
+  on('ui.render', { component: 'Pane', requestId: VIEW }, async ($, e, next) => {
+    if (e.surface !== 'terminal') return next(e)
+    const { Box, Image, Text } = $.ui.resolve(e)
+    if (!viewing) return <Text dimColor>보여 줄 그림이 없다.</Text>
+    const { img, title } = viewing
+    const grid = gridFor(img.width, img.height, e.props.bodyColumns, Math.max(4, e.props.scroll.bodyRows - 2), cellAspect)
+    return (
+      <Box flexDirection="column" rowGap={1}>
+        <Box flexDirection="row" columnGap={2}>
+          <Text bold color={ACCENT}>{title}</Text>
+          <Text dimColor>{img.width}×{img.height}</Text>
+          <Box flexGrow={1} />
+          <Text dimColor>Esc 닫기</Text>
+        </Box>
+        <Box flexDirection="row" justifyContent="center">
+          <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={title} />
+        </Box>
+      </Box>
+    )
+  })
+
+  on('ui.close', { id: VIEW }, async ($, e, next) => {
+    viewing = null
+    return next(e)
+  }).catch(($, e, next) => next(e))
 }

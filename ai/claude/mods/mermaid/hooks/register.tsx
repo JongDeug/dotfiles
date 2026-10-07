@@ -11,6 +11,10 @@ const drawings = new Map<string, Drawing>()
 const queue = new Map<string, Job>()
 let isRendering = false
 let mode: Mode | undefined
+// 크게 보기 pane 에 띄운 그림. 이미 그린 PNG 를 pane 크기로 키워 보인다(1행 40px 로 그려 두어 두세 배까지 선명하다).
+const VIEW = 'mermaid-view'
+const ACCENT = '#8aadf4'
+let viewing: { png: string; columns: number; rows: number; title: string } | null = null
 
 async function modeOf($: EngineInterface, wanted: unknown): Promise<Mode> {
   mode ??= pickMode(typeof wanted === 'string' ? wanted : 'auto', {
@@ -52,6 +56,12 @@ async function drain($: EngineInterface, theme: string, cellAspect: number, scal
   void drain($, theme, cellAspect, scale, style)  // 그리는 동안 쌓인 것
 }
 
+async function openView($: EngineInterface, next: { png: string; columns: number; rows: number; title: string }): Promise<void> {
+  viewing = next
+  await $.ui.open({ id: VIEW, title: next.title.slice(0, 40) || 'mermaid', focus: true, closeOnEscape: true, rows: 40 })
+  $.ui.invalidate('ui.render')
+}
+
 export const register: Register = (on, options) => {
   const theme = typeof options.theme === 'string' ? options.theme : 'catppuccin-mocha'
   const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
@@ -69,13 +79,13 @@ export const register: Register = (on, options) => {
     const segments = splitReply(e.props.text)
     if (!segments.some(s => s.kind === 'mermaid')) return next(e)
 
-    const { Box, Image, Text } = $.ui.resolve(e)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
     // 왼쪽 2칸 거터(⏺)와 마지막 빈 칸을 뺀 폭.
     const maxColumns = Math.max(10, (e.viewport?.columns ?? 80) - 3)
     const kind = mode === 'pictures' ? 'png' : 'text'
     const rows = []
     let isFirst = e.props.isFirstOfReply
-    for (const segment of segments) {
+    for (const [n, segment] of segments.entries()) {
       let drawing: Drawing | undefined
       if (segment.kind === 'mermaid') {
         const key = `${kind}|${kind === 'png' ? maxColumns : ''}|${segment.source}`
@@ -100,6 +110,8 @@ export const register: Register = (on, options) => {
             </Box>
           ),
         )
+        // 못 그린 다이어그램은 코드 아래에 이유를 흐리게 단다.
+        if (drawing && 'error' in drawing) rows.push(<Box paddingLeft={2}><Text dimColor>다이어그램을 그리지 못했다: {drawing.error}</Text></Box>)
       } else {
         const title = segment.kind === 'mermaid' ? (segment.source.trim().split('\n')[0] ?? '') : ''
         rows.push(
@@ -108,7 +120,15 @@ export const register: Register = (on, options) => {
               <Text>{isFirst ? '⏺' : ' '}</Text>
             </Box>
             {'png' in drawing ? (
-              <Image source={{ png: drawing.png }} columns={drawing.columns} rows={drawing.rows} alt={`[mermaid: ${title}]`} />
+              <Box flexDirection="column" hover={{ scope: `mermaid-${n}-${drawing.png.length}` }}>
+                <Image source={{ png: drawing.png }} columns={drawing.columns} rows={drawing.rows} alt={`[mermaid: ${title}]`} />
+                {/* 평소엔 빈 줄, 다이어그램에 포인터를 올리면 버튼. */}
+                <Box minHeight={1}>
+                  <Box display="none" hover={{ display: 'flex', scope: `mermaid-${n}-${drawing.png.length}` }}>
+                    <Button key={`big-${n}`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void openView($, { ...drawing, title })}>⤢ 크게 보기</Button>
+                  </Box>
+                </Box>
+              </Box>
             ) : (
               <Text wrap="truncate-end">{drawing.text}</Text>
             )}
@@ -119,4 +139,31 @@ export const register: Register = (on, options) => {
     }
     return <Box flexDirection="column">{rows}</Box>
   })
+
+  on('ui.render', { component: 'Pane', requestId: VIEW }, async ($, e, next) => {
+    if (e.surface !== 'terminal') return next(e)
+    const { Box, Image, Text } = $.ui.resolve(e)
+    if (!viewing) return <Text dimColor>보여 줄 다이어그램이 없다.</Text>
+    // 비율을 지키며 pane 에 꽉 차게. 원래 크기의 세 배까지만 키운다.
+    const grow = Math.min(3, e.props.bodyColumns / viewing.columns, Math.max(4, e.props.scroll.bodyRows - 3) / viewing.rows)
+    const columns = Math.max(1, Math.floor(viewing.columns * grow))
+    const rows = Math.max(1, Math.floor(viewing.rows * grow))
+    return (
+      <Box flexDirection="column" rowGap={1}>
+        <Box flexDirection="row" columnGap={2}>
+          <Text bold color={ACCENT}>{viewing.title}</Text>
+          <Box flexGrow={1} />
+          <Text dimColor>Esc 닫기</Text>
+        </Box>
+        <Box flexDirection="row" justifyContent="center">
+          <Image source={{ png: viewing.png }} columns={columns} rows={rows} alt={`[mermaid: ${viewing.title}]`} />
+        </Box>
+      </Box>
+    )
+  })
+
+  on('ui.close', { id: VIEW }, async ($, e, next) => {
+    viewing = null
+    return next(e)
+  }).catch(($, e, next) => next(e))
 }

@@ -36,3 +36,4 @@ claude --plugin-dir .      # 이 폴더를 한 세션만 불러온다 (먼저 np
 ```
 
 다른 mermaid mod([mermaid-inline](https://github.com/dazebug/mermaid-inline) 등)를 참고했다. 이건 글꼴 측정·터미널 색 탐지를 빼고, 한글 칸 맞춤을 넣은 작은 판.
+- **크게 보기** — 다이어그램에 포인터를 올리면 밑에 `⤢ 크게 보기`(최대 3배). 못 그리면 코드 밑에 이유를 흐리게 단다.
