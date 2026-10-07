@@ -6,9 +6,11 @@ type Drawing = { png: string; columns: number; rows: number } | { error: string 
 type Job = { key: string; spec: string; maxColumns: number; maxRows?: number }
 type Ready = { png: string; columns: number; rows: number }
 
+// session.start 는 /reload-plugins 뒤엔 다시 오지 않는다 — 쌓을 때마다 그리기를 깨운다.
 const drawings = new Map<string, Drawing>()
 const queue = new Map<string, Job>()
 let busy = false
+let cellAspect = 2.2
 // 크게 보기 pane 에 띄운 차트(spec). 한 번에 하나.
 const VIEW = 'chart-view'
 const ACCENT = '#8aadf4'
@@ -22,10 +24,13 @@ const PROMPT = [
 ].join('\n')
 
 // 같은 spec 은 같은 그림 — 크기만 다르면 다시 그린다.
-function lookup(spec: string, maxColumns: number, maxRows?: number): Drawing | undefined {
+function lookup($: EngineInterface, spec: string, maxColumns: number, maxRows?: number): Drawing | undefined {
   const key = `${maxColumns}x${maxRows ?? ''}|${spec}`
   const hit = drawings.get(key)
-  if (!hit && !queue.has(key)) queue.set(key, { key, spec, maxColumns, maxRows })
+  if (!hit && !queue.has(key)) {
+    queue.set(key, { key, spec, maxColumns, maxRows })
+    void drain($)
+  }
   return hit
 }
 
@@ -55,7 +60,7 @@ async function save($: EngineInterface, d: Ready, spec: string): Promise<void> {
   $.ui.toast(exitCode === 0 ? `저장했다: ${file}` : '저장하지 못했다')
 }
 
-async function drain($: EngineInterface, cellAspect: number): Promise<void> {
+async function drain($: EngineInterface): Promise<void> {
   if (busy || queue.size === 0) return
   busy = true
   const items = [...queue.values()]
@@ -73,15 +78,11 @@ async function drain($: EngineInterface, cellAspect: number): Promise<void> {
     busy = false
   }
   $.ui.invalidate('ui.render')
+  void drain($)  // 그리는 동안 쌓인 것
 }
 
 export const register: Register = (on, options) => {
-  const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
-
-  on('session.start', async ($, e, next) => {
-    $.clock.every(150, () => void drain($, cellAspect))
-    return next(e)
-  })
+  if (typeof options.cell_aspect === 'number') cellAspect = options.cell_aspect
 
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
@@ -98,7 +99,7 @@ export const register: Register = (on, options) => {
     const rows = []
     let isFirst = e.props.isFirstOfReply
     for (const [n, s] of segments.entries()) {
-      const d = s.kind === 'chart' ? lookup(s.spec, maxColumns) : undefined
+      const d = s.kind === 'chart' ? lookup($, s.spec, maxColumns) : undefined
       if (s.kind === 'text' || !d || 'error' in d) {
         const drawn = await next({ ...e, props: { ...e.props, text: s.kind === 'text' ? s.text : s.raw, isFirstOfReply: isFirst } })
         // 엔진은 답의 첫 덩어리에만 거터(⏺)를 붙인다 — 이어지는 조각은 여기서 맞춘다.
@@ -135,7 +136,7 @@ export const register: Register = (on, options) => {
     const { Box, Button, Image, Text } = $.ui.resolve(e)
     if (!viewing) return <Text dimColor>보여 줄 차트가 없다.</Text>
     const { spec } = viewing
-    const d = lookup(spec, Math.max(20, e.props.bodyColumns - 1), Math.max(8, e.props.scroll.bodyRows - 3))
+    const d = lookup($, spec, Math.max(20, e.props.bodyColumns - 1), Math.max(8, e.props.scroll.bodyRows - 3))
     const body = !d ? <Text dimColor>그리는 중…</Text>
       : 'error' in d ? <Text dimColor>차트를 그리지 못했다: {d.error}</Text>
       : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[chart: ${viewing.title}]`} />
