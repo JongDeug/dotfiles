@@ -31,14 +31,14 @@ const PROMPT = [
 ].join('\n')
 
 // 쌓인 다이어그램을 node 한 번으로 그리고, 다 그리면 다시 그리게 한다.
-async function drain($: EngineInterface, theme: string, cellAspect: number, scale: number): Promise<void> {
+async function drain($: EngineInterface, theme: string, cellAspect: number, scale: number, style: string): Promise<void> {
   if (isRendering || queue.size === 0) return
   isRendering = true
   const items = [...queue.values()]
   queue.clear()
   try {
     const { exitCode, stdout, stderr } = await $.process.run(['node', `${$.plugin.root}/bin/render.mjs`], {
-      stdin: JSON.stringify({ items, theme, cellAspect, scale }),
+      stdin: JSON.stringify({ items, theme, cellAspect, scale, style }),
       timeoutMs: 30_000,
     })
     if (exitCode !== 0) throw new Error(stderr.trim().split('\n').pop() ?? `exit ${exitCode}`)
@@ -49,13 +49,14 @@ async function drain($: EngineInterface, theme: string, cellAspect: number, scal
     isRendering = false
   }
   $.ui.invalidate('ui.render')
-  void drain($, theme, cellAspect, scale)  // 그리는 동안 쌓인 것
+  void drain($, theme, cellAspect, scale, style)  // 그리는 동안 쌓인 것
 }
 
 export const register: Register = (on, options) => {
   const theme = typeof options.theme === 'string' ? options.theme : 'catppuccin-mocha'
   const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
   const scale = typeof options.scale === 'number' ? options.scale : 1
+  const style = options.style === 'sketch' ? 'sketch' : 'clean'
 
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
@@ -81,7 +82,7 @@ export const register: Register = (on, options) => {
         drawing = drawings.get(key)
         if (drawing === undefined && !queue.has(key)) {
           queue.set(key, { key, source: segment.source, kind, maxColumns })
-          void drain($, theme, cellAspect, scale)
+          void drain($, theme, cellAspect, scale, style)
         }
       }
       // 글, 아직 안 그려진 다이어그램, 못 그린 다이어그램은 엔진이 원래대로 그린다.

@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 
 import { THEMES, renderMermaidSVG } from 'beautiful-mermaid'
 
-import { extractFace } from './render.mjs'
+import { extractFace, renderPicture } from './render.mjs'
 
 const TTC = '/System/Library/Fonts/AppleSDGothicNeo.ttc'
 if (!fs.existsSync(TTC)) process.exit(0)  // 맥이 아니면 건너뛴다
@@ -16,4 +16,9 @@ assert.equal(face.readUInt16BE(4), ttc.readUInt16BE(ttc.readUInt32BE(12) + 4))  
 const svg = renderMermaidSVG('flowchart LR\n  A["송출"] --> B["추론"]', { ...THEMES['catppuccin-mocha'], font: 'Apple SD Gothic Neo' })
 const png = fonts => new Resvg(svg, { font: { loadSystemFonts: false, fontBuffers: fonts, defaultFontFamily: 'Apple SD Gothic Neo' } }).render().asPng()
 assert.deepEqual(png([face]), png([ttc]))
+// 손그림: 그려지고, 글꼴에 없는 빼기 기호(U+2212)도 '-' 로 바뀌어 그려진다
+const opts = { theme: 'catppuccin-mocha', cellAspect: 2.2, maxColumns: 80 }
+const sketched = renderPicture('flowchart LR\n  A["t2 \u2212 t0"] --> B["추론"]', { ...opts, style: 'sketch' })
+assert.ok(sketched.png.length > 1000 && sketched.columns > 0)
+assert.notEqual(sketched.png, renderPicture('flowchart LR\n  A["t2 \u2212 t0"] --> B["추론"]', opts).png)
 console.log('ok')

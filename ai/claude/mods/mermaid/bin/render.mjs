@@ -1,7 +1,7 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 돌려준다. 훅 모듈은 Node 가 없어서
 // 렌더는 이 프로세스가 한다.
 //
-//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect, scale }
+//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect, scale, style: 'clean' | 'sketch' }
 //   -> { results: [{ key, png, columns, rows } | { key, text } | { key, error }] }
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -9,6 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 import { THEMES, renderMermaidASCII, renderMermaidSVG } from 'beautiful-mermaid'
+import rough from 'roughjs'
 
 const { Resvg } = createRequire(import.meta.url)('@resvg/resvg-js')
 
@@ -17,8 +18,12 @@ const { Resvg } = createRequire(import.meta.url)('@resvg/resvg-js')
 const WIDE = /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/gu
 const PAD = ''
 
+// 글꼴에 없는 흔한 기호를 있는 글자로 — 없으면 □ 나 빈칸이 된다.
+const SYMBOLS = { '\u2212': '-', '\u2013': '-', '\u2014': '-' }
+const plain = source => source.replace(/[\u2212\u2013\u2014]/g, c => SYMBOLS[c])
+
 export function renderText(source) {
-  const art = renderMermaidASCII(source.replace(WIDE, c => c + PAD), { colorMode: 'none' })
+  const art = renderMermaidASCII(plain(source).replace(WIDE, c => c + PAD), { colorMode: 'none' })
   const text = art.replaceAll(PAD, '').split('\n').map(l => l.trimEnd()).join('\n').trimEnd()
   if (!text) throw new Error('nothing to draw')
   return { text }
@@ -82,6 +87,33 @@ function fontSetup() {
 }
 const fontOptions = fontSetup()
 
+// 손그림(sketch): excalidraw 처럼 rough.js 로 상자 · 선을 다시 긋고 손글씨체(Gaegu, OFL)로 쓴다. 없는 글자는 위 글꼴로.
+const HAND = 'Gaegu'
+const HAND_FILE = new URL('../fonts/Gaegu-Regular.ttf', import.meta.url).pathname
+const HAND_SIZE = 1.15  // Gaegu 는 같은 크기에서 작아 보인다
+const sketchFontOptions = { ...fontOptions, fontFiles: [HAND_FILE, ...(fontOptions.fontFiles ?? [])], defaultFontFamily: HAND }
+const roughGen = rough.generator()
+const attr = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]
+const roughPaths = drawable =>
+  roughGen.toPaths(drawable).map(p => `<path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.strokeWidth}" fill="none" stroke-linecap="round"/>`).join('')
+
+// 상자(rect)와 연결선(polyline)을 손그림 선으로 바꾼다. 원래 선은 남겨 두되 보이지 않게(화살촉 marker 는 그대로 쓴다).
+export function sketch(svg, seed = 7) {
+  const opts = (stroke, width) => ({ stroke, strokeWidth: Number(width ?? 1) * 1.4, roughness: 1.2, bowing: 1.2, seed })
+  return svg
+    .replace(/<rect\b[^>]*\/>/g, tag => {
+      const [x, y, w, h] = ['x', 'y', 'width', 'height'].map(n => Number(attr(tag, n)))
+      const stroke = attr(tag, 'stroke')
+      if (!stroke || stroke === 'none' || !(w > 0 && h > 0)) return tag
+      return tag.replace(/\sstroke="[^"]*"/, ' stroke="none"') + roughPaths(roughGen.rectangle(x, y, w, h, opts(stroke, attr(tag, 'stroke-width'))))
+    })
+    .replace(/<polyline\b[^>]*\/>/g, tag => {
+      const points = (attr(tag, 'points') ?? '').trim().split(/\s+/).map(p => p.split(',').map(Number))
+      if (points.length < 2) return tag
+      return tag.replace(/\sstroke="[^"]*"/, ' stroke-opacity="0" stroke="#000"') + roughPaths(roughGen.linearPath(points, opts(attr(tag, 'stroke'), attr(tag, 'stroke-width'))))
+    })
+}
+
 function mix(a, b, p) {
   const ch = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
   return '#' + [0, 1, 2].map(i => Math.round(ch(a, i) * p + ch(b, i) * (1 - p)).toString(16).padStart(2, '0')).join('')
@@ -101,9 +133,10 @@ export function resolveCss(svg) {
   return out
 }
 
-export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1 }) {
+export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1, style = 'clean' }) {
   const colors = THEMES[theme] ?? THEMES['catppuccin-mocha']
-  const raw = renderMermaidSVG(source, { ...colors, font: FONT, transparent: true, padding: 8 })
+  const hand = style === 'sketch'
+  const raw = renderMermaidSVG(plain(source), { ...colors, font: hand ? HAND : FONT, transparent: true, padding: 8 })
   const [, , w, h] = (/viewBox="([^"]+)"/.exec(raw)?.[1] ?? '').split(/\s+/).map(Number)
   if (!(w > 0 && h > 0)) throw new Error('nothing to draw')
   // 칸 상자의 가로세로 비율을 그림 비율에 맞춰야 안 찌그러진다. 1칸 = 높이 1/cellAspect.
@@ -114,10 +147,11 @@ export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1
     rows = Math.max(1, Math.round((columns * h) / (w * cellAspect)))
   }
   rows = Math.min(rows, 255)
-  const svg = resolveCss(raw).replace(/font-family:[^;}]*/g, `font-family: '${FONT}'`)
+  let svg = resolveCss(raw).replace(/font-family:[^;}]*/g, hand ? `font-family: '${HAND}', '${FONT}'` : `font-family: '${FONT}'`)
+  if (hand) svg = sketch(svg).replace(/font-size="([\d.]+)"/g, (_, s) => `font-size="${(s * HAND_SIZE).toFixed(1)}"`)
   const png = new Resvg(svg, {
     fitTo: { mode: 'height', value: rows * ROW_PNG_PX },
-    font: fontOptions,
+    font: hand ? sketchFontOptions : fontOptions,
   })
     .render()
     .asPng()
