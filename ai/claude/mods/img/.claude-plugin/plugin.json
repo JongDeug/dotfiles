@@ -1,0 +1,26 @@
+{
+  "name": "img",
+  "version": "0.1.0",
+  "description": "이미지를 대화 안에 그림으로 — Read 로 읽은 이미지는 그 줄 아래, 답 속 ![설명](/경로.png) 줄은 그 자리에. PNG·JPG·HEIC 등 (macOS sips).",
+  "author": { "name": "JongDeug", "url": "https://github.com/JongDeug" },
+  "repository": "https://github.com/JongDeug/dotfiles",
+  "license": "MIT",
+  "userConfig": {
+    "max_rows": {
+      "type": "number",
+      "title": "그림 최대 높이(줄)",
+      "description": "그림 하나가 차지하는 최대 줄 수. 크게 보고 싶으면 키운다.",
+      "default": 30,
+      "min": 5,
+      "max": 120
+    },
+    "cell_aspect": {
+      "type": "number",
+      "title": "칸 세로/가로 비율",
+      "description": "터미널 한 칸의 높이÷너비. 그림이 위아래로 늘어나 보이면 줄이고, 납작하면 키운다.",
+      "default": 2.2,
+      "min": 1,
+      "max": 4
+    }
+  }
+}
