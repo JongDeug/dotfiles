@@ -8,6 +8,7 @@ type Line =
   | { type: 'frame'; file: string; generation: number }
   | { type: 'page'; url: string; title: string }
   | { type: 'error'; message: string }
+  | { type: 'loading'; on: boolean }
 
 // 모듈 변수 — 리로드되면 보조 프로세스도 같이 죽으니 함께 비워져도 맞다.
 let helper: Helper | null = null
@@ -15,6 +16,7 @@ let starting: Promise<Helper> | null = null
 let frame: { file: string; generation: number } | null = null
 let page = { url: '', title: '' }
 let lastError = ''
+let loading = false
 let sent = { width: 0, height: 0 }
 // /web debug 가 보여 줄 마지막 상태.
 let lastBlit = '아직 없음'
@@ -61,6 +63,9 @@ async function onLine($: EngineInterface, line: Line, resolve: (h: Helper) => vo
     resolve(helper)
   } else if (line.type === 'error') {
     lastError = line.message
+  } else if (line.type === 'loading') {
+    loading = line.on
+    $.ui.invalidate('ui.render')
   } else if (line.type === 'frame') {
     frame = { file: line.file, generation: line.generation }
     // 그림만 바꿔 끼운다. 아직 안 그려졌거나 크기가 바뀌었으면 다시 그린다.
@@ -146,7 +151,8 @@ export const register: Register = (on, options) => {
     if (e.surface !== 'terminal') return $.ui.resolve(e).Text({ children: '브라우저 pane 은 터미널에서만 보인다.' })
     const { Box, Button, Client, Image, Input, Text } = $.ui.resolve(e)
     const cols = Math.min(255, Math.max(10, e.props.bodyColumns))
-    const rows = Math.min(255, Math.max(4, e.props.scroll.bodyRows - 1))
+    // 위 도구줄 1줄 + 아래 상태줄 1줄.
+    const rows = Math.min(255, Math.max(4, e.props.scroll.bodyRows - 2))
     lastRender = `${e.props.placement} ${cols}x${rows} 칸, focused ${e.props.isFocused}, frame ${frame ? '있음' : '없음'}`
     // pane 크기에 맞춰 브라우저 창 크기를 바꾼다. 비율이 맞아야 그림이 안 찌그러진다.
     const width = Math.round(cols * pxPerColumn)
@@ -155,23 +161,35 @@ export const register: Register = (on, options) => {
       sent = { width, height }
       void call($, 'resize', sent)
     }
+    const host = page.url.replace(/^https?:\/\//, '').split('/')[0] ?? ''
+    const status = !helper
+      ? starting
+        ? '브라우저를 띄우는 중…'
+        : `꺼져 있음${lastError ? ` · ${lastError}` : ''} — 주소를 넣으면 다시 뜬다`
+      : loading
+        ? `불러오는 중… ${host}`
+        : [page.title, host].filter(Boolean).join('  ·  ') || '빈 페이지'
     return (
       <Box flexDirection="column">
-        <Box flexDirection="row">
-          <Button key="back" onPress={() => void call($, 'back')}>←</Button>
-          <Button key="reload" onPress={() => void call($, 'reload')}>↻</Button>
-          <Input key="url" value={page.url} placeholder="주소 입력 후 Enter" onSubmit={url => void call($, 'navigate', { url })} />
-        </Box>
-        {frame ? (
-          <Box width={cols} height={rows}>
-            <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
-            <Box position="absolute" top={0} left={0}>
-              <Client key="input" module="./input.tsx" width={cols} height={rows} />
-            </Box>
+        <Box flexDirection="row" columnGap={1}>
+          <Button key="back" plain onPress={() => void call($, 'back')}>‹</Button>
+          <Button key="forward" plain onPress={() => void call($, 'forward')}>›</Button>
+          <Button key="reload" plain onPress={() => void call($, 'reload')}>{loading ? '×' : '↻'}</Button>
+          <Box flexGrow={1} flexShrink={1}>
+            <Input key="url" value={page.url} placeholder="주소 또는 검색어" submitLabel="이동" onSubmit={url => void call($, 'navigate', { url })} />
           </Box>
-        ) : (
-          <Text dimColor>{helper ? '페이지를 불러오는 중…' : starting ? '브라우저를 띄우는 중…' : `브라우저가 꺼져 있다${lastError ? ` (${lastError})` : ''} — 주소를 넣거나 /web 으로 다시 띄운다`}</Text>
-        )}
+        </Box>
+        <Box width={cols} height={rows}>
+          {frame && helper ? (
+            <>
+              <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
+              <Box position="absolute" top={0} left={0}>
+                <Client key="input" module="./input.tsx" width={cols} height={rows} />
+              </Box>
+            </>
+          ) : null}
+        </Box>
+        <Text dimColor wrap="truncate-end">{status}</Text>
       </Box>
     )
   })

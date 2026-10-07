@@ -6,8 +6,9 @@
 //   { type: 'ready', cdpPort, socket }      — 준비됨. socket 은 아래 명령을 받는 Unix 소켓
 //   { type: 'frame', file, generation }     — 화면이 바뀌었다 (PNG 파일, 두 장을 번갈아 쓴다)
 //   { type: 'page', url, title }            — 주소·제목이 바뀌었다
+//   { type: 'loading', on }                 — 불러오기 시작·끝
 //   { type: 'error', message }              — 못 띄웠다 (곧 끝난다)
-// 명령은 그 소켓으로 POST /<cmd> + JSON 본문: navigate, back, reload, resize, click, wheel, key.
+// 명령은 그 소켓으로 POST /<cmd> + JSON 본문: navigate, back, forward, reload, resize, click, wheel, key, quit.
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
@@ -111,7 +112,32 @@ const send = (method, params = {}) =>
   })
 
 let size = { width: 1000, height: 700 }
+let loading = false
+let mainFrame = page.id
 let generation = 0
+
+// screencast 는 '바뀌었다' 신호로만 쓴다 — 헤드리스에선 DPR 을 무시하고 1배로 보내 흐리다.
+// 실제 화면은 DPR 배 스크린샷. 찍는 중에 또 바뀌면 끝나고 한 번 더 찍는다.
+let capturing = false
+let dirty = false
+async function capture() {
+  if (capturing) {
+    dirty = true
+    return
+  }
+  capturing = true
+  do {
+    dirty = false
+    const { result } = await send('Page.captureScreenshot', { format: 'png' })
+    if (!result?.data) continue
+    generation += 1
+    // 세션마다 따로 — 둘이 같은 파일에 쓰면 서로 화면이 섞인다.
+    const file = path.join(dir, `frame-${process.pid}-${generation % 2}.png`)
+    fs.writeFileSync(file, Buffer.from(result.data, 'base64'))
+    emit({ type: 'frame', file, generation })
+  } while (dirty)
+  capturing = false
+}
 
 async function title() {
   const { result } = await send('Runtime.evaluate', { expression: 'document.title', returnByValue: true })
@@ -127,13 +153,13 @@ ws.onmessage = async ({ data }) => {
   }
   const { method, params } = msg
   if (method === 'Page.screencastFrame') {
-    generation += 1
-    // 세션마다 따로 — 둘이 같은 파일에 쓰면 서로 화면이 섞인다.
-    const file = path.join(dir, `frame-${process.pid}-${generation % 2}.png`)
-    fs.writeFileSync(file, Buffer.from(params.data, 'base64'))
     send('Page.screencastFrameAck', { sessionId: params.sessionId })
-    emit({ type: 'frame', file, generation })
+    void capture()
+  } else if ((method === 'Page.frameStartedLoading' || method === 'Page.frameStoppedLoading') && params.frameId === mainFrame) {
+    loading = method === 'Page.frameStartedLoading'
+    emit({ type: 'loading', on: loading })
   } else if (method === 'Page.frameNavigated' && !params.frame.parentId) {
+    mainFrame = params.frame.id
     emit({ type: 'page', url: params.frame.url, title: '' })
   } else if (method === 'Page.loadEventFired') {
     const { result } = await send('Runtime.evaluate', { expression: 'location.href', returnByValue: true })
@@ -148,16 +174,31 @@ async function resize(width, height) {
   size = { width, height }
   await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: DPR, mobile: false })
   await send('Page.stopScreencast')
-  await send('Page.startScreencast', { format: 'png', maxWidth: width * DPR, maxHeight: height * DPR })
+  // 신호용이라 작고 싸게.
+  await send('Page.startScreencast', { format: 'jpeg', quality: 10, maxWidth: 200, maxHeight: 200 })
+  void capture()
 }
 
 const KEYS = { return: ['Enter', 13], backspace: ['Backspace', 8], tab: ['Tab', 9], delete: ['Delete', 46], up: ['ArrowUp', 38], down: ['ArrowDown', 40], left: ['ArrowLeft', 37], right: ['ArrowRight', 39], pageup: ['PageUp', 33], pagedown: ['PageDown', 34], home: ['Home', 36], end: ['End', 35] }
 
 const commands = {
   quit: () => setTimeout(quit, 10),
-  navigate: ({ url }) => send('Page.navigate', { url: /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}` }),
+  // 스킴이 있으면 그대로, 점이 있거나 localhost 면 https://, 아니면 DuckDuckGo 검색 (구글은 헤드리스를 로봇 확인으로 막는다).
+  navigate: ({ url }) => {
+    const u = url.trim()
+    const target = /^[a-z][a-z0-9+.-]*:/i.test(u)
+      ? u
+      : /^localhost(:\d+)?(\/|$)/.test(u)
+        ? `http://${u}`
+        : /^\S+\.\S+$/.test(u)
+          ? `https://${u}`
+          : `https://duckduckgo.com/?q=${encodeURIComponent(u)}`
+    return send('Page.navigate', { url: target })
+  },
   back: () => send('Runtime.evaluate', { expression: 'history.back()' }),
-  reload: () => send('Page.reload'),
+  forward: () => send('Runtime.evaluate', { expression: 'history.forward()' }),
+  // 불러오는 중이면 멈추고, 아니면 새로고침 — 버튼 하나가 둘을 한다.
+  reload: () => (loading ? send('Page.stopLoading') : send('Page.reload')),
   resize: ({ width, height }) => (width === size.width && height === size.height ? null : resize(width, height)),
   // x, y 는 0~1 비율 — 페이지 크기는 여기서만 안다.
   click: async ({ x, y }) => {
@@ -180,6 +221,9 @@ const commands = {
 }
 
 await send('Page.enable')
+// 헤드리스는 UA 에 HeadlessChrome 을 달고 다녀서 구글 검색 등이 로봇 확인으로 막는다. 보통 Chrome 처럼.
+const { result: version } = await send('Browser.getVersion')
+await send('Network.setUserAgentOverride', { userAgent: (version?.userAgent ?? '').replace('HeadlessChrome', 'Chrome') })
 await resize(size.width, size.height)
 
 http
