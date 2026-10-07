@@ -1,0 +1,18 @@
+{
+  "name": "chart",
+  "version": "0.1.0",
+  "description": "답 속 ```chart (Vega-Lite JSON) 블록을 막대·선·산점도 그래프 그림으로 그린다. 한글 라벨, 투명 배경.",
+  "author": { "name": "JongDeug", "url": "https://github.com/JongDeug" },
+  "repository": "https://github.com/JongDeug/dotfiles",
+  "license": "MIT",
+  "userConfig": {
+    "cell_aspect": {
+      "type": "number",
+      "title": "칸 세로/가로 비율",
+      "description": "터미널 한 칸의 높이÷너비. 그래프가 위아래로 늘어나 보이면 줄이고, 납작하면 키운다.",
+      "default": 2.2,
+      "min": 1,
+      "max": 4
+    }
+  }
+}

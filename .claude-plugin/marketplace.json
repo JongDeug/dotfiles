@@ -7,6 +7,11 @@
   },
   "plugins": [
     {
+      "name": "chart",
+      "source": "./ai/claude/mods/chart",
+      "description": "답 속 ```chart (Vega-Lite JSON) 블록을 그래프 그림으로. 한글 라벨, 투명 배경."
+    },
+    {
       "name": "mermaid",
       "source": "./ai/claude/mods/mermaid",
       "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그리는 mod. 한글 라벨 칸 맞춤."
@@ -19,7 +24,7 @@
     {
       "name": "img",
       "source": "./ai/claude/mods/img",
-      "description": "이미지를 대화 안에 그림으로 — Read 로 읽은 이미지와 답 속 ![설명](/경로.png) 줄. PNG·JPG·HEIC 등 (macOS sips)."
+      "description": "이미지·영상을 대화 안에 그림으로 — Read 로 읽은 이미지, 답 속 ![설명](/경로) 줄(여러 장이면 나란히, 영상은 프레임 6장). macOS sips·ffmpeg."
     }
   ]
 }

@@ -14,6 +14,8 @@ let cacheDir = ''
 const PROMPT = [
   '# Images in this terminal',
   'This terminal shows image files inline. To show the user an image file (a detection frame, a plot, a screenshot), put `![short description](/absolute/path.png)` on a line of its own in your reply.',
+  'To compare images side by side (say the same frame from two models), put them on one line separated by a space: `![v6](/a.png) ![v7](/b.png)`.',
+  'A video path works the same way (`![drone flight](/abs/clip.mp4)`): it is shown as six frames spread over the video.',
   'Reading an image file with the Read tool also shows it to them under the tool call.',
 ].join('\n')
 
@@ -89,20 +91,32 @@ export const register: Register = (on, options) => {
     const rows = []
     let isFirst = e.props.isFirstOfReply
     for (const s of segments) {
-      const img = s.kind === 'image' ? lookup(s.path) : undefined
-      if (s.kind === 'text' || !img || 'error' in img) {
+      // 한 줄의 그림이 다 준비돼야 그린다 — 그 전엔 원래 글(이미지 문법)로 둔다.
+      const imgs = s.kind === 'image' ? s.pictures.map(p => lookup(p.path)) : []
+      const ready = s.kind === 'image' && imgs.every(i => i && !('error' in i))
+      if (s.kind === 'text' || !ready) {
         const drawn = await next({ ...e, props: { ...e.props, text: s.kind === 'text' ? s.text : s.raw, isFirstOfReply: isFirst } })
         // 엔진은 답의 첫 덩어리에만 거터(⏺)를 붙인다 — 이어지는 조각은 여기서 맞춘다.
         rows.push(isFirst ? drawn : <Box flexDirection="row"><Box width={2} flexShrink={0} /><Box flexDirection="column" flexGrow={1} flexShrink={1}>{drawn}</Box></Box>)
       } else {
-        const grid = gridFor(img.width, img.height, maxColumns, maxRows, cellAspect)
+        // 여러 장이면 폭을 나눠 나란히. 각 그림 밑에 설명.
+        const gap = 2
+        const each = Math.floor((maxColumns - gap * (s.pictures.length - 1)) / s.pictures.length)
         rows.push(
-          <Box flexDirection="column" marginTop={1}>
-            <Box flexDirection="row">
-              <Box width={2} flexShrink={0}><Text>{isFirst ? '⏺' : ' '}</Text></Box>
-              <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${s.alt || s.path}]`} />
+          <Box flexDirection="row" marginTop={1}>
+            <Box width={2} flexShrink={0}><Text>{isFirst ? '⏺' : ' '}</Text></Box>
+            <Box flexDirection="row" columnGap={gap}>
+              {s.pictures.map((p, i) => {
+                const img = imgs[i] as { file: string; width: number; height: number }
+                const grid = gridFor(img.width, img.height, each, maxRows, cellAspect)
+                return (
+                  <Box flexDirection="column">
+                    <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${p.alt || p.path}]`} />
+                    {p.alt ? <Text dimColor wrap="truncate-end">{p.alt}</Text> : null}
+                  </Box>
+                )
+              })}
             </Box>
-            {s.alt ? <Box paddingLeft={2}><Text dimColor>{s.alt}</Text></Box> : null}
           </Box>,
         )
       }
