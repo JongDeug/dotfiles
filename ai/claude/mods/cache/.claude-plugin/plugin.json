@@ -1,6 +1,6 @@
 {
   "name": "cache",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "프롬프트 캐시 keepwarm(쉬는 동안 1시간 캐시를 데워 둠)과 식은 채 보내기 경고. cache-tax 2.2.1(Karan Bansal, MIT) 포크. 데우기는 토큰을 쓴다.",
   "author": {
     "name": "Karan Bansal"

@@ -326,7 +326,7 @@ export const register: Register = on => {
       Box({ flexDirection: 'row', alignItems: 'center', children: [
         Box({ flexShrink: 0, children: [icon] }),
         Text({ children: [
-          ' cache-tax · ',
+          ' cache · ',
           Text({ color, bold: true, children: [state] }),
           ` · ${text}`,
         ] }),
@@ -359,13 +359,13 @@ export const register: Register = on => {
     if (usage.context.tokens) s.ctx = usage.context.tokens
     await $.command.register({
       name: 'keepwarm',
-      description: 'Keep the prompt cache warm: bare for 6h, a window such as 90m, always, off, or status (cache-tax)',
+      description: 'Keep the prompt cache warm: bare for 6h, a window such as 90m, always, off, or status (cache)',
       argumentHint: '[6h | always | off | status]',
       immediate: true,
     })
     await $.command.register({
       name: 'cache-tax',
-      description: 'Prompt cache state, cold price and this session\'s cold writes; guard warn|refuse (cache-tax, the Mod)',
+      description: 'Prompt cache state, cold price and this session\'s cold writes; guard warn|refuse (cache)',
       argumentHint: '[status | guard warn | guard refuse]',
       immediate: true,
     })
