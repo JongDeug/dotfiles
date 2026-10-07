@@ -5,6 +5,7 @@
 | mod | 하는 일 | 상태 |
 |---|---|---|
 | [board](board/) | 입력창 위 두 줄 계기판 — statusline 대체 | 사용 |
+| [cache](cache/) | 프롬프트 캐시 keepwarm · 식은 채 보내기 경고 — [cache-tax](https://github.com/karanb192/claude-code-mods) 2.2.1 포크(MIT) | 사용 |
 | [mermaid](mermaid/) | 답 속 ```` ```mermaid ```` 를 다이어그램 그림으로 | 사용 |
 | [chart](chart/) | 답 속 ```` ```chart ```` (Vega-Lite JSON) 를 그래프 그림으로 | 사용 |
 | [img](img/) | 이미지·영상 경로를 대화 안에 그림으로 | 사용 |

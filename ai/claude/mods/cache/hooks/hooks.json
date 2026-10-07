@@ -1,0 +1,6 @@
+{
+  "description": "cache (cache-tax 포크): session.start, classic.SessionStart, command.run{keepwarm|cache-tax}, prompt.submit, turn.step, turn.complete, session.compact",
+  "modules": [
+    "./register.ts"
+  ]
+}
