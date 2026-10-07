@@ -5,11 +5,23 @@ import { pickMode, splitReply, type Mode } from './parse'
 type Drawing = { png: string; columns: number; rows: number } | { text: string } | { error: string }
 type Job = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 
-// 모듈 변수는 리로드 때 비워진다 — 그때 한 번 다시 그리면 된다.
+// 모듈 변수는 리로드 때 비워진다. session.start 는 다시 오지 않으니 모드는 처음 쓸 때 정하고,
+// 그리기는 타이머 없이 쌓을 때마다 깨운다 — 세션 중에 설치하거나 /reload-plugins 해도 그린다.
 const drawings = new Map<string, Drawing>()
 const queue = new Map<string, Job>()
 let isRendering = false
-let mode: Mode = 'text'
+let mode: Mode | undefined
+
+async function modeOf($: EngineInterface, wanted: unknown): Promise<Mode> {
+  mode ??= pickMode(typeof wanted === 'string' ? wanted : 'auto', {
+    TERM: await $.env.get('TERM'),
+    TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
+    KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
+    TMUX: await $.env.get('TMUX'),
+    CLAUDE_CODE_FORCE_TERMINAL_IMAGES: await $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES'),
+  })
+  return mode
+}
 
 const PROMPT = [
   '# Mermaid diagrams',
@@ -37,32 +49,21 @@ async function drain($: EngineInterface, theme: string, cellAspect: number): Pro
     isRendering = false
   }
   $.ui.invalidate('ui.render')
+  void drain($, theme, cellAspect)  // 그리는 동안 쌓인 것
 }
 
 export const register: Register = (on, options) => {
   const theme = typeof options.theme === 'string' ? options.theme : 'catppuccin-mocha'
   const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
 
-  on('session.start', async ($, e, next) => {
-    mode = pickMode(typeof options.mode === 'string' ? options.mode : 'auto', {
-      TERM: await $.env.get('TERM'),
-      TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
-      KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
-      TMUX: await $.env.get('TMUX'),
-      CLAUDE_CODE_FORCE_TERMINAL_IMAGES: await $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES'),
-    })
-    if (mode !== 'off') $.clock.every(150, () => void drain($, theme, cellAspect))
-    return next(e)
-  })
-
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
-    if (mode === 'off' || !e.surfaces.includes('terminal')) return composed
+    if ((await modeOf($, options.mode)) === 'off' || !e.surfaces.includes('terminal')) return composed
     return { sections: [...composed.sections, { id: 'mermaid:diagrams', text: PROMPT, scope: 'session' as const }] }
   })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
-    if (e.surface !== 'terminal' || mode === 'off') return next(e)
+    if (e.surface !== 'terminal' || (await modeOf($, options.mode)) === 'off') return next(e)
     const segments = splitReply(e.props.text)
     if (!segments.some(s => s.kind === 'mermaid')) return next(e)
 
@@ -77,7 +78,10 @@ export const register: Register = (on, options) => {
       if (segment.kind === 'mermaid') {
         const key = `${kind}|${kind === 'png' ? maxColumns : ''}|${segment.source}`
         drawing = drawings.get(key)
-        if (drawing === undefined && !queue.has(key)) queue.set(key, { key, source: segment.source, kind, maxColumns })
+        if (drawing === undefined && !queue.has(key)) {
+          queue.set(key, { key, source: segment.source, kind, maxColumns })
+          void drain($, theme, cellAspect)
+        }
       }
       // 글, 아직 안 그려진 다이어그램, 못 그린 다이어그램은 엔진이 원래대로 그린다.
       if (segment.kind === 'text' || drawing === undefined || 'error' in drawing) {
