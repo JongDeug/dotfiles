@@ -125,7 +125,7 @@ export const register: Register = (on, options) => {
                 {/* 평소엔 빈 줄, 다이어그램에 포인터를 올리면 버튼. */}
                 <Box minHeight={1}>
                   <Box display="none" hover={{ display: 'flex', scope: `mermaid-${n}-${drawing.png.length}` }}>
-                    <Button key={`big-${n}`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void openView($, { ...drawing, title })}>⤢ 크게 보기</Button>
+                    <Button key={`big-${n}`} plain dimColor onPress={() => void openView($, { ...drawing, title })}>⤢ 크게 보기</Button>
                   </Box>
                 </Box>
               </Box>

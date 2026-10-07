@@ -117,8 +117,8 @@ export const register: Register = (on, options) => {
               {/* 평소엔 빈 줄, 차트에 포인터를 올리면 버튼. */}
               <Box flexDirection="row" columnGap={2} minHeight={1}>
                 <Box display="none" columnGap={2} hover={{ display: 'flex', scope: `chart-${n}-${spec.length}` }}>
-                  <Button key={`big-${n}`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void openView($, spec)}>⤢ 크게 보기</Button>
-                  <Button key={`save-${n}`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void save($, ready, spec)}>↓ PNG 저장</Button>
+                  <Button key={`big-${n}`} plain dimColor onPress={() => void openView($, spec)}>⤢ 크게 보기</Button>
+                  <Button key={`save-${n}`} plain dimColor onPress={() => void save($, ready, spec)}>↓ PNG 저장</Button>
                 </Box>
               </Box>
             </Box>
@@ -145,7 +145,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row" columnGap={2}>
           <Text bold color={ACCENT}>{viewing.title}</Text>
           <Box flexGrow={1} />
-          {d && !('error' in d) ? <Button key="save" plain dimColor hotkey="s" hover={{ color: ACCENT, dimColor: false }} onPress={() => void save($, d, spec)}>↓ PNG 저장</Button> : null}
+          {d && !('error' in d) ? <Button key="save" plain dimColor hotkey="s" onPress={() => void save($, d, spec)}>↓ PNG 저장</Button> : null}
           <Text dimColor>Esc 닫기</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center">{body}</Box>

@@ -71,7 +71,7 @@ function caption($: EngineInterface, { Box, Button, Text }: Parts, scope: string
     <Box flexDirection="row" columnGap={2}>
       <Text dimColor wrap="truncate-end">{text}</Text>
       <Box display="none" hover={{ display: 'flex', scope }}>
-        <Button key={`${scope}-big`} plain dimColor hover={{ color: ACCENT, dimColor: false }} onPress={() => void openView($, text, img)}>⤢ 크게 보기</Button>
+        <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, text, img)}>⤢ 크게 보기</Button>
       </Box>
     </Box>
   )
