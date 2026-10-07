@@ -1,7 +1,7 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 돌려준다. 훅 모듈은 Node 가 없어서
 // 렌더는 이 프로세스가 한다.
 //
-//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect }
+//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect, scale }
 //   -> { results: [{ key, png, columns, rows } | { key, text } | { key, error }] }
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -53,13 +53,13 @@ export function resolveCss(svg) {
   return out
 }
 
-export function renderPicture(source, { theme, cellAspect, maxColumns }) {
+export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1 }) {
   const colors = THEMES[theme] ?? THEMES['catppuccin-mocha']
   const raw = renderMermaidSVG(source, { ...colors, font: FONT, transparent: true, padding: 8 })
   const [, , w, h] = (/viewBox="([^"]+)"/.exec(raw)?.[1] ?? '').split(/\s+/).map(Number)
   if (!(w > 0 && h > 0)) throw new Error('nothing to draw')
   // 칸 상자의 가로세로 비율을 그림 비율에 맞춰야 안 찌그러진다. 1칸 = 높이 1/cellAspect.
-  let rows = Math.ceil(h / ROW_SVG_PX)
+  let rows = Math.ceil((h * scale) / ROW_SVG_PX)  // scale 1 = 라벨이 터미널 글자 크기
   let columns = Math.round((rows * cellAspect * w) / h)
   if (columns > maxColumns) {
     columns = maxColumns

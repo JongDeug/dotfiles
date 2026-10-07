@@ -23,6 +23,7 @@ Claude Code 가 설치하면서 `package-lock.json` 대로 npm 의존성을 받�
 |---|---|---|
 | `mode` | `auto` | `auto` kitty·Ghostty 면 그림 · `on` 항상 그림 · `text` 선 도형 · `off` 코드 그대로 |
 | `theme` | `catppuccin-mocha` | 그림 색 (beautiful-mermaid 테마) |
+| `scale` | `1` | 그림 크기 (0.5~2). 1 이면 라벨이 터미널 글자 크기. 창 폭은 넘지 않는다 |
 | `cell_aspect` | `2.2` | 칸 높이÷너비. 그림이 길쭉하면 줄이고 납작하면 키운다 |
 
 **herdr 안.** herdr 패널은 서버를 띄운 터미널의 환경 변수를 물려받아 TERM 으로는 바깥 터미널을 모른다. 게다가 Claude Code 는 터미널 이름이 kitty·ghostty 일 때만 그림을 띄우는데 herdr 는 `libghostty` 라고 답해 막힌다. `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1` 이 그 확인을 건너뛴다 — dotfiles `zshrc` 가 herdr 안에서 켜고, 이 mod 의 `auto` 도 그걸 보고 그림으로 간다 (herdr `[experimental] kitty_graphics = true` 필요).

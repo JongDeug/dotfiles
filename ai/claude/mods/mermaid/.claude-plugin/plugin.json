@@ -1,6 +1,6 @@
 {
   "name": "mermaid",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그린다. 한글 라벨 칸 맞춤.",
   "author": {
     "name": "JongDeug",
@@ -46,6 +46,14 @@
       "default": 2.2,
       "min": 1,
       "max": 4
+    },
+    "scale": {
+      "type": "number",
+      "title": "그림 크기",
+      "description": "1 이면 라벨 글자가 터미널 글자 크기. 크게 보려면 키우고(최대 2), 작게 보려면 줄인다(최소 0.5). 창 폭은 넘지 않는다.",
+      "default": 1,
+      "min": 0.5,
+      "max": 2
     }
   }
 }
