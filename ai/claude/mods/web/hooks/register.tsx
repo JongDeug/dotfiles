@@ -184,12 +184,12 @@ export const register: Register = (on, options) => {
         </Box>
         <Box width={cols} height={rows}>
           {frame && helper ? (
-            // 클릭 영역은 제자리에, 그림은 그 위에 띄운다. 띄운(absolute) 요소에 온 마우스는
-            // 부모가 받아서, 거꾸로 하면 클릭이 클릭 영역에 닿지 않는다.
+            // 그림 위에 클릭 영역을 띄운다. 엔진은 맨 위에 그려진 것부터 거슬러 올라가며 onPointer
+            // 를 찾으므로, 클릭 영역이 위에 있어야 클릭이 닿는다.
             <>
-              <Client key="input" module="./input.tsx" width={cols} height={rows} />
+              <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
               <Box position="absolute" top={0} left={0}>
-                <Image key="view" source={{ file: frame.file, format: 'png', generation: frame.generation }} columns={cols} rows={rows} alt={page.title || page.url || ' '} />
+                <Client key="input" module="./input.tsx" width={cols} height={rows} />
               </Box>
             </>
           ) : null}

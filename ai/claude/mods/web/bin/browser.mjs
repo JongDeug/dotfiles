@@ -16,8 +16,9 @@ import path from 'node:path'
 
 const dir = process.argv[2]
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-// 레티나에서 선명하게. 터미널이 칸에 맞춰 줄인다.
-const DPR = 2
+// 레티나에서 선명하게 2배로 찍는다. 창 자체는 1배 — 배율을 덮어쓰면(deviceScaleFactor) 클릭
+// 좌표가 가끔 반으로 들어간다. 스크린샷만 clip.scale 로 2배.
+const SCALE = 2
 
 const emit = msg => process.stdout.write(JSON.stringify(msg) + '\n')
 
@@ -116,10 +117,11 @@ let loading = false
 let mainFrame = page.id
 let generation = 0
 
-// screencast 는 '바뀌었다' 신호로만 쓴다 — 헤드리스에선 DPR 을 무시하고 1배로 보내 흐리다.
-// 실제 화면은 DPR 배 스크린샷. 찍는 중에 또 바뀌면 끝나고 한 번 더 찍는다.
+// screencast 는 '바뀌었다' 신호로만 쓴다 — 1배로만 보내 흐리다.
+// 실제 화면은 SCALE 배 스크린샷. 찍는 중에 또 바뀌면 끝나고 한 번 더 찍는다.
 let capturing = false
 let dirty = false
+let last = null
 async function capture() {
   if (capturing) {
     dirty = true
@@ -128,12 +130,31 @@ async function capture() {
   capturing = true
   do {
     dirty = false
-    const { result } = await send('Page.captureScreenshot', { format: 'png' })
-    if (!result?.data) continue
+    // 누가 창 크기를 바꿨으면(agent-browser 가 붙으면 자기 기준으로 바꾼다) 되돌린다.
+    const metrics = await Promise.race([send('Page.getLayoutMetrics'), new Promise(res => setTimeout(() => res({}), 2000))])
+    const view = metrics.result?.cssLayoutViewport
+    if (view && (view.clientWidth !== size.width || view.clientHeight !== size.height)) await setViewport()
+    // 가끔 응답이 영영 안 온다(페이지가 안 그려지는 순간). 기다리면 그 뒤로 화면이 멈추니 2초 뒤 다시 찍는다.
+    const { result } = await Promise.race([
+      send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: size.width, height: size.height, scale: SCALE } }),
+      new Promise(res => setTimeout(() => res({}), 2000)),
+    ])
+    if (!result?.data) {
+      dirty = true
+      await new Promise(res => setTimeout(res, 200))
+      continue
+    }
+    const png = Buffer.from(result.data, 'base64')
+    // 찍는 일 자체가 '바뀌었다' 신호를 또 부를 때가 있다 — 같은 화면이면 안 내보내고 숨 돌린다.
+    if (last && png.equals(last)) {
+      await new Promise(res => setTimeout(res, 100))
+      continue
+    }
+    last = png
     generation += 1
     // 세션마다 따로 — 둘이 같은 파일에 쓰면 서로 화면이 섞인다.
     const file = path.join(dir, `frame-${process.pid}-${generation % 2}.png`)
-    fs.writeFileSync(file, Buffer.from(result.data, 'base64'))
+    fs.writeFileSync(file, png)
     emit({ type: 'frame', file, generation })
   } while (dirty)
   capturing = false
@@ -170,9 +191,11 @@ ws.onmessage = async ({ data }) => {
   }
 }
 
+const setViewport = () => send('Emulation.setDeviceMetricsOverride', { width: size.width, height: size.height, deviceScaleFactor: 1, mobile: false })
+
 async function resize(width, height) {
   size = { width, height }
-  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: DPR, mobile: false })
+  await setViewport()
   await send('Page.stopScreencast')
   // 신호용이라 작고 싸게.
   await send('Page.startScreencast', { format: 'jpeg', quality: 10, maxWidth: 200, maxHeight: 200 })
@@ -209,8 +232,10 @@ const commands = {
   },
   wheel: ({ x, y, dy }) => send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: x * size.width, y: y * size.height, deltaX: 0, deltaY: dy }),
   key: async ({ key, ctrl, meta, shift }) => {
+    // Claude Code 는 스페이스를 'space' 라는 이름으로, 붙여넣기·빠른 입력은 여러 글자를 한 번에 준다.
+    if (key === 'space') key = ' '
     const special = KEYS[key]
-    if (!special) return key.length === 1 && !ctrl && !meta ? send('Input.insertText', { text: key }) : null
+    if (!special) return ctrl || meta ? null : send('Input.insertText', { text: key })
     const [name, code] = special
     const modifiers = (shift ? 8 : 0) | (ctrl ? 2 : 0) | (meta ? 4 : 0)
     const base = { key: name, code: name, windowsVirtualKeyCode: code, modifiers }
@@ -221,6 +246,9 @@ const commands = {
 }
 
 await send('Page.enable')
+// 헤드리스 창은 포커스가 없어서 클릭해도 입력칸에 커서가 안 잡힐 때가 있다. 포커스가 있는 척.
+await send('Emulation.setFocusEmulationEnabled', { enabled: true })
+await send('Page.bringToFront')
 // 헤드리스는 UA 에 HeadlessChrome 을 달고 다녀서 구글 검색 등이 로봇 확인으로 막는다. 보통 Chrome 처럼.
 const { result: version } = await send('Browser.getVersion')
 await send('Network.setUserAgentOverride', { userAgent: (version?.userAgent ?? '').replace('HeadlessChrome', 'Chrome') })
@@ -230,6 +258,8 @@ http
   .createServer(async (req, res) => {
     let body = ''
     for await (const chunk of req) body += chunk
+    // 무슨 입력이 왔는지 남긴다 — 클릭·키가 안 먹을 때 어디서 끊겼는지 보려고.
+    fs.appendFileSync(path.join(dir, 'ctl.log'), `${new Date().toISOString()} ${process.pid} ${req.url} ${body}\n`)
     const run = commands[req.url.slice(1)]
     try {
       if (!run) throw new Error(`unknown command ${req.url}`)
