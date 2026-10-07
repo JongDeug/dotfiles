@@ -1,0 +1,51 @@
+{
+  "name": "mermaid",
+  "version": "0.1.0",
+  "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그린다. 한글 라벨 칸 맞춤.",
+  "author": {
+    "name": "JongDeug",
+    "url": "https://github.com/JongDeug"
+  },
+  "repository": "https://github.com/JongDeug/dotfiles",
+  "license": "MIT",
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "그리는 방식",
+      "description": "auto: kitty·Ghostty 면 그림, 아니면 선 도형. on: 항상 그림 (kitty 안 herdr). text: 항상 선 도형. off: 코드 그대로.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "on",
+        "text",
+        "off"
+      ]
+    },
+    "theme": {
+      "type": "string",
+      "title": "그림 색",
+      "description": "beautiful-mermaid 테마. 배경은 투명이라 터미널 배경이 비친다.",
+      "default": "catppuccin-mocha",
+      "options": [
+        "catppuccin-mocha",
+        "catppuccin-latte",
+        "tokyo-night",
+        "nord",
+        "dracula",
+        "one-dark",
+        "github-dark",
+        "github-light",
+        "zinc-dark",
+        "zinc-light"
+      ]
+    },
+    "cell_aspect": {
+      "type": "number",
+      "title": "칸 세로/가로 비율",
+      "description": "터미널 한 칸의 높이÷너비. 그림이 위아래로 늘어나 보이면 줄이고, 납작하면 키운다.",
+      "default": 2.2,
+      "min": 1,
+      "max": 4
+    }
+  }
+}

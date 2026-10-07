@@ -1,0 +1,15 @@
+{
+  "name": "jongdeug",
+  "description": "JongDeug 가 직접 만든 Claude Code 플러그인·mod",
+  "owner": {
+    "name": "JongDeug",
+    "url": "https://github.com/JongDeug"
+  },
+  "plugins": [
+    {
+      "name": "mermaid",
+      "source": "./ai/claude/mods/mermaid",
+      "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그리는 mod. 한글 라벨 칸 맞춤."
+    }
+  ]
+}
