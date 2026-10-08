@@ -103,17 +103,20 @@ function build() {
   const GLIDE_MS = GLIDE.reduce((n, s) => n + s.ms, 0)
 
 
-  // 기다리는 동안: 0.3초마다 눌림 → 서기 → 콩(뜀, 바닥에 그림자) → 서기.
-  const HOP = [
-    draw({ cx: HOME, a: 7.5, b: 5 }),
-    draw(STAND),
-    draw({ cx: HOME, a: 5, b: 7, lift: 1 }, [[HOME - 3, 3], [HOME - 2, 3], [HOME - 1, 3], [HOME, 3], [HOME + 1, 3], [HOME + 2, 3]]),
-    draw(STAND),
+  // 기다리는 동안: 천천히 숨만 쉰다 — 1.6초마다 살짝 낮고 넓게 가라앉았다 돌아오고, 가끔 깜빡.
+  const EXHALE = draw({ cx: HOME, a: 6.4, b: 6.3 })
+  const BREATH: Step[] = [
+    { ms: 1600, px: draw(STAND) },
+    { ms: 1600, px: EXHALE },
+    { ms: 1600, px: draw(STAND) },
+    { ms: 1450, px: EXHALE },
+    { ms: 150, px: draw({ cx: HOME, a: 6.4, b: 6.3, eyes: 'closed' }) },
   ]
+  const BREATH_MS = BREATH.reduce((n, step) => n + step.ms, 0)
   const PUDDLE = (z: boolean) => draw({ cx: HOME, a: 7.5, b: 3, eyes: 'closed' }, [], z ? [[HOME + 6, 2, K.z], [HOME + 7, 1, K.z]] : [[HOME + 6, 3, K.z]])
   const SAD = draw({ cx: HOME, a: 6.5, b: 6, eyes: 'sad' })
   const TIRED = draw({ cx: HOME, a: 8, b: 4, eyes: 'closed' })
-  return { GLIDE, GLIDE_MS, HOP, PUDDLE: [PUDDLE(false), PUDDLE(true)], SAD, TIRED }
+  return { GLIDE, GLIDE_MS, BREATH, BREATH_MS, PUDDLE: [PUDDLE(false), PUDDLE(true)], SAD, TIRED }
 }
 
 // 테마가 바뀌면 색을 다시 받아 프레임을 새로 만든다.
@@ -128,14 +131,14 @@ function frames() {
 
 export function slimeRows(state: PetState, now: number): Run[][] {
   const f = frames()
-  if (state === 'idle') return runsOf(f.HOP[Math.floor(now / 300) % f.HOP.length]!)
   if (state === 'cold') return runsOf(f.PUDDLE[Math.floor(now / 1000) % 2]!)
   if (state === 'hurt') return runsOf(f.SAD)
   if (state === 'tired') return runsOf(f.TIRED)
-  let t = now % f.GLIDE_MS
-  for (const step of f.GLIDE) {
+  const [steps, total] = state === 'idle' ? [f.BREATH, f.BREATH_MS] : [f.GLIDE, f.GLIDE_MS]
+  let t = now % total
+  for (const step of steps) {
     if (t < step.ms) return runsOf(step.px)
     t -= step.ms
   }
-  return runsOf(f.GLIDE[0]!.px)
+  return runsOf(steps[0]!.px)
 }
