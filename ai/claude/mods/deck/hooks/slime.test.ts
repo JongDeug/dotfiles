@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { cellWidth } from './board'
-import { bubbleBox, stateOf } from './pet'
+import { stateOf } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { C, setTheme } from './theme'
 
@@ -42,12 +42,4 @@ test('상태: 일하는 중 > 다침 > 지침 > 캐시 식음 > 쉬는 중', () 
   expect(stateOf({ ...base, fiveHour: 85, cold: true })).toBe('tired')
   expect(stateOf({ ...base, cold: true })).toBe('cold')
   expect(stateOf(base)).toBe('idle')
-})
-
-test('말풍선 상자는 세 줄 폭이 같고 가운데 줄에 꼬리가 있다', () => {
-  for (const msg of ['안녕!', '냠! 커밋 깔끔 ✓', '5H 거의 다 썼어']) {
-    const box = bubbleBox(msg, cellWidth)
-    expect(new Set(box.map(cellWidth)).size).toBe(1)
-    expect(box[1]).toMatch(/├╴$/)
-  }
 })

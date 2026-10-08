@@ -7,7 +7,7 @@ import {
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { bubbleBox, stateOf, type PetState } from './pet'
+import { stateOf, type PetState } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
@@ -698,7 +698,7 @@ export const register: Register = (on, options) => {
     // 커밋 검문: git-commit 스킬 규칙에 걸리면 실행 전에 돌려보낸다 — 고칠 곳을 짚어 주면 모델이 고쳐 다시 한다.
     const why = e.tool === 'Bash' ? await commitCheck($, e.command) : null
     if (why) {
-      say(await $.clock.now().catch(() => 0), 'deny', '검문에 걸렸어… 고쳐서 다시!', C.red, 60_000)
+      say(await $.clock.now().catch(() => 0), 'deny', '검문에 걸렸어... 고쳐서 다시!', C.red, 60_000)
       pet.hurtUntil = (await $.clock.now().catch(() => 0)) + 20_000 // 시계를 못 읽어도 검문·결과는 그대로
       return { deny: why }
     }
@@ -716,7 +716,7 @@ export const register: Register = (on, options) => {
       const at = await $.clock.now().catch(() => 0) // 시계를 못 읽어도 검문·결과는 그대로
       if (r.isError) {
         pet.hurtUntil = at + 20_000
-        say(at, 'error', '앗, 에러…', C.red)
+        say(at, 'error', '앗, 에러...', C.red)
       } else if (e.tool === 'Bash' && readCommit(e.command, cwd)?.commit) say(at, 'commit', '냠! 커밋 깔끔 ✓', C.green, 0)
       return r
     } finally {
@@ -1025,7 +1025,7 @@ export const register: Register = (on, options) => {
     // 펫은 그림만. 캐시가 식는 순간 · 5H 80% 를 넘는 순간엔 말풍선.
     const dstate = petState(now)
     const coldNow = viewOf(cache, now)?.tone === 'cold'
-    if (coldNow && !seen.cold) say(now, 'cold', '캐시 식었어… zzz', C.sub)
+    if (coldNow && !seen.cold) say(now, 'cold', '캐시 식었어... zzz', C.sub)
     seen.cold = coldNow
     const tiredNow = (usage?.limits.find(l => l.kind === 'five_hour')?.percent ?? 0) >= 80
     if (tiredNow && !seen.tired) say(now, '5h', '5H 거의 다 썼어', C.yellow, 3_600_000)
@@ -1077,38 +1077,32 @@ export const register: Register = (on, options) => {
       </Box>
     ) : null
 
-    // 말풍선 상자는 슬라임 바로 왼쪽, 위 빈 두 줄과 계기판 윗줄 오른쪽 끝에 걸친다 — 띠 높이는 그대로(4줄).
+    // 말풍선: 슬라임 바로 왼쪽 위에 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다.
+    // 상자가 계기판 윗줄 오른쪽 끝에 걸치므로 그동안 윗줄 알약 폭을 그만큼 줄인다.
     const bub = showPet && bubble && now < bubble.until ? bubble : null
-    const box = bub ? bubbleBox(bub.text, cellWidth) : null
-    const boxW = box ? cellWidth(box[0]) + 1 : 0
+    const boxW = bub ? cellWidth(bub.text) + 5 : 0 // 테두리 2 · 안쪽 여백 2 · 꼬리 1
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
-        {box && bub
-          ? [
-              <Box key="bubble-top" flexDirection="row" justifyContent="flex-end"><Text color={C.overlay}>{box[0]}</Text></Box>,
-              <Box key="bubble-mid" flexDirection="row" justifyContent="flex-end">
-                <Text color={C.overlay}>│ </Text>
-                <Text color={bub.color} bold>{bub.text}</Text>
-                <Text color={C.overlay}> ├╴</Text>
-              </Box>,
-            ]
-          : null}
-        {top.length || box ? (
-          <Box flexDirection="row">
-            {top.length ? line(top, [], cols - boxW) : <Box flexGrow={1} />}
-            {box ? <Text color={C.overlay}>{box[2]}</Text> : null}
-          </Box>
-        ) : null}
+        {top.length ? line(top, [], cols - boxW) : null}
         {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
       </Box>
     )
+    const bubbleEl = bub ? (
+      <Box position="absolute" top={0} right={petCols + 2} flexDirection="row" alignItems="center">
+        <Box borderStyle="round" borderColor={C.overlay} paddingX={1}>
+          <Text color={bub.color} bold>{bub.text}</Text>
+        </Box>
+        <Text color={C.overlay}>╴</Text>
+      </Box>
+    ) : null
     if (!showPet) return <Box flexDirection="column">{below}{dash}</Box>
     return (
       <Box flexDirection="column">
         {below}
         <Box flexDirection="row" columnGap={2}>
           {dash}
+          {bubbleEl}
           <Box flexDirection="column" width={petCols} flexShrink={0}>
             {slimeRows(dstate, now).map((runs, y) => (
               <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>

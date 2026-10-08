@@ -87,6 +87,6 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 89개
+claude plugin test ai/claude/mods/deck     # 88개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```
