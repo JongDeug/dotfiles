@@ -7,7 +7,7 @@ import {
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { stateOf, type PetState } from './pet'
+import { bubbleBox, stateOf, type PetState } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
@@ -36,6 +36,15 @@ type Turn = { startedAt: number; tools: number; current: string; agents: number;
 let turn: Turn | null = null
 // 펫(슬라임): 설정에서 껐나(pet: off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
 const pet = { kind: 'slime' as 'slime' | 'off', hidden: false, hurtUntil: 0 }
+// 말풍선: 사건 때 3초. 같은 말(key)은 gap 안에 다시 안 한다(기본 10분). 계속되는 상태(캐시 식음·5H)는 바뀌는 순간에만.
+let bubble: { text: string; color: string; until: number } | null = null
+const said = new Map<string, number>()
+const seen = { cold: false, tired: false }
+function say(now: number, key: string, text: string, color: string, gap = 600_000) {
+  if (now - (said.get(key) ?? -Infinity) < gap) return
+  said.set(key, now)
+  bubble = { text, color, until: now + 3000 }
+}
 let last: { seconds: number; tools: number; edits: number } | null = null
 
 type Usage = {
@@ -114,8 +123,10 @@ const refreshCi = ($: EngineInterface) =>
       const url = await sh($, ['git', 'remote', 'get-url', 'origin'])
       host = url.includes('github.com') ? 'github' : url.includes('gitlab') ? 'gitlab' : null
     }
+    const was = ci?.state
     if (host === 'github') ci = ciFromGithub(await sh($, ['gh', 'run', 'list', '-b', git.branch, '-L', '1', '--json', 'status,conclusion,updatedAt,workflowName,url']))
     else if (host === 'gitlab') ci = ciFromGitlab(await sh($, ['glab', 'ci', 'list', '-b', git.branch, '-P', '1', '-F', 'json']))
+    if (ci?.state === 'fail' && was && was !== 'fail') say(await $.clock.now(), 'ci', 'CI 깨졌어!', C.red, 0)
   })
 
 const refreshUsage = ($: EngineInterface) =>
@@ -158,6 +169,7 @@ async function start($: EngineInterface): Promise<void> {
   await Promise.all([refreshGit($), refreshUsage($)])
   void refreshCi($)
   await refreshTheme($)
+  say(await $.clock.now(), 'hi', '안녕!', C.teal)
   $.clock.every(10_000, () => {
     void refreshGit($)
     void refreshTheme($)
@@ -254,6 +266,7 @@ async function ping($: EngineInterface, s: State) {
   s.last = { at: now, read: u.cache_read_input_tokens, write: u.cache_creation_input_tokens, usd, warm }
   if (!warm) return stop($, s, `핑이 ${fmtTok(u.cache_read_input_tokens)}을 읽고 ${fmtTok(u.cache_creation_input_tokens)}토큰을 썼다(${fmtUsd(usd)}) — 캐시가 이미 사라졌다`)
   s.lastRequestAt = now
+  say(now, 'ping', '캐시 데웠어 ☕', C.blue)
   await arm($, s)
 }
 
@@ -685,6 +698,7 @@ export const register: Register = (on, options) => {
     // 커밋 검문: git-commit 스킬 규칙에 걸리면 실행 전에 돌려보낸다 — 고칠 곳을 짚어 주면 모델이 고쳐 다시 한다.
     const why = e.tool === 'Bash' ? await commitCheck($, e.command) : null
     if (why) {
+      say(await $.clock.now().catch(() => 0), 'deny', '검문에 걸렸어… 고쳐서 다시!', C.red, 60_000)
       pet.hurtUntil = (await $.clock.now().catch(() => 0)) + 20_000 // 시계를 못 읽어도 검문·결과는 그대로
       return { deny: why }
     }
@@ -699,7 +713,11 @@ export const register: Register = (on, options) => {
     }
     try {
       const r = await next(e)
-      if (r.isError) pet.hurtUntil = (await $.clock.now().catch(() => 0)) + 20_000 // 시계를 못 읽어도 검문·결과는 그대로
+      const at = await $.clock.now().catch(() => 0) // 시계를 못 읽어도 검문·결과는 그대로
+      if (r.isError) {
+        pet.hurtUntil = at + 20_000
+        say(at, 'error', '앗, 에러…', C.red)
+      } else if (e.tool === 'Bash' && readCommit(e.command, cwd)?.commit) say(at, 'commit', '냠! 커밋 깔끔 ✓', C.green, 0)
       return r
     } finally {
       if (t && e.tool === 'Agent') t.agents -= 1
@@ -715,6 +733,7 @@ export const register: Register = (on, options) => {
     // 서브에이전트의 턴이 끝난 건 이 대화의 턴이 끝난 게 아니다.
     if (e.agentId) return r
     if (turn) last = { seconds: Math.round(((await $.clock.now()) - turn.startedAt) / 1000), tools: turn.tools, edits: turn.edits.size }
+    if (turn && last && last.seconds >= 60) say(await $.clock.now(), 'done', `다 했다! ${elapsed(last.seconds)}`, C.yellow, 0)
     turn = null
     void refreshGit($)
     void refreshUsage($)
@@ -1003,8 +1022,14 @@ export const register: Register = (on, options) => {
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     const bottomRight: Item[] = []
-    // 펫은 그림만 — 등급·상태 글자는 /pet 카드에서.
+    // 펫은 그림만. 캐시가 식는 순간 · 5H 80% 를 넘는 순간엔 말풍선.
     const dstate = petState(now)
+    const coldNow = viewOf(cache, now)?.tone === 'cold'
+    if (coldNow && !seen.cold) say(now, 'cold', '캐시 식었어… zzz', C.sub)
+    seen.cold = coldNow
+    const tiredNow = (usage?.limits.find(l => l.kind === 'five_hour')?.percent ?? 0) >= 80
+    if (tiredNow && !seen.tired) say(now, '5h', '5H 거의 다 썼어', C.yellow, 3_600_000)
+    seen.tired = tiredNow
     if (turn) {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
@@ -1017,9 +1042,9 @@ export const register: Register = (on, options) => {
     if (top.length + bottom.length + bottomRight.length === 0) return below
 
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
-    const line = (left: Item[], right: Item[]) => {
+    const line = (left: Item[], right: Item[], width = cols) => {
       const all = [...left, ...right]
-      const keep = fit(all, cols)
+      const keep = fit(all, width)
       const draw = (items: Item[], offset: number) => {
         const out: RenderElement[] = []
         items.forEach((it, i) => {
@@ -1030,7 +1055,7 @@ export const register: Register = (on, options) => {
         return out
       }
       return (
-        <Box flexDirection="row">
+        <Box flexDirection="row" flexGrow={1}>
           {draw(left, 0)}
           <Box flexGrow={1} />
           {draw(right, left.length)}
@@ -1052,10 +1077,29 @@ export const register: Register = (on, options) => {
       </Box>
     ) : null
 
+    // 말풍선 상자는 슬라임 바로 왼쪽, 위 빈 두 줄과 계기판 윗줄 오른쪽 끝에 걸친다 — 띠 높이는 그대로(4줄).
+    const bub = showPet && bubble && now < bubble.until ? bubble : null
+    const box = bub ? bubbleBox(bub.text, cellWidth) : null
+    const boxW = box ? cellWidth(box[0]) + 1 : 0
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
-        {top.length ? line(top, []) : null}
+        {box && bub
+          ? [
+              <Box key="bubble-top" flexDirection="row" justifyContent="flex-end"><Text color={C.overlay}>{box[0]}</Text></Box>,
+              <Box key="bubble-mid" flexDirection="row" justifyContent="flex-end">
+                <Text color={C.overlay}>│ </Text>
+                <Text color={bub.color} bold>{bub.text}</Text>
+                <Text color={C.overlay}> ├╴</Text>
+              </Box>,
+            ]
+          : null}
+        {top.length || box ? (
+          <Box flexDirection="row">
+            {top.length ? line(top, [], cols - boxW) : <Box flexGrow={1} />}
+            {box ? <Text color={C.overlay}>{box[2]}</Text> : null}
+          </Box>
+        ) : null}
         {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
       </Box>
     )

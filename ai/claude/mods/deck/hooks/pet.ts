@@ -29,3 +29,9 @@ export function runsOf(px: (string | null)[][]): Run[][] {
   }
   return rows
 }
+
+// 말풍선 상자 3줄 — 가운데 줄 오른쪽에 꼬리(├╴)가 슬라임 쪽으로 난다. width 는 칸 수 세기(한글 2칸). 세 줄 폭이 같다.
+export function bubbleBox(msg: string, width: (s: string) => number): [string, string, string] {
+  const bar = '─'.repeat(width(msg) + 2)
+  return [`╭${bar}╮ `, `│ ${msg} ├╴`, `╰${bar}╯ `]
+}

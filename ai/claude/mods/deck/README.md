@@ -63,6 +63,7 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 계기판 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
 
 - 슬라임(21칸 × 4줄): 바닥에 앉은 반타원 젤리를 너비·높이·기울기·위치로 그때그때 계산해 찍는다(`slime.ts`). 일하는 동안엔 깜빡이다 왼쪽을 힐끔 보고, 왼쪽으로 사르륵 녹아 흘러가 사라졌다가(바닥 자국이 말라 간다) 오른쪽 위에서 뚝 떨어져 뿅 하고 다시 선다.
+- 사건이 있으면 슬라임 왼쪽에 말풍선 상자가 3초 뜬다: 커밋 성공(냠! 커밋 깔끔 ✓) · 검문에 걸림 · 도구 오류 · 1분 넘은 턴 끝 · 캐시가 식는 순간 · keepwarm 핑 · 5H 80% 넘는 순간 · CI 실패 · 세션 시작. 같은 말은 10분에 한 번, 띠 높이는 그대로다.
 - 기다리는 동안엔 콩콩 뛰고, 캐시가 식으면 웅덩이로 꾸벅, 커밋 검문·도구 오류 뒤 20초는 시무룩, 5H 한도 80% 넘으면 지쳐서 납작.
 - `/pet off` 는 이 세션에서만 숨기고 `/pet` 은 다시 띄운다.
 
@@ -86,6 +87,6 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 88개
+claude plugin test ai/claude/mods/deck     # 89개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```
