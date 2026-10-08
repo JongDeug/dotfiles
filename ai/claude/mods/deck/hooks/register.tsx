@@ -59,7 +59,7 @@ async function commitCheck($: EngineInterface, command: string): Promise<string 
         const r = await $.process.run(['git', '-C', plan.dir!, ...args], { timeoutMs: 5_000 })
         return r.exitCode === 0 ? r.stdout.trim() : ''
       }
-      const branch = await git('rev-parse', '--abbrev-ref', 'HEAD')
+      const branch = await git('symbolic-ref', '--short', 'HEAD') // 커밋 없는 새 브랜치도 읽힌다(detached 면 빈 값)
       const root = await git('rev-parse', '--show-toplevel')
       // 팀 레포 = CLAUDE.md 가 백엔드팀 공통 블록(backend-llm-wiki/REPO-CLAUDE.md)을 import 하는 저장소.
       const md = root ? await $.fs.read(`${root}/CLAUDE.md`).catch(() => '') : ''
