@@ -5,13 +5,15 @@ import {
   MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
+import { gridFor, isImagePath } from './images'
+import { pickMode, type Mode } from './parse'
+import { C } from './theme'
+import { splitAll } from './blocks'
 import { ago, cellWidth, fit, type Fit,ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
-// herdr 테마(gruvbox dark)와 같은 팔레트.
-const C = { base: '#282828', surface: '#3c3836', overlay: '#504945', text: '#ebdbb2', sub: '#a89984', blue: '#83a598', green: '#b8bb26', red: '#fb4934', yellow: '#fabd2f', mauve: '#d3869b', peach: '#fe8019', teal: '#8ec07c' }
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
 const SPIN = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
@@ -304,10 +306,183 @@ async function scoreTurn($: EngineInterface, e: TurnCompleteInput, next: (e: Tur
   return r
 }
 
+// ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
+// 그리기는 node(bin/*.mjs)·sh(bin/convert.sh)가 하고, 여기선 쌓아 두었다가 한 번에 넘긴다.
+// session.start 에 기대지 않는다 — 쌓을 때마다 그리기를 깨우고, 끝나면 그 사이 쌓인 것을 한 번 더.
+type Png = { png: string; columns: number; rows: number }
+type Failed = { error: string }
+type ImageFile = { file: string; width: number; height: number }
+type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
+type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
+
+const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
+let picMode: Mode | undefined
+const mermaidDrawn = new Map<string, Png | { text: string } | Failed>()
+const mermaidQueue = new Map<string, MermaidJob>()
+const chartDrawn = new Map<string, Png | Failed>()
+const chartQueue = new Map<string, ChartJob>()
+const converted = new Map<string, ImageFile | Failed>()
+const convertQueue = new Set<string>()
+const picBusy = { mermaid: false, chart: false, convert: false }
+
+const PICTURE_PROMPT = [
+  '# Pictures in this terminal',
+  'This terminal draws pictures in your replies; use them when a picture is clearer than text.',
+  '- Diagrams: a ```mermaid block at the top level of the reply (not inside a list) for a flow, sequence, state machine or entity model. Keep it small: about 12 nodes, short one-line labels (no <br/>). Node ids in ASCII; labels may be Korean.',
+  '- Charts: a ```chart block holding a Vega-Lite JSON spec for numbers that read better as a chart (a comparison, a trend, a breakdown). Put the data inline under "data": {"values": [...]}; leave out width, height and colors (they are fitted to the terminal); add a short "title"; labels may be Korean. Keep a table of the key numbers in text too if the user needs exact values. Two charts side by side: {"hconcat": [spec1, spec2]}; a pie or donut: mark "arc" with a theta encoding.',
+  '- Images: `![short description](/absolute/path.png)` on a line of its own. Several on one line separated by spaces sit side by side. A video path (`.mp4` …) shows six frames spread over the video. Reading an image file with the Read tool also shows it under the tool call.',
+].join('\n')
+
+async function modeOf($: EngineInterface): Promise<Mode> {
+  picMode ??= pickMode(pic.mode, {
+    TERM: await $.env.get('TERM'),
+    TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
+    KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
+    TMUX: await $.env.get('TMUX'),
+    CLAUDE_CODE_FORCE_TERMINAL_IMAGES: await $.env.get('CLAUDE_CODE_FORCE_TERMINAL_IMAGES'),
+  })
+  return picMode
+}
+
+// 쌓인 일을 렌더러 한 번에 넘기고 key 별 결과를 받는다.
+async function runRenderer($: EngineInterface, script: string, payload: object): Promise<({ key: string } & Record<string, unknown>)[]> {
+  const { exitCode, stdout, stderr } = await $.process.run(['node', `${$.plugin.root}/bin/${script}`], { stdin: JSON.stringify(payload), timeoutMs: 60_000 })
+  if (exitCode !== 0) throw new Error(stderr.trim().split('\n').pop() ?? `exit ${exitCode}`)
+  return JSON.parse(stdout).results
+}
+
+async function drainMermaid($: EngineInterface): Promise<void> {
+  if (picBusy.mermaid || mermaidQueue.size === 0) return
+  picBusy.mermaid = true
+  const items = [...mermaidQueue.values()]
+  mermaidQueue.clear()
+  try {
+    const results = await runRenderer($, 'mermaid.mjs', { items, theme: pic.theme, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style })
+    for (const { key, ...d } of results) mermaidDrawn.set(key, d as Png | { text: string } | Failed)
+    // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
+    for (const item of items) if (!mermaidDrawn.has(item.key)) mermaidDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
+  } catch (error) {
+    for (const item of items) mermaidDrawn.set(item.key, { error: String(error) })
+  } finally {
+    picBusy.mermaid = false
+  }
+  $.ui.invalidate('ui.render')
+  void drainMermaid($)
+}
+
+async function drainChart($: EngineInterface): Promise<void> {
+  if (picBusy.chart || chartQueue.size === 0) return
+  picBusy.chart = true
+  const items = [...chartQueue.values()]
+  chartQueue.clear()
+  try {
+    const results = await runRenderer($, 'chart.mjs', { items, cellAspect: pic.cellAspect })
+    for (const { key, ...d } of results) chartDrawn.set(key, d as Png | Failed)
+    // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
+    for (const item of items) if (!chartDrawn.has(item.key)) chartDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
+  } catch (error) {
+    for (const item of items) chartDrawn.set(item.key, { error: String(error) })
+  } finally {
+    picBusy.chart = false
+  }
+  $.ui.invalidate('ui.render')
+  void drainChart($)
+}
+
+async function drainConvert($: EngineInterface): Promise<void> {
+  if (picBusy.convert || convertQueue.size === 0) return
+  picBusy.convert = true
+  const paths = [...convertQueue]
+  convertQueue.clear()
+  try {
+    const cacheDir = `${(await $.env.get('HOME')) ?? '/tmp'}/.cache/claude-img`
+    const { stdout } = await $.process.run(['/bin/sh', `${$.plugin.root}/bin/convert.sh`, cacheDir, ...paths], { timeoutMs: 60_000 })
+    for (const line of stdout.split('\n')) {
+      if (!line.startsWith('{')) continue
+      const { path, ...rest } = JSON.parse(line) as { path: string } & (ImageFile | Failed)
+      converted.set(path, rest)
+    }
+    for (const p of paths) if (!converted.has(p)) converted.set(p, { error: '변환 결과가 없다' })
+  } catch (error) {
+    for (const p of paths) converted.set(p, { error: String(error) })
+  } finally {
+    picBusy.convert = false
+  }
+  $.ui.invalidate('ui.render')
+  void drainConvert($)
+}
+
+function mermaidOf($: EngineInterface, source: string, kind: 'png' | 'text', maxColumns: number) {
+  const key = `${kind}|${kind === 'png' ? maxColumns : ''}|${source}`
+  const hit = mermaidDrawn.get(key)
+  if (!hit && !mermaidQueue.has(key)) {
+    mermaidQueue.set(key, { key, source, kind, maxColumns })
+    void drainMermaid($)
+  }
+  return hit
+}
+
+// 같은 spec 은 같은 그림 — 크기만 다르면 다시 그린다.
+function chartOf($: EngineInterface, spec: string, maxColumns: number, maxRows?: number) {
+  const key = `${maxColumns}x${maxRows ?? ''}|${spec}`
+  const hit = chartDrawn.get(key)
+  if (!hit && !chartQueue.has(key)) {
+    chartQueue.set(key, { key, spec, maxColumns, maxRows })
+    void drainChart($)
+  }
+  return hit
+}
+
+function imageOf($: EngineInterface, path: string) {
+  const hit = converted.get(path)
+  if (!hit && !convertQueue.has(path)) {
+    convertQueue.add(path)
+    void drainConvert($)
+  }
+  return hit
+}
+
+const chartTitle = (spec: string): string => {
+  try {
+    const t = (JSON.parse(spec) as { title?: unknown }).title
+    return typeof t === 'string' ? t : typeof (t as { text?: unknown })?.text === 'string' ? (t as { text: string }).text : 'chart'
+  } catch {
+    return 'chart'
+  }
+}
+
+// 크게 보기 pane 하나 — 무엇을 띄웠느냐에 따라 그린다.
+const VIEW = 'deck-view'
+type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'file'; title: string; img: ImageFile }
+let viewing: Viewing | null = null
+
+async function openView($: EngineInterface, v: Viewing): Promise<void> {
+  viewing = v
+  // 입력창 위에 넓게 — 터미널 폭을 다 쓰고 높이는 엔진이 내줄 만큼.
+  await $.ui.open({ id: VIEW, title: v.title.slice(0, 40) || 'deck', focus: true, closeOnEscape: true, rows: 40 })
+  $.ui.invalidate('ui.render')
+}
+
+// ~/Downloads 에 PNG 로. 이름 뒤에 시각을 붙인다.
+async function savePng($: EngineInterface, png: string, title: string): Promise<void> {
+  const name = title.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 60) || 'chart'
+  const home = (await $.env.get('HOME')) ?? '/tmp'
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')
+  const file = `${home}/Downloads/${name}-${stamp}.png`
+  const { exitCode } = await $.process.run(['/bin/sh', '-c', 'base64 -D > "$1"', 'sh', file], { stdin: png })
+  $.ui.toast(exitCode === 0 ? `저장했다: ${file}` : '저장하지 못했다')
+}
+
 const level = (percent: number) => (percent >= 80 ? C.red : percent >= 50 ? C.yellow : C.green)
 
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  // 설정(/plugin → deck → configure). 비우면 기본값.
+  if (typeof options.cell_aspect === 'number') pic.cellAspect = options.cell_aspect
+  if (typeof options.max_rows === 'number') pic.maxRows = options.max_rows
+  if (typeof options.scale === 'number') pic.scale = options.scale
+  if (options.style === 'sketch') pic.style = 'sketch'
+
 
   on('session.start', async ($, e, next) => {
     const r = await next(e)
@@ -439,6 +614,188 @@ export const register: Register = on => {
     void refreshGit($)
     void refreshUsage($)
     return r
+  }).catch(($, e, next) => next(e))
+
+  // ── 그림 ───────────────────────────────────────────
+  on('prompt.compose', async ($, e, next) => {
+    const composed = await next(e)
+    if (!e.surfaces.includes('terminal')) return composed
+    return { sections: [...composed.sections, { id: 'deck:pictures', text: PICTURE_PROMPT, scope: 'session' as const }] }
+  })
+
+  // 답을 블록으로 나눠, 그림이 준비된 블록은 그림으로, 아직이거나 못 그린 블록은 원래 글로.
+  on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
+    if (e.surface !== 'terminal') return next(e)
+    const blocks = splitAll(e.props.text)
+    if (!blocks.some(b => b.kind !== 'text')) return next(e)
+    const mode = await modeOf($)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
+    // 왼쪽 2칸 거터(⏺)와 마지막 빈 칸을 뺀 폭.
+    const width = Math.max(20, (e.viewport?.columns ?? 80) - 3)
+    const rows: RenderElement[] = []
+    let isFirst = e.props.isFirstOfReply
+    const asText = async (text: string) => {
+      const drawn = await next({ ...e, props: { ...e.props, text, isFirstOfReply: isFirst } })
+      // 엔진은 답의 첫 덩어리에만 거터를 붙인다 — 이어지는 조각은 여기서 맞춘다.
+      rows.push(isFirst ? drawn : <Box flexDirection="row"><Box width={2} flexShrink={0} /><Box flexDirection="column" flexGrow={1} flexShrink={1}>{drawn}</Box></Box>)
+    }
+    const failed = (what: string, error: string) => rows.push(<Box paddingLeft={2}><Text dimColor>{what} 그리지 못했다: {error}</Text></Box>)
+    const picture = (body: RenderElement) =>
+      rows.push(
+        <Box flexDirection="row" marginTop={1}>
+          <Box width={2} flexShrink={0}><Text>{isFirst ? '⏺' : ' '}</Text></Box>
+          {body}
+        </Box>,
+      )
+    // 그림 밑 한 줄: 설명은 흐리게, 버튼은 그림에 포인터를 올렸을 때만.
+    const under = (scope: string, caption: string, buttons: RenderElement[]) => (
+      <Box flexDirection="row" columnGap={2} minHeight={1}>
+        {caption ? <Text dimColor wrap="truncate-end">{caption}</Text> : null}
+        <Box display="none" columnGap={2} hover={{ display: 'flex', scope }}>{buttons}</Box>
+      </Box>
+    )
+    for (const [n, b] of blocks.entries()) {
+      if (b.kind === 'text') await asText(b.text)
+      else if (b.kind === 'mermaid') {
+        const d = mode === 'off' ? undefined : mermaidOf($, b.source, mode === 'pictures' ? 'png' : 'text', width)
+        if (!d || 'error' in d) {
+          await asText(b.raw)
+          if (d) failed('다이어그램을', d.error)
+        } else if ('text' in d) picture(<Text wrap="truncate-end">{d.text}</Text>)
+        else {
+          const title = b.source.trim().split('\n')[0] ?? 'mermaid'
+          const scope = `deck-m-${n}-${d.png.length}`.slice(0, 64)
+          picture(
+            <Box flexDirection="column" hover={{ scope }}>
+              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[mermaid: ${title}]`} />
+              {under(scope, '', [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'png', title, png: d })}>⤢ 크게 보기</Button>])}
+            </Box>,
+          )
+        }
+      } else if (b.kind === 'chart') {
+        const d = chartOf($, b.spec, Math.min(110, width - 1))
+        if (!d || 'error' in d) {
+          await asText(b.raw)
+          if (d) failed('차트를', d.error)
+        } else {
+          const title = chartTitle(b.spec)
+          const spec = b.spec
+          const scope = `deck-c-${n}-${spec.length}`.slice(0, 64)
+          picture(
+            <Box flexDirection="column" hover={{ scope }}>
+              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[chart: ${title}]`} />
+              {under(scope, '', [
+                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'chart', title, spec })}>⤢ 크게 보기</Button>,
+                <Button key={`${scope}-save`} plain dimColor onPress={() => void savePng($, d.png, title)}>↓ PNG 저장</Button>,
+              ])}
+            </Box>,
+          )
+        }
+      } else {
+        // 한 줄의 그림이 다 준비돼야 그린다 — 그 전엔 원래 글(이미지 문법)로 둔다.
+        const imgs = b.pictures.map(p => imageOf($, p.path))
+        if (!imgs.every(i => i && !('error' in i))) await asText(b.raw)
+        else {
+          // 여러 장이면 폭을 나눠 나란히. 각 그림 밑에 설명.
+          const gap = 2
+          const each = Math.floor((Math.min(100, width) - gap * (b.pictures.length - 1)) / b.pictures.length)
+          picture(
+            <Box flexDirection="row" columnGap={gap}>
+              {b.pictures.map((p, i) => {
+                const img = imgs[i] as ImageFile
+                const grid = gridFor(img.width, img.height, each, pic.maxRows, pic.cellAspect)
+                const title = p.alt || (p.path.split('/').pop() ?? p.path)
+                // 같은 그림이 대화에 두 번 나와도 함께 밝아질 뿐이라 캐시 파일 이름으로 묶는다.
+                const scope = `deck-i-${img.file.split('/').pop() ?? i}`.slice(0, 64)
+                return (
+                  <Box flexDirection="column" hover={{ scope }}>
+                    <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${title}]`} />
+                    {under(scope, title, [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'file', title, img })}>⤢ 크게 보기</Button>])}
+                  </Box>
+                )
+              })}
+            </Box>,
+          )
+        }
+      }
+      isFirst = false
+    }
+    return <Box flexDirection="column">{rows}</Box>
+  })
+
+  // Read 로 이미지를 읽은 줄 아래에 그 그림.
+  on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
+    if (e.surface !== 'terminal' || e.props.tool !== 'Read' || e.props.isRunning || e.props.isErrored) return next(e)
+    const path = (e.props.input as { file_path?: unknown } | null)?.file_path
+    if (!isImagePath(path)) return next(e)
+    const row = await next(e)
+    const img = imageOf($, path)
+    if (!img || 'error' in img) return row
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
+    const grid = gridFor(img.width, img.height, Math.min(100, (e.viewport?.columns ?? 80) - 6), pic.maxRows, pic.cellAspect)
+    const title = path.split('/').pop() ?? path
+    const scope = `deck-r-${img.file.split('/').pop() ?? ''}`.slice(0, 64)
+    return (
+      <Box flexDirection="column">
+        {row}
+        <Box paddingLeft={5} flexDirection="column" hover={{ scope }}>
+          <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${path}]`} />
+          <Box flexDirection="row" columnGap={2}>
+            <Text dimColor wrap="truncate-end">{title}</Text>
+            <Box display="none" hover={{ display: 'flex', scope }}>
+              <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'file', title, img })}>⤢ 크게 보기</Button>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    )
+  })
+
+  // 크게 보기: 위에 제목 줄, 아래 그림을 pane 에 꽉 차게.
+  on('ui.render', { component: 'Pane', requestId: VIEW }, async ($, e, next) => {
+    if (e.surface !== 'terminal') return next(e)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
+    if (!viewing) return <Text dimColor>보여 줄 그림이 없다.</Text>
+    const v = viewing
+    const cols = Math.max(10, e.props.bodyColumns)
+    const room = Math.max(4, e.props.scroll.bodyRows - 2)
+    let body: RenderElement
+    let meta = ''
+    let save: string | null = null
+    if (v.kind === 'file') {
+      const grid = gridFor(v.img.width, v.img.height, cols, room, pic.cellAspect)
+      body = <Image source={{ file: v.img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={v.title} />
+      meta = `${v.img.width}×${v.img.height}`
+    } else if (v.kind === 'png') {
+      // 이미 그린 PNG 를 키워 보인다(1행 40px 로 그려 두어 세 배까지 선명하다).
+      const grow = Math.min(3, cols / v.png.columns, room / v.png.rows)
+      body = <Image source={{ png: v.png.png }} columns={Math.max(1, Math.floor(v.png.columns * grow))} rows={Math.max(1, Math.floor(v.png.rows * grow))} alt={v.title} />
+    } else {
+      // 차트는 pane 크기에 맞춰 다시 그린다.
+      const d = chartOf($, v.spec, Math.max(20, cols - 1), Math.max(8, room - 1))
+      body = !d ? <Text dimColor>그리는 중…</Text>
+        : 'error' in d ? <Text dimColor>차트를 그리지 못했다: {d.error}</Text>
+        : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={v.title} />
+      if (d && !('error' in d)) save = d.png
+    }
+    const png = save
+    return (
+      <Box flexDirection="column" rowGap={1}>
+        <Box flexDirection="row" columnGap={2}>
+          <Text bold color={C.yellow}>{v.title}</Text>
+          {meta ? <Text dimColor>{meta}</Text> : null}
+          <Box flexGrow={1} />
+          {png ? <Button key="save" plain dimColor hotkey="s" onPress={() => void savePng($, png, v.title)}>↓ PNG 저장</Button> : null}
+          <Text dimColor>Esc 닫기</Text>
+        </Box>
+        <Box flexDirection="row" justifyContent="center">{body}</Box>
+      </Box>
+    )
+  })
+
+  on('ui.close', { id: VIEW }, async ($, e, next) => {
+    viewing = null
+    return next(e)
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

@@ -157,7 +157,7 @@ Host m1-*
 
 ## 상태줄 (statusline)
 
-statusline 은 쓰지 않는다 — 입력창 위 계기판 mod [board](ai/claude/mods/board/) 가 대신한다(모델·경로·브랜치·컨텍스트·비용·사용량 한도 + git 변경·CI·지금 도는 작업).
+statusline 은 쓰지 않는다 — 입력창 위 계기판 mod [deck](ai/claude/mods/deck/) 이 대신한다(모델·경로·브랜치·컨텍스트·비용·사용량 한도 + git 변경·CI·지금 도는 작업).
 
 ## 스킬
 

@@ -7,29 +7,14 @@
   },
   "plugins": [
     {
-      "name": "board",
-      "source": "./ai/claude/mods/board",
-      "description": "입력창 위 두 줄 계기판 — 모델·경로·브랜치·변경·CI·지금 도는 작업, 분류별 컨텍스트 막대·사용량 한도·비용·프롬프트 캐시. keepwarm·식은 채 보내기 경고(cache-tax 포크) 포함. statusline 대체."
-    },
-    {
-      "name": "chart",
-      "source": "./ai/claude/mods/chart",
-      "description": "답 속 ```chart (Vega-Lite JSON) 블록을 그래프 그림으로. 한글 라벨, 투명 배경."
-    },
-    {
-      "name": "mermaid",
-      "source": "./ai/claude/mods/mermaid",
-      "description": "답변 속 ```mermaid 블록을 그림(kitty·Ghostty) 또는 선 도형으로 그리는 mod. 한글 라벨 칸 맞춤."
+      "name": "deck",
+      "source": "./ai/claude/mods/deck",
+      "description": "Flight Deck — 입력창 위 계기판(statusline 대체)·프롬프트 캐시 keepwarm, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane. herdr 테마(gruvbox)."
     },
     {
       "name": "web",
       "source": "./ai/claude/mods/web",
       "description": "/web <주소> — 헤드리스 Chrome 화면을 Claude Code pane 에 띄우는 mod. 클릭·스크롤·입력, Claude 도 같은 탭을 조작."
-    },
-    {
-      "name": "img",
-      "source": "./ai/claude/mods/img",
-      "description": "이미지·영상을 대화 안에 그림으로 — Read 로 읽은 이미지, 답 속 ![설명](/경로) 줄(여러 장이면 나란히, 영상은 프레임 6장). macOS sips·ffmpeg."
     }
   ]
 }

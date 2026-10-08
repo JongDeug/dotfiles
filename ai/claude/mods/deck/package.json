@@ -1,0 +1,14 @@
+{
+  "name": "deck-renderers",
+  "private": true,
+  "description": "bin/chart.mjs (vega-lite → vega → SVG) · bin/mermaid.mjs (beautiful-mermaid) — PNG 는 둘 다 resvg",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "beautiful-mermaid": "1.1.3",
+    "roughjs": "4.6.6",
+    "vega": "6.2.0",
+    "vega-lite": "6.4.1"
+  }
+}

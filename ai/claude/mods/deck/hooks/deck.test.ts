@@ -1,0 +1,52 @@
+import { expect, mock, test } from 'claude-code/testing'
+import type { On } from 'claude-code'
+
+// 답 속 블록이 그림으로 바뀌는 길: 렌더러(node)는 가짜로 답한다.
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+const props = (text: string) => ({ text, isFirstOfReply: true }) as never
+
+function world(on: On) {
+  mock.clock(on, { now: 1_000_000 })
+  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : e.name === 'HOME' ? '/home/me' : undefined }))
+  const calls: string[] = []
+  on('process.run', ($, e) => {
+    const argv = e.argv as string[]
+    calls.push(argv.join(' '))
+    const script = argv[1] ?? ''
+    const items = (JSON.parse(String(e.init?.stdin ?? '{"items":[]}')).items ?? []) as { key: string }[]
+    const results = items.map(it => ({ key: it.key, png: PNG, columns: 40, rows: 10 }))
+    const stdout = script.endsWith('convert.sh') ? `{"path":"${argv[3]}","file":"/cache/a.png","width":800,"height":600}\n` : JSON.stringify({ results })
+    return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  // 엔진이 그리는 글.
+  on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
+  return calls
+}
+
+test('chart · mermaid · 이미지 블록은 처음엔 글, 렌더러가 답하면 그림 — 렌더러마다 한 번씩만 부른다', async ($, on) => {
+  const calls = world(on)
+  const text = ['앞', '```mermaid', 'flowchart LR', '  A --> B', '```', '```chart', '{"title":"t","mark":"bar"}', '```', '![사진](/tmp/a.png)', '끝'].join('\n')
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(text) })
+  // 그려진 뒤: 그림 세 장, 앞뒤 글은 그대로.
+  const images = await ui.findAll({ type: 'Image' })
+  expect(images.length).toBe(3)
+  expect((await ui.find({ text: /^앞$/ }))?.text).toBe('앞')
+  expect((await ui.find({ text: /^끝$/ }))?.text).toBe('끝')
+  expect(calls.filter(c => c.includes('mermaid.mjs')).length).toBe(1)
+  expect(calls.filter(c => c.includes('chart.mjs')).length).toBe(1)
+  expect(calls.filter(c => c.includes('convert.sh')).length).toBe(1)
+})
+
+test('렌더러가 어떤 블록의 결과를 빠뜨려도 다시 부르기를 되풀이하지 않는다 — 못 그림으로 남긴다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : undefined }))
+  let runs = 0
+  on('process.run', () => {
+    runs += 1
+    return { value: { exitCode: 0, stdout: JSON.stringify({ results: [] }), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(['```chart', '{"mark":"bar"}', '```'].join('\n')) })
+  expect((await ui.find({ text: /차트를 그리지 못했다/ }))?.text).toMatch(/그리지 못했다/)
+  expect(runs).toBe(1)
+})
