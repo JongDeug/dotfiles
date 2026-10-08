@@ -59,7 +59,6 @@ async function sh($: EngineInterface, argv: string[]): Promise<string> {
   return exitCode === 0 ? stdout.trim() : ''
 }
 
-const STATE_COLOR: Record<PetState, string> = { ARMED: C.red, HOVER: C.teal, RTB: C.sub, DAMAGED: C.red, 'LOW BAT': C.yellow }
 
 function petState(now: number): PetState {
   return stateOf({
@@ -1011,13 +1010,9 @@ export const register: Register = (on, options) => {
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     const bottomRight: Item[] = []
-    // 드론의 등급·상태는 계기판 아랫줄 오른쪽에 — 드론은 그림만 5줄.
+    // 펫은 그림만 — 등급·상태 글자는 /pet 카드에서.
     const dstate = petState(now)
     const grade = gradeOf(pet.turns)
-    if (showPet) {
-      const tag = `${PET[pet.kind === 'drone' ? 'drone' : 'slime'].mark} ${grade.name} · ${dstate}`
-      bottomRight.push(item(<Text color={STATE_COLOR[dstate]}>{tag}</Text>, tag, 4))
-    }
     if (turn) {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
