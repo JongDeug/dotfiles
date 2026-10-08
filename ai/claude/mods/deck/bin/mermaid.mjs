@@ -20,7 +20,26 @@ const PAD = ''
 
 // 글꼴에 없는 흔한 기호를 있는 글자로 — 없으면 □ 나 빈칸이 된다.
 const SYMBOLS = { '\u2212': '-', '\u2013': '-', '\u2014': '-' }
-const plain = source => source.replace(/[\u2212\u2013\u2014]/g, c => SYMBOLS[c])
+const plain = source => asciiSubgraphs(source.replace(/[\u2212\u2013\u2014]/g, c => SYMBOLS[c]))
+
+// beautiful-mermaid(SVG)\ub294 ASCII \uac00 \uc544\ub2cc subgraph id \ub97c \uc11c\ub85c \uac00\ub974\uc9c0 \ubabb\ud574 \uce78\ub4e4\uc744 \uccab \uce78 \ud558\ub098\ub85c \ud569\uce5c\ub2e4.
+// \uc81c\ubaa9 \uc5c6\ub294 `subgraph \uc9c0\uae08` \uc744 `subgraph sg1["\uc9c0\uae08"]` \uc73c\ub85c \ubc14\uafb8\uace0, \uadf8 id \ub97c \uac00\ub9ac\ud0a4\ub294 \uacf3(\ud654\uc0b4\ud45c \ub05d\u00b7class\u00b7style)\ub3c4
+// sg1 \ub85c \ubc14\uafbc\ub2e4. \ub77c\ubca8([\u2026] (\u2026) {\u2026} "\u2026" |\u2026|) \uc18d \uae00\uc790\ub294 \uac74\ub4dc\ub9ac\uc9c0 \uc54a\ub294\ub2e4. \ubc14\uafc0 \uac8c \uc5c6\uc73c\uba74 \uc18c\uc2a4\ub97c \uadf8\ub300\ub85c \ub3cc\ub824\uc900\ub2e4.
+export function asciiSubgraphs(source) {
+  const ids = new Map()
+  const lines = source.split('\n').map(line => {
+    const m = /^(\s*subgraph\s+)([^\s[\]"(){}]+)\s*$/.exec(line)
+    if (!m || /^[\x00-\x7f]+$/.test(m[2])) return line
+    if (!ids.has(m[2])) ids.set(m[2], `sg${ids.size + 1}`)
+    return `${m[1]}${ids.get(m[2])}["${m[2]}"]`
+  })
+  if (ids.size === 0) return source
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const ref = new RegExp(`(\\[[^\\]]*\\]|\\([^)]*\\)|\\{[^}]*\\}|"[^"]*"|\\|[^|]*\\|)|(?<![\\p{L}\\p{N}_])(${[...ids.keys()].map(esc).join('|')})(?![\\p{L}\\p{N}_])`, 'gu')
+  return lines
+    .map(line => (/^\s*(subgraph\s|%%)/.test(line) ? line : line.replace(ref, (all, label, id) => (label ? label : ids.get(id)))))
+    .join('\n')
+}
 
 export function renderText(source) {
   const art = renderMermaidASCII(plain(source).replace(WIDE, c => c + PAD), { colorMode: 'none' })
