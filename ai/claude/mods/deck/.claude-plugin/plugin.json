@@ -1,6 +1,6 @@
 {
   "name": "deck",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Flight Deck — Claude Code 화면 한 벌: 입력창 위 두 줄 계기판(statusline 대체)·프롬프트 캐시 keepwarm·커밋 검문, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane, 오른쪽 끝 펫(노란 슬라임). herdr 테마를 따라 색이 바뀐다(18개).",
   "author": {
     "name": "JongDeug",
@@ -46,7 +46,7 @@
     "pet": {
       "type": "string",
       "title": "펫",
-      "description": "계기판 오른쪽 끝 노란 슬라임. slime: 띄움(쉴 때 왼쪽으로 사르륵 흘러간다), off: 안 띄움. 100칸보다 좁으면 숨는다.",
+      "description": "계기판 오른쪽 끝 노란 슬라임. slime: 띄움(기다릴 땐 콩콩, 일할 땐 왼쪽으로 사르륵 흘러간다), off: 안 띄움. 100칸보다 좁으면 숨는다.",
       "default": "slime",
       "options": [
         "slime",

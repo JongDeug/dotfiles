@@ -16,11 +16,11 @@ test('슬라임은 4줄, 줄마다 21칸 — 어느 상태·어느 때든', () =
     }
 })
 
-test('쉬는 동안 흘러가고(모양이 바뀌고), 사라졌다 돌아온다', () => {
+test('일하는 동안 흘러가고(모양이 바뀌고), 사라졌다 돌아온다', () => {
   const shots = new Set<string>()
   let empty = false
   for (let now = 0; now < 12_000; now += 100) {
-    const rows = slimeRows('idle', now)
+    const rows = slimeRows('work', now)
     shots.add(JSON.stringify(rows))
     if (rows.every(runs => runs.every(r => !r.fg || r.fg === '#4a3a22' || r.fg === '#7c5a1c'))) empty = true
   }
