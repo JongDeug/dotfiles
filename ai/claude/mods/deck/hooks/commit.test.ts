@@ -57,3 +57,9 @@ test('본문 — 문장 중간 줄바꿈, 표, 열 맞춤', () => {
   expect(check(heredoc('docs: x\n\n| 값 | 뜻 |\n|---|---|'))!.join()).toMatch(/표다/)
   expect(check(heredoc('docs: x\n\nSEI_DELAY_MS    기본 2500'))!.join()).toMatch(/열을 맞췄다/)
 })
+
+test('앞선 명령의 heredoc(스크립트)은 커밋 메시지로 읽지 않는다', () => {
+  const cmd = "python3 - <<'EOF'\nprint('x')\nfoo -m bar\nEOF\ngit add a && git commit -q -F - <<'EOF'\nfeat: 진짜 메시지\n\n본문 한 줄.\nEOF"
+  expect(check(cmd)).toEqual([])
+  expect(check(cmd.replace('feat: 진짜', '진짜'))!.join()).toMatch(/「진짜 메시지」/)
+})

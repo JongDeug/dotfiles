@@ -12,6 +12,8 @@ import rough from 'roughjs'
 import * as vega from 'vega'
 import * as vl from 'vega-lite'
 
+import { cached } from './diskcache.mjs'
+
 const { Resvg } = createRequire(import.meta.url)('@resvg/resvg-js')
 
 // 터미널 한 칸 너비를 이 CSS 픽셀로 본다. 차트 폭 = 칸 수 × 이 값.
@@ -125,7 +127,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const results = []
   for (const item of req.items) {
     try {
-      results.push({ key: item.key, ...(await renderChart(item.spec, { maxColumns: item.maxColumns, maxRows: item.maxRows, cellAspect: req.cellAspect ?? 2.2, style: req.style })) })
+      const opts = { maxColumns: item.maxColumns, maxRows: item.maxRows, cellAspect: req.cellAspect ?? 2.2, style: req.style }
+      results.push({ key: item.key, ...(await cached(import.meta.url, { spec: item.spec, opts }, () => renderChart(item.spec, opts))) })
     } catch (error) {
       results.push({ key: item.key, error: String(error?.message ?? error).split('\n')[0].slice(0, 200) })
     }

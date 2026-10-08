@@ -11,6 +11,8 @@ import path from 'node:path'
 import { THEMES, renderMermaidASCII, renderMermaidSVG } from 'beautiful-mermaid'
 import rough from 'roughjs'
 
+import { cached } from './diskcache.mjs'
+
 const { Resvg } = createRequire(import.meta.url)('@resvg/resvg-js')
 
 // 한글·CJK 는 터미널에서 2칸인데 beautiful-mermaid 는 1칸으로 센다. 글자마다 보이지 않는
@@ -237,13 +239,14 @@ export function renderPicture(source, { theme, cellAspect, maxColumns, maxRows =
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const req = JSON.parse(fs.readFileSync(0, 'utf8'))
-  const results = req.items.map(item => {
+  const { items, ...opts } = req
+  const results = await Promise.all(items.map(async ({ key, ...item }) => {
     try {
-      const r = item.kind === 'text' ? renderText(item.source) : renderPicture(item.source, { ...req, maxColumns: item.maxColumns })
-      return { key: item.key, ...r }
+      const draw = () => (item.kind === 'text' ? renderText(item.source) : renderPicture(item.source, { ...opts, maxColumns: item.maxColumns }))
+      return { key, ...(await cached(import.meta.url, { item, opts }, draw)) }
     } catch (error) {
-      return { key: item.key, error: String(error?.message ?? error).split('\n')[0].slice(0, 200) }
+      return { key, error: String(error?.message ?? error).split('\n')[0].slice(0, 200) }
     }
-  })
+  }))
   process.stdout.write(JSON.stringify({ results }))
 }

@@ -63,10 +63,14 @@ export function readCommit(command: string, cwd: string): CommitPlan | null {
   if (!commit && !bulkAdd) return null
   let message: string | null = null
   if (commit) {
-    const heredoc = /<<-?\s*['"]?(\w+)['"]?[^\n]*\n([\s\S]*?)\n\s*\1\b/.exec(command)
+    // 메시지는 git commit 뒤에서만 찾는다 — 앞선 다른 명령의 heredoc(스크립트)을 메시지로 읽지 않게.
+    const spans = [...command.matchAll(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\b/g)].map(h => [h.index, h.index + h[0].length] as const)
+    const at = [...command.matchAll(/\bgit\b[^\n;&|]*?\bcommit\b/g)].find(c => !spans.some(([a, b]) => c.index > a && c.index < b))?.index ?? 0
+    const tail = command.slice(at)
+    const heredoc = /<<-?\s*['"]?(\w+)['"]?[^\n]*\n([\s\S]*?)\n\s*\1\b/.exec(tail)
     if (heredoc) message = heredoc[2]!
     else {
-      const ms = [...command.matchAll(/(?:^|\s)(?:-[a-zA-Z]*m|--message)(?:\s+|=)("(?:[^"\\]|\\.)*"|'[^']*'|[^\s;&|]+)/g)].map(m => unquote(m[1]!))
+      const ms = [...tail.matchAll(/(?:^|\s)(?:-[a-zA-Z]*m|--message)(?:\s+|=)("(?:[^"\\]|\\.)*"|'[^']*'|[^\s;&|]+)/g)].map(m => unquote(m[1]!))
       if (ms.length) message = ms.join('\n\n')
     }
   }

@@ -264,7 +264,8 @@ async function initCache($: EngineInterface, surface: string | null, fresh = fal
   })
   await $.command.register({
     name: 'deck',
-    description: 'deck 이 하는 일과 명령 한 장 — 계기판 · 캐시 · 답 속 그림 · 커밋 서명 막기 · 설정',
+    description: 'deck 이 하는 일과 명령 한 장. sync: push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션을 리로드',
+    argumentHint: '[sync]',
     immediate: true,
   })
   await $.command.register({
@@ -576,8 +577,14 @@ export const register: Register = (on, options) => {
     return { text: statusText(cache, now) ?? 'keepwarm 꺼짐' }
   })
 
-  on('command.run', { command: 'deck' }, async $ => {
-    return { text: helpText() }
+  on('command.run', { command: 'deck' }, async ($, e) => {
+    if (String(e.args ?? '').trim() !== 'sync') return { text: helpText() }
+    // 설치·리로드는 30초 넘게 걸려 기다리지 않는다 — 끝나면 알림으로 요약을 띄운다.
+    void $.process
+      .run(['node', `${$.plugin.root}/bin/sync.mjs`], { timeoutMs: 300_000 })
+      .then(r => $.ui.toast(`deck sync: ${r.stdout.trim().split('\n').pop() || r.stderr.trim().split('\n').pop() || `exit ${r.exitCode}`}`))
+      .catch(error => $.ui.toast(`deck sync 실패: ${String(error)}`))
+    return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
 
   on('command.run', { command: 'cache' }, async ($, e) => {
