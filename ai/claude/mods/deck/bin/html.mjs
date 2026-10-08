@@ -1,8 +1,8 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 — 답 속 ```page 블록(HTML)을 맥의 Chrome 으로 찍는다.
 //
 //   { items: [{ key, html | path, maxColumns, maxRows?, slices? }], cellAspect }
-//   -> { results: [{ key, png, columns, rows, file, cut, parts? } | { key, error }] }
-//   slices 면 페이지 끝까지 찍어 터미널 그림 한 장(255줄)에 들어가게 위에서부터 잘라 parts 로 준다(펼치기).
+//   -> { results: [{ key, png, columns, rows, file, cut } | { key, columns, rows, file, cut, parts } | { key, error }] }
+//   slices 면 페이지 끝까지 찍어 터미널 그림 한 장(255줄)에 들어가게 위에서부터 잘라 parts: [{ path, columns, rows }] 로 준다(펼치기).
 //   html 은 답 속 조각(기본 CSS 를 깔아 감싼다), path 는 이미 있는 HTML 파일(그대로 연다). cut 은 한도에서 잘렸는지.
 //
 // Chrome 을 화면 없이(headless) 한 번 띄워 DevTools 프로토콜로 항목마다 새 탭을 열고, 터미널 폭에 맞춘 창에서
@@ -139,9 +139,13 @@ async function shoot(cdp, item, cellAspect) {
       for (let y = 0; y < total; y += step) {
         const h = Math.min(step, total - y)
         const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y, width, height: h, scale: 1 } }, sessionId)
-        parts.push({ png: data, columns, rows: rowsOf(h) })
+        // 장들을 stdout 으로 보내면 4 MiB 를 넘는다 — 캐시에 PNG 로 두고 경로만(내용으로 이름 지어 같은 그림은 같은 파일).
+        fs.mkdirSync(CACHE, { recursive: true })
+        const png = path.join(CACHE, crypto.createHash('md5').update(data).digest('hex') + '.png')
+        if (!fs.existsSync(png)) fs.writeFileSync(png, Buffer.from(data, 'base64'))
+        parts.push({ path: png, columns, rows: rowsOf(h) })
       }
-      return { ...parts[0], file, cut: full > total, parts }
+      return { columns, rows: parts[0].rows, file, cut: full > total, parts }
     }
     const height = Math.max(20, Math.min(maxHeight, full))
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height, scale: 1 } }, sessionId)

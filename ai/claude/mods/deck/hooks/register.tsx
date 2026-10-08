@@ -315,7 +315,7 @@ type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
 type PageJob = { key: string; html?: string; path?: string; maxColumns: number; maxRows?: number; slices?: boolean }
-type Shot = Png & { file: string; cut?: boolean; parts?: Png[] }
+type Shot = Png & { file: string; cut?: boolean; parts?: { path: string; columns: number; rows: number }[] }
 
 const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
 let picMode: Mode | undefined
@@ -716,7 +716,7 @@ export const register: Register = (on, options) => {
       const scope = scopeId.slice(0, 64)
       const open = expanded.has(id)
       const all = open ? pageOf($, src, cols, undefined, true) : undefined
-      const parts = all && !('error' in all) ? (all.parts ?? [all]) : null
+      const parts = all && !('error' in all) ? (all.parts ?? null) : null
       const caption = captioned ? (open ? title : d.cut ? `${title} · 아래 이어짐` : title) : open ? title : ''
       const buttons = [
         <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src })}>⤢ 크게 보기</Button>,
@@ -726,7 +726,7 @@ export const register: Register = (on, options) => {
       return (
         <Box flexDirection="column" hover={{ scope }}>
           {parts
-            ? parts.map((part, i) => <Image key={`${scope}-part-${i}`} source={{ png: part.png }} columns={part.columns} rows={part.rows} alt={`[page: ${title} ${i + 1}/${parts.length}]`} />)
+            ? parts.map((part, i) => <Image key={`${scope}-part-${i}`} source={{ file: part.path, format: 'png' }} columns={part.columns} rows={part.rows} alt={`[page: ${title} ${i + 1}/${parts.length}]`} />)
             : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />}
           {open && !parts ? <Text dimColor>{all && 'error' in all ? `펼치지 못했다: ${all.error}` : '펼치는 중…'}</Text> : null}
           {under(scope, caption, buttons)}
