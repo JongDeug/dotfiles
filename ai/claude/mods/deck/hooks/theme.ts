@@ -14,3 +14,14 @@ export const C = {
   blue: '#83a598', // 캐시
   mauve: '#d3869b', // 지금 도는 작업
 }
+
+// 계기판 알약 바탕용 — 위 색을 바탕(bg0)쪽으로 35% 섞어 누그러뜨린 것. 글자는 그대로 bg0.
+export const SOFT: Record<string, string> = {
+  [C.yellow]: '#b0892d',
+  [C.teal]: '#6a8b5f',
+  [C.peach]: '#b3611e',
+  [C.green]: '#868827',
+  [C.red]: '#b13d30',
+  [C.blue]: '#637971',
+  [C.mauve]: '#976573',
+}
