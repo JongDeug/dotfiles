@@ -28,6 +28,7 @@ const P = {
 }
 
 export type DroneState = 'ARMED' | 'HOVER' | 'RTB' | 'DAMAGED' | 'LOW BAT'
+export type PetState = DroneState
 export type Grade = { name: string; stripe: string }
 
 // 끝낸 턴 수로 등급 — 등급마다 몸통 띠 색이 바뀐다.
@@ -69,15 +70,14 @@ function pixels(state: DroneState, frame: number, grade: Grade): Px {
   return px
 }
 
-// 줄마다 [글자, 글자색, 바탕색] 덩어리 — 같은 모양이 이어지면 한 덩어리로 묶는다.
+// 줄마다 [글자, 글자색, 바탕색] 덩어리 — 위·아래 픽셀 둘을 반 칸 블록 하나로, 같은 모양이 이어지면 한 덩어리로 묶는다.
 export type Run = { text: string; fg?: string; bg?: string }
-export function droneRows(state: DroneState, frame: number, grade: Grade): Run[][] {
-  const px = pixels(state, frame, grade)
+export function runsOf(px: (string | null)[][]): Run[][] {
   const rows: Run[][] = []
-  for (let y = 0; y < H; y += 2) {
+  for (let y = 0; y < px.length; y += 2) {
     const runs: Run[] = []
-    for (let x = 0; x < W; x++) {
-      const t = px[y]![x] ?? null, b = px[y + 1]![x] ?? null
+    for (let x = 0; x < px[y]!.length; x++) {
+      const t = px[y]![x] ?? null, b = px[y + 1]?.[x] ?? null
       const cell: Run = t && b ? { text: '▀', fg: t, bg: b } : t ? { text: '▀', fg: t } : b ? { text: '▄', fg: b } : { text: ' ' }
       const last = runs.at(-1)
       if (last && last.fg === cell.fg && last.bg === cell.bg && last.text.at(-1) === cell.text) last.text += cell.text
@@ -86,4 +86,8 @@ export function droneRows(state: DroneState, frame: number, grade: Grade): Run[]
     rows.push(runs)
   }
   return rows
+}
+
+export function droneRows(state: DroneState, frame: number, grade: Grade): Run[][] {
+  return runsOf(pixels(state, frame, grade))
 }

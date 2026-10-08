@@ -667,7 +667,7 @@ describe('board band', () => {
     shell(on)
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
     await ui.find({ text: /develop/ })
-    expect(w.registered).toEqual(['keepwarm', 'deck', 'drone', 'cache'])
+    expect(w.registered).toEqual(['keepwarm', 'deck', 'pet', 'cache'])
   })
 
   test('식은 채 보내기가 막히면 작업 중 알약이 돌지 않고, 캐시 알약이 식음을 보인다', async ($, on) => {
