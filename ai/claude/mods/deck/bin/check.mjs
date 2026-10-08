@@ -1,4 +1,4 @@
-// node bin/check.mjs (npm ci 뒤) — 떼어 낸 글꼴로 그린 그림이 .ttc 로 그린 그림과 같은지, 손그림(다이어그램·차트)이 그려지는지 본다.
+// node bin/check.mjs (npm ci 뒤) — 떼어 낸 글꼴로 그린 그림이 .ttc 로 그린 그림과 같은지, 손그림(다이어그램·차트)이 그려지는지, 페이지가 Chrome 으로 찍히는지 본다.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -28,4 +28,12 @@ const clean = await renderChart(spec, { maxColumns: 60, cellAspect: 2.2 })
 const hand = await renderChart(spec, { maxColumns: 60, cellAspect: 2.2, style: 'sketch' })
 assert.ok(hand.png.length > 1000 && hand.columns === clean.columns)
 assert.notEqual(hand.png, clean.png)
+// 페이지: 실제 Chrome 으로 한 장 찍힌다(Chrome 이 없으면 건너뛴다)
+if (fs.existsSync('/Applications/Google Chrome.app')) {
+  const { execFileSync } = await import('node:child_process')
+  const out = JSON.parse(execFileSync('node', [new URL('./html.mjs', import.meta.url).pathname], { input: JSON.stringify({ items: [{ key: 'p', html: '<h1>요약</h1><p>본문</p>', maxColumns: 60 }], cellAspect: 2.2 }) }).toString())
+  const r = out.results[0]
+  assert.ok(r.png && r.png.length > 1000, r.error)
+  assert.ok(r.rows > 0 && r.rows < 20 && fs.existsSync(r.file))  // 내용 높이만큼만
+}
 console.log('ok')

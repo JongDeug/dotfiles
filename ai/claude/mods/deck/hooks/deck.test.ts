@@ -14,7 +14,7 @@ function world(on: On) {
     calls.push(argv.join(' '))
     const script = argv[1] ?? ''
     const items = (JSON.parse(String(e.init?.stdin ?? '{"items":[]}')).items ?? []) as { key: string }[]
-    const results = items.map(it => ({ key: it.key, png: PNG, columns: 40, rows: 10 }))
+    const results = items.map(it => ({ key: it.key, png: PNG, columns: 40, rows: 10, file: '/cache/p.html' }))
     const stdout = script.endsWith('convert.sh') ? `{"path":"${argv[3]}","file":"/cache/a.png","width":800,"height":600}\n` : JSON.stringify({ results })
     return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -23,17 +23,18 @@ function world(on: On) {
   return calls
 }
 
-test('chart · mermaid · 이미지 블록은 처음엔 글, 렌더러가 답하면 그림 — 렌더러마다 한 번씩만 부른다', async ($, on) => {
+test('chart · mermaid · page · 이미지 블록은 처음엔 글, 렌더러가 답하면 그림 — 렌더러마다 한 번씩만 부른다', async ($, on) => {
   const calls = world(on)
-  const text = ['앞', '```mermaid', 'flowchart LR', '  A --> B', '```', '```chart', '{"title":"t","mark":"bar"}', '```', '![사진](/tmp/a.png)', '끝'].join('\n')
+  const text = ['앞', '```mermaid', 'flowchart LR', '  A --> B', '```', '```chart', '{"title":"t","mark":"bar"}', '```', '```page', '<h1>요약</h1>', '```', '![사진](/tmp/a.png)', '끝'].join('\n')
   const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(text) })
-  // 그려진 뒤: 그림 세 장, 앞뒤 글은 그대로.
+  // 그려진 뒤: 그림 네 장, 앞뒤 글은 그대로.
   const images = await ui.findAll({ type: 'Image' })
-  expect(images.length).toBe(3)
+  expect(images.length).toBe(4)
   expect((await ui.find({ text: /^앞$/ }))?.text).toBe('앞')
   expect((await ui.find({ text: /^끝$/ }))?.text).toBe('끝')
   expect(calls.filter(c => c.includes('mermaid.mjs')).length).toBe(1)
   expect(calls.filter(c => c.includes('chart.mjs')).length).toBe(1)
+  expect(calls.filter(c => c.includes('html.mjs')).length).toBe(1)
   expect(calls.filter(c => c.includes('convert.sh')).length).toBe(1)
 })
 

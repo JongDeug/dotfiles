@@ -314,6 +314,8 @@ type Failed = { error: string }
 type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
+type PageJob = { key: string; html: string; maxColumns: number; maxRows?: number }
+type Shot = Png & { file: string }
 
 const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
 let picMode: Mode | undefined
@@ -321,15 +323,18 @@ const mermaidDrawn = new Map<string, Png | { text: string } | Failed>()
 const mermaidQueue = new Map<string, MermaidJob>()
 const chartDrawn = new Map<string, Png | Failed>()
 const chartQueue = new Map<string, ChartJob>()
+const pageDrawn = new Map<string, Shot | Failed>()
+const pageQueue = new Map<string, PageJob>()
 const converted = new Map<string, ImageFile | Failed>()
 const convertQueue = new Set<string>()
-const picBusy = { mermaid: false, chart: false, convert: false }
+const picBusy = { mermaid: false, chart: false, page: false, convert: false }
 
 const PICTURE_PROMPT = [
   '# Pictures in this terminal',
   'This terminal draws pictures in your replies; use them when a picture is clearer than text.',
   '- Diagrams: a ```mermaid block at the top level of the reply (not inside a list) for a flow, sequence, state machine or entity model. Keep it small: about 12 nodes, short one-line labels (no <br/>). Node ids in ASCII; labels may be Korean.',
   '- Charts: a ```chart block holding a Vega-Lite JSON spec for numbers that read better as a chart (a comparison, a trend, a breakdown). Put the data inline under "data": {"values": [...]}; leave out width, height and colors (they are fitted to the terminal); add a short "title"; labels may be Korean. Keep a table of the key numbers in text too if the user needs exact values. Two charts side by side: {"hconcat": [spec1, spec2]}; a pie or donut: mark "arc" with a theta encoding.',
+  '- Pages: a ```page block holding HTML (a fragment or a whole document) when a laid-out view says it best — cards, a styled table, a small dashboard, a timeline. It is rendered by Chrome and shown as a picture (not clickable here; the user can open it in Chrome). It already has a dark gruvbox base style; inline your own CSS/JS, no external fetches needed. Use ```html only to show HTML source as code.',
   '- Images: `![short description](/absolute/path.png)` on a line of its own. Several on one line separated by spaces sit side by side. A video path (`.mp4` …) shows six frames spread over the video. Reading an image file with the Read tool also shows it under the tool call.',
 ].join('\n')
 
@@ -389,6 +394,24 @@ async function drainChart($: EngineInterface): Promise<void> {
   void drainChart($)
 }
 
+async function drainPage($: EngineInterface): Promise<void> {
+  if (picBusy.page || pageQueue.size === 0) return
+  picBusy.page = true
+  const items = [...pageQueue.values()]
+  pageQueue.clear()
+  try {
+    const results = await runRenderer($, 'html.mjs', { items, cellAspect: pic.cellAspect })
+    for (const { key, ...d } of results) pageDrawn.set(key, d as Shot | Failed)
+    for (const item of items) if (!pageDrawn.has(item.key)) pageDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
+  } catch (error) {
+    for (const item of items) pageDrawn.set(item.key, { error: String(error) })
+  } finally {
+    picBusy.page = false
+  }
+  $.ui.invalidate('ui.render')
+  void drainPage($)
+}
+
 async function drainConvert($: EngineInterface): Promise<void> {
   if (picBusy.convert || convertQueue.size === 0) return
   picBusy.convert = true
@@ -433,6 +456,28 @@ function chartOf($: EngineInterface, spec: string, maxColumns: number, maxRows?:
   return hit
 }
 
+// 같은 HTML 은 같은 그림 — 폭(과 크게 보기의 높이)이 다르면 다시 찍는다.
+function pageOf($: EngineInterface, html: string, maxColumns: number, maxRows?: number) {
+  const key = `${maxColumns}x${maxRows ?? ''}|${html}`
+  const hit = pageDrawn.get(key)
+  if (!hit && !pageQueue.has(key)) {
+    pageQueue.set(key, { key, html, maxColumns, maxRows })
+    void drainPage($)
+  }
+  return hit
+}
+
+// HTML 의 <title>·첫 제목을 이름으로.
+const pageTitle = (html: string): string => {
+  const m = /<title>([^<]+)<\/title>/i.exec(html) ?? /<h[1-3][^>]*>([^<]+)<\/h[1-3]>/i.exec(html)
+  return (m?.[1] ?? 'page').trim().slice(0, 60)
+}
+
+async function openInChrome($: EngineInterface, file: string): Promise<void> {
+  const { exitCode } = await $.process.run(['open', '-a', 'Google Chrome', file])
+  if (exitCode !== 0) $.ui.toast('Chrome 을 열지 못했다')
+}
+
 function imageOf($: EngineInterface, path: string) {
   const hit = converted.get(path)
   if (!hit && !convertQueue.has(path)) {
@@ -453,7 +498,7 @@ const chartTitle = (spec: string): string => {
 
 // 크게 보기 pane 하나 — 무엇을 띄웠느냐에 따라 그린다.
 const VIEW = 'deck-view'
-type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'file'; title: string; img: ImageFile }
+type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'page'; title: string; html: string } | { kind: 'file'; title: string; img: ImageFile }
 let viewing: Viewing | null = null
 
 async function openView($: EngineInterface, v: Viewing): Promise<void> {
@@ -691,6 +736,25 @@ export const register: Register = (on, options) => {
             </Box>,
           )
         }
+      } else if (b.kind === 'page') {
+        const d = pageOf($, b.html, Math.min(110, width - 1))
+        if (!d || 'error' in d) {
+          await asText(b.raw)
+          if (d) failed('페이지를', d.error)
+        } else {
+          const title = pageTitle(b.html)
+          const html = b.html
+          const scope = `deck-p-${n}-${html.length}`.slice(0, 64)
+          picture(
+            <Box flexDirection="column" hover={{ scope }}>
+              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />
+              {under(scope, '', [
+                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, html })}>⤢ 크게 보기</Button>,
+                <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
+              ])}
+            </Box>,
+          )
+        }
       } else {
         // 한 줄의 그림이 다 준비돼야 그린다 — 그 전엔 원래 글(이미지 문법)로 둔다.
         const imgs = b.pictures.map(p => imageOf($, p.path))
@@ -762,6 +826,7 @@ export const register: Register = (on, options) => {
     let body: RenderElement
     let meta = ''
     let save: string | null = null
+    let open: string | null = null
     if (v.kind === 'file') {
       const grid = gridFor(v.img.width, v.img.height, cols, room, pic.cellAspect)
       body = <Image source={{ file: v.img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={v.title} />
@@ -770,6 +835,13 @@ export const register: Register = (on, options) => {
       // 이미 그린 PNG 를 키워 보인다(1행 40px 로 그려 두어 세 배까지 선명하다).
       const grow = Math.min(3, cols / v.png.columns, room / v.png.rows)
       body = <Image source={{ png: v.png.png }} columns={Math.max(1, Math.floor(v.png.columns * grow))} rows={Math.max(1, Math.floor(v.png.rows * grow))} alt={v.title} />
+    } else if (v.kind === 'page') {
+      // 페이지는 pane 폭으로 다시 찍는다(레이아웃이 넓어진 폭에 맞게 다시 흐른다).
+      const d = pageOf($, v.html, Math.max(20, cols - 1), Math.max(8, room - 1))
+      body = !d ? <Text dimColor>찍는 중…</Text>
+        : 'error' in d ? <Text dimColor>페이지를 그리지 못했다: {d.error}</Text>
+        : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={v.title} />
+      if (d && !('error' in d)) open = d.file
     } else {
       // 차트는 pane 크기에 맞춰 다시 그린다.
       const d = chartOf($, v.spec, Math.max(20, cols - 1), Math.max(8, room - 1))
@@ -779,6 +851,7 @@ export const register: Register = (on, options) => {
       if (d && !('error' in d)) save = d.png
     }
     const png = save
+    const page = open
     return (
       <Box flexDirection="column" rowGap={1}>
         <Box flexDirection="row" columnGap={2}>
@@ -786,6 +859,7 @@ export const register: Register = (on, options) => {
           {meta ? <Text dimColor>{meta}</Text> : null}
           <Box flexGrow={1} />
           {png ? <Button key="save" plain dimColor hotkey="s" onPress={() => void savePng($, png, v.title)}>↓ PNG 저장</Button> : null}
+          {page ? <Button key="open" plain dimColor hotkey="o" onPress={() => void openInChrome($, page)}>↗ Chrome 에서 열기</Button> : null}
           <Text dimColor>Esc 닫기</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center">{body}</Box>
