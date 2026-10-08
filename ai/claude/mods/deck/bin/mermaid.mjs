@@ -97,21 +97,72 @@ const attr = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]
 const roughPaths = drawable =>
   roughGen.toPaths(drawable).map(p => `<path d="${p.d}" stroke="${p.stroke}" stroke-width="${p.strokeWidth}" fill="none" stroke-linecap="round"/>`).join('')
 
-// 상자(rect)와 연결선(polyline)을 손그림 선으로 바꾼다. 원래 선은 남겨 두되 보이지 않게(화살촉 marker 는 그대로 쓴다).
+// 손으로 그은 선으로 바꾼다 — 상자·다각형(마름모·육각형…)·원·타원·직선·꺾은선·path 모두.
+// 원래 도형은 채움만 남기고(선은 지운다) 그 위에 rough 선을 얹는다. <defs> 안(화살촉 marker 등)은 그대로 둔다.
+const NUMS = /-?\d+(?:\.\d+)?(?:e-?\d+)?/g
+const pairs = text => {
+  const n = (text.match(NUMS) ?? []).map(Number)
+  const out = []
+  for (let i = 0; i + 1 < n.length; i += 2) out.push([n[i], n[i + 1]])
+  return out
+}
+const num = (tag, name, fallback = 0) => {
+  const v = Number(attr(tag, name))
+  return Number.isFinite(v) ? v : fallback
+}
+
 export function sketch(svg, seed = 7) {
   const opts = (stroke, width) => ({ stroke, strokeWidth: Number(width ?? 1) * 1.4, roughness: 1.2, bowing: 1.2, seed })
-  return svg
+  // 작은 원·타원·다각형(상태도 시작·끝 점, ER 기호 같은 아이콘)은 반듯하게 둔다 — 손그림이면 뭉툭한 덩어리가 된다.
+  // 상자(rect)는 작아도(화살표 위 라벨) 다른 상자와 맞춰 손그림으로.
+  const SMALL = 32
+  // 선만 지우고(채움은 남긴다) 손그림 선을 얹는다. 선이 없는 도형은 건드리지 않는다.
+  // 화살촉(marker)이 달린 선은 지우지 않고 투명하게 — 지우면 화살촉도 같이 사라진다.
+  const redraw = (tag, make, size = Infinity) => {
+    const stroke = attr(tag, 'stroke')
+    if (!stroke || stroke === 'none' || size < SMALL) return tag
+    const drawable = make(opts(stroke, attr(tag, 'stroke-width')))
+    if (!drawable) return tag
+    const hidden = /\smarker-(start|mid|end)=/.test(tag) ? tag.replace(/\/>$/, ' stroke-opacity="0"/>') : tag.replace(/\sstroke="[^"]*"/, ' stroke="none"')
+    const t = attr(tag, 'transform')
+    const lines = roughPaths(drawable)
+    return hidden + (t ? `<g transform="${t}">${lines}</g>` : lines)
+  }
+  const defs = []
+  const body = svg.replace(/<defs\b[\s\S]*?<\/defs>/g, m => {
+    defs.push(m)
+    return `\u0000${defs.length - 1}\u0000`
+  })
+  return body
     .replace(/<rect\b[^>]*\/>/g, tag => {
-      const [x, y, w, h] = ['x', 'y', 'width', 'height'].map(n => Number(attr(tag, n)))
-      const stroke = attr(tag, 'stroke')
-      if (!stroke || stroke === 'none' || !(w > 0 && h > 0)) return tag
-      return tag.replace(/\sstroke="[^"]*"/, ' stroke="none"') + roughPaths(roughGen.rectangle(x, y, w, h, opts(stroke, attr(tag, 'stroke-width'))))
+      const [x, y, w, h] = [num(tag, 'x'), num(tag, 'y'), num(tag, 'width'), num(tag, 'height')]
+      return redraw(tag, o => (w > 0 && h > 0 ? roughGen.rectangle(x, y, w, h, o) : null))
     })
-    .replace(/<polyline\b[^>]*\/>/g, tag => {
-      const points = (attr(tag, 'points') ?? '').trim().split(/\s+/).map(p => p.split(',').map(Number))
-      if (points.length < 2) return tag
-      return tag.replace(/\sstroke="[^"]*"/, ' stroke-opacity="0" stroke="#000"') + roughPaths(roughGen.linearPath(points, opts(attr(tag, 'stroke'), attr(tag, 'stroke-width'))))
+    .replace(/<polygon\b[^>]*\/>/g, tag => {
+      const pts = pairs(attr(tag, 'points') ?? '')
+      const xs = pts.map(q => q[0])
+      const ys = pts.map(q => q[1])
+      const size = Math.min(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys))
+      return redraw(tag, o => (pts.length >= 3 ? roughGen.polygon(pts, o) : null), size)
     })
+    .replace(/<polyline\b[^>]*\/>/g, tag => redraw(tag, o => {
+      const pts = pairs(attr(tag, 'points') ?? '')
+      return pts.length >= 2 ? roughGen.linearPath(pts, o) : null
+    }))
+    .replace(/<circle\b[^>]*\/>/g, tag => {
+      const r = num(tag, 'r')
+      return redraw(tag, o => (r > 0 ? roughGen.circle(num(tag, 'cx'), num(tag, 'cy'), r * 2, o) : null), r * 2)
+    })
+    .replace(/<ellipse\b[^>]*\/>/g, tag => {
+      const [rx, ry] = [num(tag, 'rx'), num(tag, 'ry')]
+      return redraw(tag, o => (rx > 0 && ry > 0 ? roughGen.ellipse(num(tag, 'cx'), num(tag, 'cy'), rx * 2, ry * 2, o) : null), Math.min(rx, ry) * 2)
+    })
+    .replace(/<line\b[^>]*\/>/g, tag => redraw(tag, o => roughGen.line(num(tag, 'x1'), num(tag, 'y1'), num(tag, 'x2'), num(tag, 'y2'), o)))
+    .replace(/<path\b[^>]*\/>/g, tag => redraw(tag, o => {
+      const d = attr(tag, 'd')
+      return d ? roughGen.path(d, o) : null
+    }))
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => defs[Number(i)])
 }
 
 function mix(a, b, p) {
