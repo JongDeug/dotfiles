@@ -40,7 +40,7 @@ export function fmtDuration(ms: number): string {
   const h = Math.floor(total / 60)
   const m = total % 60
   if (h >= 48) return `${Math.floor(h / 24)}d ${h % 24}h`
-  return h > 0 ? `${h}h${String(m).padStart(2, '0')}m` : `${m}m`
+  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m` // 1h 45m — 남은 시간(⟲)과 같이 띄운다
 }
 
 export function fmtUsd(usd: number | null): string {
