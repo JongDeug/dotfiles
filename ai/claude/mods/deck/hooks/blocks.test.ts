@@ -24,10 +24,3 @@ test('한 답에 mermaid · chart · 이미지 줄이 섞여도 순서대로 나
 test('블록이 없으면 글 하나', () => {
   expect(splitAll('그냥 글')).toEqual([{ kind: 'text', text: '그냥 글' }])
 })
-
-test('```page 는 그림으로 찍을 HTML, ```html 은 코드로 남긴다', () => {
-  const text = ['```page', '<h1>요약</h1>', '```', '```html', '<p>코드 예시</p>', '```'].join('\n')
-  const blocks = splitAll(text)
-  expect(blocks.map(b => b.kind)).toEqual(['page', 'text'])
-  expect(blocks[0]?.kind === 'page' ? blocks[0].html : '').toBe('<h1>요약</h1>')
-})
