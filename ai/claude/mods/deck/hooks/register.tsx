@@ -1005,6 +1005,13 @@ export const register: Register = (on, options) => {
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     const bottomRight: Item[] = []
+    // 드론의 등급·상태는 계기판 아랫줄 오른쪽에 — 드론은 그림만 5줄.
+    const dstate = droneState(now)
+    const grade = gradeOf(drone.turns)
+    if (showDrone) {
+      const tag = `🛸 ${grade.name} · ${dstate}`
+      bottomRight.push(item(<Text color={STATE_COLOR[dstate]}>{tag}</Text>, tag, 4))
+    }
     if (turn) {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
@@ -1060,20 +1067,15 @@ export const register: Register = (on, options) => {
       </Box>
     )
     if (!showDrone) return <Box flexDirection="column">{below}{dash}</Box>
-    const state = droneState(now)
-    const g = gradeOf(drone.turns)
-    const tag = `${g.name} · ${state}`
-    const pad = Math.max(0, Math.floor((DRONE_COLS - tag.length) / 2))
     return (
       <Box flexDirection="column">
         {below}
         <Box flexDirection="row" columnGap={2}>
           {dash}
           <Box flexDirection="column" width={DRONE_COLS} flexShrink={0}>
-            {droneRows(state, Math.floor(now / 500), g).map((runs, y) => (
+            {droneRows(dstate, Math.floor(now / 500), grade).map((runs, y) => (
               <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
             ))}
-            <Text color={STATE_COLOR[state]}>{' '.repeat(pad) + tag}</Text>
           </Box>
         </Box>
       </Box>

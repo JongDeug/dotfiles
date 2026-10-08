@@ -2,10 +2,10 @@ import { expect, test } from 'claude-code/testing'
 import { cellWidth } from './board'
 import { DRONE_COLS, droneRows, gradeOf, stateOf } from './drone'
 
-test('드론은 8줄, 줄마다 23칸 — 덩어리를 이어도 폭이 같다', () => {
+test('드론은 5줄, 줄마다 17칸 — 덩어리를 이어도 폭이 같다', () => {
   for (const state of ['ARMED', 'HOVER', 'RTB', 'DAMAGED', 'LOW BAT'] as const) {
     const rows = droneRows(state, 3, gradeOf(0))
-    expect(rows.length).toBe(8)
+    expect(rows.length).toBe(5)
     for (const runs of rows) expect(cellWidth(runs.map(r => r.text).join(''))).toBe(DRONE_COLS)
   }
 })

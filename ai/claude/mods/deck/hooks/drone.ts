@@ -1,10 +1,10 @@
 // 계기판 오른쪽 끝의 탑뷰 쿼드콥터 — 픽셀을 도형(로터 원판·팔·몸통)으로 찍고 반 칸 블록(▀▄)으로 그린다.
-// 1칸 = 가로 1px · 세로 2px. 23칸 × 8줄(16px). $ 를 안 쓴다: 상태·프레임·등급을 받아 줄마다 글자 덩어리를 돌려준다.
+// 1칸 = 가로 1px · 세로 2px. 17칸 × 5줄(10px). $ 를 안 쓴다: 상태·프레임·등급을 받아 줄마다 글자 덩어리를 돌려준다.
 
-export const DRONE_COLS = 23
-const W = 23
-const H = 16
-const R = 3 // 로터 반지름
+export const DRONE_COLS = 17
+const W = 17
+const H = 10
+const R = 2 // 로터 반지름
 
 const P = {
   disc: '#32302f', ring: '#504945', blade: '#bdae93', hub: '#ebdbb2',
@@ -62,7 +62,7 @@ function pixels(state: DroneState, frame: number, grade: Grade): Px {
     set(x0, y0, P.hub)
   })
   // 몸통: 앞(위)이 좁은 육각, 등급 띠, 카메라(앞), 항법등(앞 양옆), 상태등(뒤)
-  const bw = 3, bh = 4
+  const bw = 2, bh = 3
   for (let y = -bh; y <= bh; y++) {
     const half = bw - (y < -bh + 2 ? -bh + 2 - y : 0)
     for (let x = -half; x <= half; x++) set(cx + x, cy + y, Math.abs(x) === half ? P.edge : P.body)
