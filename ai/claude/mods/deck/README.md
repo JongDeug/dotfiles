@@ -79,7 +79,7 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·상태·등급), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·펫 상태), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
