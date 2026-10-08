@@ -42,7 +42,7 @@ const THEME = {
   range: { category: ['#83a598', '#b8bb26', '#fe8019', '#d3869b', '#fabd2f', '#8ec07c', '#fb4934', '#a89984'] },
 }
 
-// 손그림(style: sketch) — mermaid 와 같은 excalidraw 느낌. 막대·도넛은 빗금 채움(밑에 옅은 바탕),
+// 손그림(style: sketch) — mermaid 와 같은 excalidraw 느낌. 막대·도넛은 손으로 그린 모양을 단색으로 채우고,
 // 선·축·격자는 rough.js 로 다시 긋고, 글자는 손글씨체(Gaegu — 한글도 있다)로.
 const HAND = 'Gaegu'
 const HAND_FILE = new URL('../fonts/Gaegu-Regular.ttf', import.meta.url).pathname
@@ -60,12 +60,11 @@ const wrap = (tag, inner) => {
 export function sketchChart(svg, seed = 7) {
   const base = { roughness: 1.3, bowing: 1, seed }
   return svg
-    // 막대·도넛·범례 기호(채움 있는 path): 옅은 바탕 + 빗금 + 흔들리는 테두리.
+    // 막대·도넛·범례 기호(채움 있는 path): 흔들리는 모양을 단색으로 채운다(빗금 없이).
     .replace(/<path\b[^>]*\sfill="(#[0-9a-fA-F]{3,8})"[^>]*\/>/g, (tag, fill) => {
       const d = attr(tag, 'd')
       if (!d || /class="(background|foreground)"/.test(tag)) return tag
-      const soft = tag.replace(/\/>$/, ' fill-opacity="0.22"/>')
-      return soft + wrap(tag, drawn(roughGen.path(d, { ...base, fill, fillStyle: 'hachure', hachureGap: 7, fillWeight: 1.2, stroke: fill, strokeWidth: 1.6 })))
+      return wrap(tag, drawn(roughGen.path(d, { ...base, fill, fillStyle: 'solid', stroke: fill, strokeWidth: 1.6 })))
     })
     // 선 그래프(채움 없이 stroke 만 있는 path).
     .replace(/<path\b[^>]*\sstroke="(#[0-9a-fA-F]{3,8})"[^>]*\/>/g, (tag, stroke) => {
