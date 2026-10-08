@@ -33,7 +33,7 @@ type ForkAnswer = null | ModelForkResult | { read: number; write: number; out?: 
 
 // The world beneath the mod: its store, the engine's answers, and a fork that
 // replies from a script so each test decides what the cache looked like.
-function world(on: On, forkAnswers: ForkAnswer[], opts: { store?: Map<string, unknown>; commands?: string[]; live?: { tokens?: number }; sid?: string; model?: string } = {}) {
+function world(on: On, forkAnswers: ForkAnswer[], opts: { store?: Map<string, unknown>; commands?: string[]; live?: { tokens?: number; percent?: number }; limits?: { kind: string; percentUsed: number; resetsAt?: string }[]; sid?: string; model?: string } = {}) {
   if (opts.store) {
     const store = opts.store
     on('store.get', ($, e) => ({ value: store.get(e.key) }))
@@ -48,7 +48,7 @@ function world(on: On, forkAnswers: ForkAnswer[], opts: { store?: Map<string, un
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: opts.sid ?? 'S1' }))
   on('session.model', () => ({ value: opts.model ?? 'claude-fable-5-1' }))
-  on('session.usage', () => ({ value: { startedAt: START, context: { window: 1000000, tokens: opts.live?.tokens }, rateLimits: [] } }))
+  on('session.usage', () => ({ value: { startedAt: START, context: { window: 1000000, tokens: opts.live?.tokens, percent: opts.live?.percent }, rateLimits: opts.limits ?? [] } }))
   const registered: string[] = []
   on('command.register', ($, e) => { registered.push(e.name); return { value: { command: e.name } } })
   on('command.list', () => ({ value: (opts.commands ?? []).map(name => ({ name, description: '', source: 'plugin' as const })) }))
@@ -683,16 +683,26 @@ describe('board band', () => {
     expect((await ui.find({ text: /캐시 식음/ }))?.text).toMatch(/캐시 식음/)
   })
 
-  for (const [cols, path] of [[200, true], [40, false]] as const) {
-    test(`폭 ${cols}칸: 브랜치·모델·컨텍스트는 남고 경로는 ${path ? '보인다' : '빠진다'}`, async ($, on) => {
+  for (const [cols, wide] of [[200, true], [26, false]] as const) {
+    test(`폭 ${cols}칸: 경로·브랜치·CTX 는 남고 모델은 ${wide ? '오른쪽 끝에 보인다' : '빠진다'}`, async ($, on) => {
       mock.clock(on, { now: START })
-      world(on, [])
+      world(on, [], { live: { tokens: 300000 } })
       shell(on)
       const ui = await $.ui.mount({ plugin: 'board', surface: 'terminal', component: 'AbovePrompt', props: { ...band, bodyColumns: cols } })
       expect((await ui.find({ text: /⎇ develop/ }))?.text).toMatch(/develop/)
-      expect((await ui.find({ text: /Fable 5\.1/ }))?.text).toMatch(/Fable/)
+      expect((await ui.find({ text: /📁 \/work/ }))?.text).toMatch(/work/)
       expect((await ui.find({ text: /^ CTX $/ }))?.text).toBe(' CTX ')
-      expect(Boolean(await ui.find({ text: /\/work/ }))).toBe(path)
+      expect(Boolean(await ui.find({ text: /Fable 5\.1/ }))).toBe(wide)
     })
   }
+
+  test('CTX 는 한도처럼 ▰▱ 8칸과 퍼센트, 남은 시간은 띄어 쓴다', async ($, on) => {
+    mock.clock(on, { now: START })
+    world(on, [], { live: { tokens: 630000, percent: 63 }, limits: [{ kind: 'five_hour', percentUsed: 6, resetsAt: new Date(START + (4 * 60 + 46) * 60_000).toISOString() }] })
+    shell(on)
+    const ui = await $.ui.mount({ plugin: 'board', surface: 'terminal', component: 'AbovePrompt', props: band })
+    expect((await ui.find({ text: /^ ▰▰▰▰▰$/ }))?.text).toBe(' ▰▰▰▰▰')
+    expect((await ui.find({ text: /^ 63% $/ }))?.text).toBe(' 63% ')
+    expect((await ui.find({ text: /^⟲ 4h 46m $/ }))?.text).toBe('⟲ 4h 46m ')
+  })
 })

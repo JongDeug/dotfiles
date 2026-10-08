@@ -5,7 +5,7 @@ import {
   MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
-import { ago, barCells, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText, type Ci, type Git, type Slice } from './board'
+import { ago, cellWidth, fit, type Fit,ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
@@ -13,8 +13,6 @@ import { ago, barCells, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, el
 const C = { base: '#24273a', surface: '#363a4f', overlay: '#494d64', text: '#cad3f5', sub: '#a5adcb', blue: '#8aadf4', green: '#a6da95', red: '#ed8796', yellow: '#eed49f', mauve: '#c6a0f6', peach: '#f5a97f', teal: '#8bd5ca' }
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
-const CTX = 'board-context'
-const BAR = 24
 const SPIN = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 
 let started = false
@@ -35,15 +33,11 @@ type Usage = {
   tokens: number
   window: number
   percent: number
-  slices: Slice[]
-  compactAt?: number
   limits: { kind: string; percent: number; resetsAt: number }[]
   usd?: number
   startedAt: number
 }
 let usage: Usage | null = null
-// 턴이 끝날 때마다 컨텍스트 % 를 쌓아 추이(▁▂▃▅)로 보인다.
-const history: number[] = []
 
 async function sh($: EngineInterface, argv: string[]): Promise<string> {
   const { exitCode, stdout } = await $.process.run(argv, { cwd, timeoutMs: 15_000 })
@@ -82,23 +76,18 @@ const refreshCi = ($: EngineInterface) =>
 
 const refreshUsage = ($: EngineInterface) =>
   guarded($, 'usage', async () => {
-    const u = await $.session.usage({ breakdown: 'summary' })
+    const u = await $.session.usage()
     const c = u.context
-    const rows = c.breakdown?.categories ?? []
-    const slices = rows.filter(r => r.kind === 'used' && !r.isDeferred).map(r => ({ name: r.name, tokens: r.tokens, color: r.color }))
-    const tokens = c.tokens ?? slices.reduce((n, r) => n + r.tokens, 0)
+    const tokens = c.tokens ?? 0
     usage = {
       tokens,
       window: c.window,
       percent: c.percent ?? Math.round((tokens / c.window) * 100),
-      slices,
-      compactAt: c.breakdown?.autoCompactThreshold,
       limits: u.rateLimits.map(l => ({ kind: l.kind, percent: l.percentUsed, resetsAt: Date.parse(l.resetsAt ?? '') || 0 })),
       usd: u.cost?.usd,
       startedAt: u.startedAt,
     }
     model = modelName(await $.session.model())
-    if (history.length === 0) history.push(usage.percent)
   })
 
 async function start($: EngineInterface): Promise<void> {
@@ -447,10 +436,7 @@ export const register: Register = on => {
     if (turn) last = { seconds: Math.round(((await $.clock.now()) - turn.startedAt) / 1000), tools: turn.tools, edits: turn.edits.size }
     turn = null
     void refreshGit($)
-    void refreshUsage($).then(() => {
-      if (usage) history.push(usage.percent)
-      if (history.length > 16) history.shift()
-    })
+    void refreshUsage($)
     return r
   }).catch(($, e, next) => next(e))
 
@@ -469,19 +455,29 @@ export const register: Register = on => {
     const item = (el: RenderElement, text: string, p: number, glue = false): Item => ({ el, w: cellWidth(text), p, glue })
     const pillItem = (bg: string, fg: string, text: string, p: number, opts: { bold?: boolean; glue?: boolean } = {}) =>
       item(pill(bg, fg, text, opts.bold ?? true), ` ${text} `, p, opts.glue)
-
-    // ── 윗줄: 어디서 무엇을 ─────────────────────────────
-    const top: Item[] = []
-    if (model) {
-      top.push(pillItem(C.peach, C.base, `◆ ${model}`, 1))
-      if (effort) top.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
+    // ▰▱ 8칸 게이지 + 퍼센트. CTX 와 사용량 한도가 같은 모양이다.
+    const gauge = (name: string, percent: number, p: number): Item => {
+      const filled = Math.min(8, Math.round((percent / 100) * 8))
+      const lit = ` ${'▰'.repeat(filled)}`
+      const off = '▱'.repeat(8 - filled)
+      const num = ` ${Math.round(percent)}% `
+      return item(
+        <Text>
+          {label(level(percent), name)}
+          <Text backgroundColor={C.surface} color={level(percent)}>{lit}</Text>
+          <Text backgroundColor={C.surface} color={C.overlay}>{off}</Text>
+          <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
+        </Text>,
+        ` ${name} ${lit}${off}${num}`, p,
+      )
     }
+
+    // ── 윗줄: 어디서 ────────────────────────────────────
+    const top: Item[] = []
+    if (cwd) top.push(pillItem(C.yellow, C.base, `📁 ${shortPath(cwd, home)}`, 1))
     if (git) {
       const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
       top.push(pillItem(C.blue, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
-    }
-    if (cwd) top.splice(git ? top.length - 1 : top.length, 0, pillItem(C.surface, C.text, shortPath(cwd, home), 7, { bold: false }))
-    if (git) {
       if (git.files.length > 0) {
         const t = [` ● ${git.files.length} `, `+${git.added} `, `−${git.deleted} `]
         top.push(item(
@@ -498,62 +494,22 @@ export const register: Register = on => {
       const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
       top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.base, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
-    let work: Item | null = null
-    if (turn) {
-      const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
-      if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
-      if (turn.agents > 0) parts.push(`에이전트 ${turn.agents}`)
-      work = pillItem(C.mauve, C.base, parts.join('  '), 2)
-    } else if (last) {
-      const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
-      work = item(<Text color={C.sub}>{t}</Text>, t, 9)
+    const topRight: Item[] = []
+    if (model) {
+      topRight.push(pillItem(C.peach, C.base, `◆ ${model}`, 2))
+      if (effort) topRight.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
     }
 
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
     const bottom: Item[] = []
     if (usage) {
       const u = usage
-      // 좁으면 막대도 줄인다.
-      const bar = cols >= 150 ? BAR : cols >= 110 ? 16 : 10
-      const cells = barCells(u.slices, u.window, bar)
-      const used = cells.reduce((n, c) => n + c.cells, 0)
-      // 자동 압축이 시작되는 자리에 눈금.
-      const mark = u.compactAt ? Math.min(bar - 1, Math.round((u.compactAt / u.window) * bar)) : -1
-      const free = Array.from({ length: Math.max(0, bar - used) }, (_, i) => (used + i === mark ? '┃' : '░')).join('')
-      const head = u.percent >= 80 ? 'CTX 압축 임박' : 'CTX'
-      const pct = ` ${u.percent}% `
-      const tok = ` ${tokensOf(u.tokens)}/${tokensOf(u.window)} `
-      const spark = history.length > 1 ? `${sparkline(history)} ` : ''
-      bottom.push(item(
-        <Box hover={{ scope: CTX }}>
-          {label(level(u.percent), head)}
-          <Text backgroundColor={C.surface} color={level(u.percent)} bold>{pct}</Text>
-          <Text backgroundColor={C.surface}>
-            {cells.map(c => <Text color={c.color}>{'█'.repeat(c.cells)}</Text>)}
-            <Text color={C.overlay}>{free}</Text>
-          </Text>
-        </Box>,
-        ` ${head} ${pct}${'x'.repeat(bar)}`, 0,
-      ))
-      bottom.push(item(<Text backgroundColor={C.surface} color={C.sub}>{tok}</Text>, tok, 6, true))
-      if (spark) bottom.push(item(<Text backgroundColor={C.surface} color={C.teal}>{spark}</Text>, spark, 9, true))
+      bottom.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0))
       u.limits.forEach((l, i) => {
         const name = l.kind === 'five_hour' ? '5H' : l.kind === 'seven_day' ? '7D' : l.kind === 'spend_limit' ? '한도' : l.kind
-        const filled = Math.min(8, Math.round((l.percent / 100) * 8))
-        const gauge = ` ${'▰'.repeat(filled)}`
-        const rest = '▱'.repeat(8 - filled)
-        const num = ` ${Math.round(l.percent)}% `
-        bottom.push(item(
-          <Text>
-            {label(level(l.percent), name)}
-            <Text backgroundColor={C.surface} color={level(l.percent)}>{gauge}</Text>
-            <Text backgroundColor={C.surface} color={C.overlay}>{rest}</Text>
-            <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
-          </Text>,
-          ` ${name} ${gauge}${rest}${num}`, i === 0 ? 2 : 4,
-        ))
+        bottom.push(gauge(name, l.percent, i === 0 ? 1 : 4))
         if (l.resetsAt) {
-          const t = `⟲${untilText(l.resetsAt, now)} `
+          const t = `⟲ ${untilText(l.resetsAt, now)} `
           bottom.push(item(<Text backgroundColor={C.surface} color={C.sub}>{t}</Text>, t, 7, true))
         }
       })
@@ -575,27 +531,41 @@ export const register: Register = on => {
       bottom.push(item(<Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{head}</Text>, head, 3))
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
-    if (top.length === 0 && bottom.length === 0) return below
+    const bottomRight: Item[] = []
+    if (turn) {
+      const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
+      if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
+      if (turn.agents > 0) parts.push(`에이전트 ${turn.agents}`)
+      bottomRight.push(pillItem(C.mauve, C.base, parts.join('  '), 2))
+    } else if (last) {
+      const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
+      bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
+    }
+    if (top.length + topRight.length + bottom.length + bottomRight.length === 0) return below
 
-    // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. 지금 도는 작업은 오른쪽 끝으로.
-    const line = (items: Item[], right: Item | null) => {
-      const keep = fit(items, cols)
-      const left: RenderElement[] = []
-      items.forEach((it, i) => {
-        if (!keep[i] || it === right) return
-        if (left.length && !it.glue) left.push(<Text> </Text>)
-        left.push(it.el)
-      })
+    // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
+    const line = (left: Item[], right: Item[]) => {
+      const all = [...left, ...right]
+      const keep = fit(all, cols)
+      const draw = (items: Item[], offset: number) => {
+        const out: RenderElement[] = []
+        items.forEach((it, i) => {
+          if (!keep[offset + i]) return
+          if (out.length && !it.glue) out.push(<Text> </Text>)
+          out.push(it.el)
+        })
+        return out
+      }
       return (
         <Box flexDirection="row">
-          {left}
+          {draw(left, 0)}
           <Box flexGrow={1} />
-          {right && keep[items.indexOf(right)] ? right.el : null}
+          {draw(right, left.length)}
         </Box>
       )
     }
 
-    // ── 포인터를 올리면 위로 펼쳐지는 줄 (띠는 아래가 붙박이라 위로 펼쳐야 알약이 안 움직인다) ──
+    // 변경 알약에 포인터를 올리면 그 위 줄에 파일 목록 — 띠는 아래가 붙박이라 위로 펼쳐야 알약이 안 움직인다.
     const shown = git?.files.slice(0, 8) ?? []
     const files = shown.length ? (
       <Box display="none" hover={{ display: 'flex', scope: FILES }} flexDirection="row" columnGap={2} flexWrap="wrap">
@@ -608,26 +578,13 @@ export const register: Register = on => {
         {git && git.files.length > shown.length ? <Text color={C.sub}>외 {git.files.length - shown.length}개</Text> : null}
       </Box>
     ) : null
-    const legend = usage?.slices.length ? (
-      <Box display="none" hover={{ display: 'flex', scope: CTX }} flexDirection="row" columnGap={2} flexWrap="wrap">
-        {[...usage.slices].sort((a, b) => b.tokens - a.tokens).map(sl => (
-          <Text>
-            <Text color={sl.color}>■</Text>
-            <Text color={C.text}> {sl.name} </Text>
-            <Text color={C.sub}>{tokensOf(sl.tokens)}</Text>
-          </Text>
-        ))}
-        {usage.compactAt ? <Text color={C.sub}>┃ 자동 압축 {tokensOf(usage.compactAt)}</Text> : null}
-      </Box>
-    ) : null
 
     return (
       <Box flexDirection="column">
         {below}
-        {legend}
         {files}
-        {line(work ? [...top, work] : top, work)}
-        {bottom.length ? line(bottom, null) : null}
+        {top.length + topRight.length ? line(top, topRight) : null}
+        {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
       </Box>
     )
   })

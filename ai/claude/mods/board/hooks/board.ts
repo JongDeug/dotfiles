@@ -59,23 +59,6 @@ export function ago(at: number, now: number): string {
   return `${Math.floor(s / 86400)}일 전`
 }
 
-// 컨텍스트 막대: 분류마다 차지한 칸 수. 칸이 모자라도 쓴 분류는 한 칸은 받는다. 나머지는 빈칸.
-export type Slice = { name: string; tokens: number; color: string }
-export function barCells(slices: Slice[], window: number, width: number): { color: string; cells: number; name: string }[] {
-  if (window <= 0) return []
-  const used = slices.filter(s => s.tokens > 0)
-  const out = used.map(s => ({ name: s.name, color: s.color, cells: Math.max(1, Math.round((s.tokens / window) * width)) }))
-  // 반올림이 넘치면 가장 큰 분류에서 덜어 낸다.
-  let over = out.reduce((n, s) => n + s.cells, 0) - width
-  while (over > 0) {
-    const big = out.reduce((a, b) => (b.cells > a.cells ? b : a))
-    if (big.cells <= 1) break
-    big.cells -= 1
-    over -= 1
-  }
-  return out
-}
-
 // 325_412 → "325k", 1_000_000 → "1M"
 export const tokensOf = (n: number): string => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n))
 
@@ -94,16 +77,13 @@ export function shortPath(path: string, home: string): string {
   return parts.length <= 3 ? p : `${p.startsWith('~') ? '~' : ''}/…/${parts.slice(-2).join('/')}`
 }
 
-// 남은 시간: "42m" · "2h22m" · "3d3h"
+// 남은 시간: "42m" · "2h 22m" · "3d 3h"
 export function untilText(at: number, now: number): string {
   const m = Math.max(0, Math.round((at - now) / 60_000))
   if (m < 60) return `${m}m`
-  if (m < 1440) return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`
-  return `${Math.floor(m / 1440)}d${Math.floor((m % 1440) / 60)}h`
+  if (m < 1440) return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`
+  return `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`
 }
-
-// 0~100 값들을 ▁▂▃▄▅▆▇█ 로.
-export const sparkline = (values: number[]): string => values.map(v => '▁▂▃▄▅▆▇█'[Math.min(7, Math.max(0, Math.floor((v / 100) * 8)))] ?? '▁').join('')
 
 // 터미널 칸 수: 한글·한자·전각과 그림 문자(☕🔥🧊⏸ 등)는 2칸, 나머지는 1칸.
 export function cellWidth(text: string): number {

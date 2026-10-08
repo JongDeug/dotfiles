@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, barCells, cellWidth, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText } from './board'
+import {ago, cellWidth, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
 
 test('git 상태와 변경 줄 수', () => {
   const status = [
@@ -39,19 +39,11 @@ test('시간 표시', () => {
   expect(ago(0, 7_200_000)).toBe('2시간 전')
 })
 
-test('컨텍스트 막대', () => {
-  const cells = barCells([{ name: 'System', tokens: 20_000, color: 'a' }, { name: 'Messages', tokens: 300_000, color: 'b' }, { name: 'Tiny', tokens: 10, color: 'c' }], 1_000_000, 20)
-  expect(cells.map(c => c.cells)).toEqual([1, 6, 1])
-  expect(barCells([{ name: 'All', tokens: 990_000, color: 'a' }, { name: 'T', tokens: 1, color: 'b' }], 1_000_000, 10).reduce((n, c) => n + c.cells, 0)).toBe(10)
-  expect([tokensOf(325_412), tokensOf(1_000_000), tokensOf(800)]).toEqual(['325k', '1M', '800'])
-})
-
 test('계기판 글자', () => {
   expect([modelName('claude-opus-5-5'), modelName('claude-haiku-4-5-20251001'), modelName('claude-fable-5-1'), modelName('gpt-x')]).toEqual(['Opus 5.5', 'Haiku 4.5', 'Fable 5.1', 'gpt-x'])
   expect(shortPath('/Users/j/Documents/m1ucs/com.m1ucs/detector', '/Users/j')).toBe('~/…/com.m1ucs/detector')
   expect(shortPath('/Users/j/dotfiles', '/Users/j')).toBe('~/dotfiles')
-  expect([untilText(42 * 60_000, 0), untilText(142 * 60_000, 0), untilText((3 * 1440 + 200) * 60_000, 0)]).toEqual(['42m', '2h22m', '3d3h'])
-  expect(sparkline([0, 50, 100])).toBe('▁▅█')
+  expect([untilText(42 * 60_000, 0), untilText(142 * 60_000, 0), untilText((3 * 1440 + 200) * 60_000, 0)]).toEqual(['42m', '2h 22m', '3d 3h'])
 })
 
 test('칸 수와 줄 맞추기', () => {
