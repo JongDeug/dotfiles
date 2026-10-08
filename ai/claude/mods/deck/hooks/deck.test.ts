@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
+import { HELP } from './help'
 
 // 답 속 블록이 그림으로 바뀌는 길: 렌더러(node)는 가짜로 답한다.
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
@@ -70,4 +71,15 @@ test('Claude 서명 줄이 든 git commit 은 실행 전에 막고, 깨끗한 �
   expect(ran).toEqual([])
   await $.tool.call({ tool: 'Bash', command: 'git commit -m "feat: 깨끗"' })
   expect(ran).toEqual(['git commit -m "feat: 깨끗"'])
+})
+
+test('/deck 은 안내 pane 을 열고, 등록한 명령은 모두 안내에 있다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  const opened: string[] = []
+  on('ui.open', ($, e) => (opened.push(e.id), { value: undefined }) as never)
+  const r = await $.command.run({ command: 'deck', args: '' } as never)
+  expect(String((r as { text?: string }).text)).toMatch(/안내/)
+  expect(opened).toEqual(['deck-view'])
+  const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
+  for (const name of ['/deck', '/keepwarm', '/cache']) expect(keys).toContain(name)
 })

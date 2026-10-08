@@ -1,0 +1,42 @@
+// /deck — deck 이 하는 일과 명령을 한 장으로. 줄마다 [무엇, 설명].
+export type HelpSection = { title: string; rows: [string, string][] }
+
+export const HELP: HelpSection[] = [
+  {
+    title: '계기판 — 입력창 위 두 줄',
+    rows: [
+      ['위치 줄', '경로 · 브랜치 · 모델 · 바뀐 파일(올리면 목록) · CI'],
+      ['남은 양 줄', 'CTX · 5H · 7D 게이지와 리셋까지 · 비용 · 🔥/h · 캐시 · 작업 중/지난 턴'],
+      ['좁으면', '덜 중요한 알약부터 뺀다'],
+    ],
+  },
+  {
+    title: '프롬프트 캐시',
+    rows: [
+      ['/keepwarm', '쉬는 동안 50분마다 핑으로 캐시를 데운다 — 6h · 90m · always · off · status'],
+      ['/cache', '캐시 상태 카드 — guard warn | refuse (식은 채 큰 컨텍스트를 보낼 때 막을지)'],
+    ],
+  },
+  {
+    title: '답 속 그림 — 포인터를 올리면 ⤢ 크게 보기 · ↓ PNG 저장',
+    rows: [
+      ['```mermaid', '흐름 · 시퀀스 · 상태 · ER 다이어그램'],
+      ['```chart', 'Vega-Lite 차트 (막대 · 선 · 원)'],
+      ['![설명](/경로)', '이미지 · 영상(장면 여섯 장) · 한 줄에 여러 개면 나란히'],
+    ],
+  },
+  {
+    title: '저절로 하는 일',
+    rows: [
+      ['커밋 서명 막기', 'Co-Authored-By: Claude · Claude-Session 줄이 든 git commit 은 실행 전에 돌려보낸다'],
+    ],
+  },
+  {
+    title: '설정 — /plugin → deck → configure',
+    rows: [
+      ['style', 'clean | sketch (손그림)'],
+      ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
+      ['/deck', '이 안내'],
+    ],
+  },
+]
