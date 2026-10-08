@@ -10,7 +10,8 @@ import { ago, cellWidth, fit, type Fit,ciFromGithub, ciFromGitlab, elapsed, mode
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
-const C = { base: '#24273a', surface: '#363a4f', overlay: '#494d64', text: '#cad3f5', sub: '#a5adcb', blue: '#8aadf4', green: '#a6da95', red: '#ed8796', yellow: '#eed49f', mauve: '#c6a0f6', peach: '#f5a97f', teal: '#8bd5ca' }
+// herdr 테마(gruvbox dark)와 같은 팔레트.
+const C = { base: '#282828', surface: '#3c3836', overlay: '#504945', text: '#ebdbb2', sub: '#a89984', blue: '#83a598', green: '#b8bb26', red: '#fb4934', yellow: '#fabd2f', mauve: '#d3869b', peach: '#fe8019', teal: '#8ec07c' }
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
 const SPIN = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
@@ -456,15 +457,16 @@ export const register: Register = on => {
     const pillItem = (bg: string, fg: string, text: string, p: number, opts: { bold?: boolean; glue?: boolean } = {}) =>
       item(pill(bg, fg, text, opts.bold ?? true), ` ${text} `, p, opts.glue)
     // ▰▱ 8칸 게이지 + 퍼센트. CTX 와 사용량 한도가 같은 모양이다.
-    const gauge = (name: string, percent: number, p: number): Item => {
+    const gauge = (name: string, percent: number, p: number, fixed?: string): Item => {
+      const tone = fixed ?? level(percent)
       const filled = Math.min(8, Math.round((percent / 100) * 8))
       const lit = ` ${'▰'.repeat(filled)}`
       const off = '▱'.repeat(8 - filled)
       const num = ` ${Math.round(percent)}% `
       return item(
         <Text>
-          {label(level(percent), name)}
-          <Text backgroundColor={C.surface} color={level(percent)}>{lit}</Text>
+          {label(tone, name)}
+          <Text backgroundColor={C.surface} color={tone}>{lit}</Text>
           <Text backgroundColor={C.surface} color={C.overlay}>{off}</Text>
           <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
         </Text>,
@@ -477,7 +479,7 @@ export const register: Register = on => {
     if (cwd) top.push(pillItem(C.yellow, C.base, `📁 ${shortPath(cwd, home)}`, 1))
     if (git) {
       const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
-      top.push(pillItem(C.blue, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
+      top.push(pillItem(C.teal, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
       if (git.files.length > 0) {
         const t = [` ● ${git.files.length} `, `+${git.added} `, `−${git.deleted} `]
         top.push(item(
@@ -504,7 +506,7 @@ export const register: Register = on => {
     const bottom: Item[] = []
     if (usage) {
       const u = usage
-      bottom.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0))
+      bottom.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0, C.green))
       u.limits.forEach((l, i) => {
         const name = l.kind === 'five_hour' ? '5H' : l.kind === 'seven_day' ? '7D' : l.kind === 'spend_limit' ? '한도' : l.kind
         bottom.push(gauge(name, l.percent, i === 0 ? 1 : 4))
@@ -514,7 +516,7 @@ export const register: Register = on => {
         }
       })
       if (u.usd !== undefined) {
-        bottom.push(item(label(C.green, `$${u.usd.toFixed(2)}`), ` $${u.usd.toFixed(2)} `, 5))
+        bottom.push(item(label(C.teal, `$${u.usd.toFixed(2)}`), ` $${u.usd.toFixed(2)} `, 5))
         const hours = (now - u.startedAt) / 3_600_000
         if (hours > 0.1) {
           const t = ` 🔥 $${(u.usd / hours).toFixed(1)}/h `
@@ -523,9 +525,9 @@ export const register: Register = on => {
       }
     }
     const cachePill = viewOf(cache, now)
-    if (turn) bottom.push(item(label(C.teal, '☕ 캐시 데우는 중'), ' ☕ 캐시 데우는 중 ', 3))
+    if (turn) bottom.push(item(label(C.blue, '☕ 캐시 데우는 중'), ' ☕ 캐시 데우는 중 ', 3))
     else if (cachePill) {
-      const bg = cachePill.tone === 'warm' ? C.teal : cachePill.tone === 'cold' ? C.red : C.overlay
+      const bg = cachePill.tone === 'warm' ? C.blue : cachePill.tone === 'cold' ? C.red : C.overlay
       const head = ` ${cachePill.head} `
       const body = ` ${cachePill.body} `
       bottom.push(item(<Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{head}</Text>, head, 3))
