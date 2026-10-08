@@ -67,6 +67,10 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 - 상태는 둘이 같다: `ARMED` 일하는 중(슬라임은 콩콩 뛰며 땀), `HOVER` 쉬는 중, `RTB` 캐시 식음(슬라임은 웅덩이로 꾸벅), `DAMAGED` 커밋 검문·도구 오류 뒤 20초(시무룩), `LOW BAT` 5H 한도 80% 넘음(지쳐서 납작).
 - `/pet off` 는 이 세션에서만 숨기고 `/pet` 은 다시 띄운다.
 
+## 테마
+
+herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herdr 내장 18개 — gruvbox·catppuccin·tokyo-night·dracula·nord·one-dark·solarized·kanagawa·rose-pine·vesper 와 그 라이트판)을 10초마다 읽고, `auto_switch = true` 면 맥 라이트·다크 모드로 짝을 고른다. 계기판 알약·게이지·안내·답 속 mermaid·chart·슬라임·드론이 다 같이 바뀌고, 리로드는 필요 없다. 그림은 테마마다 따로 그려 둔다(돌아오면 다시 안 그린다). `terminal` 처럼 고정 색이 없는 테마는 gruvbox.
+
 ## 설정 (`/plugin` → deck → configure)
 
 | 키 | 기본 | |
@@ -79,10 +83,10 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·펫 상태), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·펫 상태), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 88개
+claude plugin test ai/claude/mods/deck     # 91개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

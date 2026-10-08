@@ -1,6 +1,6 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나. 훅 모듈엔 Node 가 없어서 렌더는 이 프로세스가 한다.
 //
-//   { items: [{ key, spec, maxColumns, maxRows? }], cellAspect, style?: 'clean' | 'sketch' }
+//   { items: [{ key, spec, maxColumns, maxRows? }], cellAspect, style?: 'clean' | 'sketch', colors?: { text, grid, category } }
 //   maxRows 가 있으면 그 칸 상자를 채우게 그린다(크게 보기). 없으면 높이는 폭의 0.45.
 //   -> { results: [{ key, png, columns, rows } | { key, error }] }
 //
@@ -26,23 +26,22 @@ const fontOptions = fs.existsSync(FONT_FILE)
   ? { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }
   : { loadSystemFonts: true, defaultFontFamily: 'sans-serif' }
 
-// 배경은 투명 — 터미널 테마가 비친다. 글자·축·계열 색은 herdr 테마(gruvbox dark)에 맞춘다.
-const TEXT = '#ebdbb2'
-const GRID = '#504945'
-const THEME = {
+// 배경은 투명 — 터미널 테마가 비친다. 글자·축·계열 색은 훅이 herdr 테마에서 골라 넘긴다(colors: text · grid · category).
+const GRUVBOX = { text: '#ebdbb2', grid: '#504945', category: ['#83a598', '#b8bb26', '#fe8019', '#d3869b', '#fabd2f', '#8ec07c', '#fb4934', '#a89984'] }
+const themeOf = ({ text, grid, category } = GRUVBOX) => ({
   background: null,
   font: FONT,
   padding: 8,
   view: { stroke: null },
-  title: { color: TEXT, fontSize: 14, fontWeight: 'bold', anchor: 'start' },
-  axis: { labelColor: TEXT, titleColor: TEXT, domainColor: GRID, tickColor: GRID, gridColor: GRID, gridOpacity: 0.35, labelFontSize: 11, titleFontSize: 12 },
+  title: { color: text, fontSize: 14, fontWeight: 'bold', anchor: 'start' },
+  axis: { labelColor: text, titleColor: text, domainColor: grid, tickColor: grid, gridColor: grid, gridOpacity: 0.35, labelFontSize: 11, titleFontSize: 12 },
   // 막대 그래프 x 축 글자를 눕히지 않는다 — 한글 라벨이 세로로 서면 읽기 어렵다.
   axisBand: { labelAngle: 0 },
-  legend: { labelColor: TEXT, titleColor: TEXT, labelFontSize: 11, titleFontSize: 12 },
-  header: { labelColor: TEXT, titleColor: TEXT },
-  text: { color: TEXT },
-  range: { category: ['#83a598', '#b8bb26', '#fe8019', '#d3869b', '#fabd2f', '#8ec07c', '#fb4934', '#a89984'] },
-}
+  legend: { labelColor: text, titleColor: text, labelFontSize: 11, titleFontSize: 12 },
+  header: { labelColor: text, titleColor: text },
+  text: { color: text },
+  range: { category },
+})
 
 // 손그림(style: sketch) — mermaid 와 같은 excalidraw 느낌. 막대·도넛은 손으로 그린 모양을 단색으로 채우고,
 // 선·축·격자는 rough.js 로 다시 긋고, 글자는 손글씨체(Gaegu — 한글도 있다)로.
@@ -87,7 +86,7 @@ export function sketchChart(svg, seed = 7) {
     .replace(/font-size="([\d.]+)px"/g, (_, n) => `font-size="${(n * HAND_SIZE).toFixed(1)}px"`)
 }
 
-export async function renderChart(specText, { maxColumns, maxRows, cellAspect, style = 'clean' }) {
+export async function renderChart(specText, { maxColumns, maxRows, cellAspect, style = 'clean', colors }) {
   const spec = JSON.parse(specText)
   // 크기를 안 정했으면 칸 상자에 맞춘다.
   const width = maxColumns * PX_PER_COLUMN - 40
@@ -102,7 +101,7 @@ export async function renderChart(specText, { maxColumns, maxRows, cellAspect, s
   }
   if (spec.width === undefined && !spec.facet && !spec.hconcat && !spec.concat && !spec.repeat) spec.width = width
   if (spec.height === undefined && !spec.facet && !spec.vconcat && !spec.concat && !spec.repeat) spec.height = height
-  spec.config = { ...THEME, ...(spec.config ?? {}) }
+  spec.config = { ...themeOf(colors), ...(spec.config ?? {}) }
   const compiled = spec.$schema?.includes('/vega/') ? spec : vl.compile(spec).spec
   const view = new vega.View(vega.parse(compiled), { renderer: 'none' })
   const svg = await view.toSVG()
@@ -127,7 +126,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const results = []
   for (const item of req.items) {
     try {
-      const opts = { maxColumns: item.maxColumns, maxRows: item.maxRows, cellAspect: req.cellAspect ?? 2.2, style: req.style }
+      const opts = { maxColumns: item.maxColumns, maxRows: item.maxRows, cellAspect: req.cellAspect ?? 2.2, style: req.style, colors: req.colors }
       results.push({ key: item.key, ...(await cached(import.meta.url, { spec: item.spec, opts }, () => renderChart(item.spec, opts))) })
     } catch (error) {
       results.push({ key: item.key, error: String(error?.message ?? error).split('\n')[0].slice(0, 200) })

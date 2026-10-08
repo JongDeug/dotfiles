@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { cellWidth } from './board'
 import { SLIME_COLS, slimeRows } from './slime'
+import { C, setTheme } from './theme'
 
 test('슬라임은 4줄, 줄마다 21칸 — 어느 상태·어느 때든', () => {
   for (const state of ['ARMED', 'HOVER', 'RTB', 'DAMAGED', 'LOW BAT'] as const)
@@ -24,4 +25,11 @@ test('쉬는 동안 흘러가고(모양이 바뀌고), 사라졌다 돌아온다
   }
   expect(shots.size).toBeGreaterThan(15)
   expect(empty).toBe(true)
+})
+
+test('테마가 바뀌면 슬라임 색도 그 테마의 노랑으로', () => {
+  setTheme('catppuccin')
+  const fg = slimeRows('HOVER', 0).flat().map(r => r.fg)
+  expect(fg).toContain(C.yellow)
+  setTheme('gruvbox')
 })

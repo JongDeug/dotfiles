@@ -1,6 +1,8 @@
 // 계기판 오른쪽 끝의 탑뷰 쿼드콥터 — 손으로 찍은 17×10 픽셀 판을 반 칸 블록(▀▄)으로 그린다.
 // 1칸 = 가로 1px · 세로 2px → 17칸 × 5줄. $ 를 안 쓴다: 상태·프레임·등급을 받아 줄마다 글자 덩어리를 돌려준다.
 
+import { C, mix } from './theme'
+
 export const DRONE_COLS = 17
 
 // r 가드 링 · h 모터 · a 팔 · e 몸통 테 · B 몸통 · C 카메라 · l 렌즈 · N/M 왼·오 항법등 · O 등급 띠 · T 뒤 상태등
@@ -22,10 +24,11 @@ const H = 10
 const ROTORS: [number, number][] = [[0, 0], [12, 0], [0, 6], [12, 6]]
 const RING: [number, number][] = [[1, 0], [2, 0], [3, 0], [4, 1], [4, 2], [3, 3], [2, 3], [1, 3], [0, 2], [0, 1]]
 
-const P = {
-  ring: '#504945', blade: '#d5c4a1', hub: '#a89984', arm: '#665c54', body: '#3c3836', edge: '#7c6f64',
-  cam: '#83a598', lens: '#076678', stripe: '#fe8019', red: '#fb4934', green: '#b8bb26', amber: '#fabd2f', dim: '#504945',
-}
+// 테마 색으로 그때그때: 링·팔·몸통은 바탕 계열, 날개는 글자색 쪽, 불빛은 테마의 빨강·초록·노랑.
+const pal = () => ({
+  ring: C.overlay, blade: mix(C.text, C.overlay, 0.15), hub: C.sub, arm: mix(C.overlay, C.sub, 0.3), body: C.surface, edge: mix(C.sub, C.base, 0.3),
+  cam: C.blue, lens: mix(C.blue, C.base, 0.5), red: C.red, green: C.green, amber: C.yellow, dim: C.overlay, stripe: C.peach,
+})
 
 export type DroneState = 'ARMED' | 'HOVER' | 'RTB' | 'DAMAGED' | 'LOW BAT'
 export type PetState = DroneState
@@ -42,6 +45,7 @@ export function stateOf(s: { working: boolean; hurtUntil: number; now: number; f
 type Px = (string | null)[][]
 
 function pixels(state: DroneState, frame: number): Px {
+  const P = pal()
   const blink = frame % 2 === 0
   const nav = state === 'RTB' ? [P.dim, P.dim] : state === 'DAMAGED' ? [blink ? P.red : P.body, blink ? P.red : P.body] : [blink ? P.red : P.body, blink ? P.green : P.body]
   const tail = state === 'ARMED' ? P.amber : state === 'DAMAGED' ? (blink ? P.red : P.body) : state === 'LOW BAT' ? (blink ? P.amber : P.body) : P.edge

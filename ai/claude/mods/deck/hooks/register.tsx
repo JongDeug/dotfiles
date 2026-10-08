@@ -11,7 +11,7 @@ import { DRONE_COLS, droneRows, stateOf, type PetState } from './drone'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
-import { C, SOFT } from './theme'
+import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
 import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
@@ -134,6 +134,18 @@ const refreshUsage = ($: EngineInterface) =>
     model = modelName(await $.session.model())
   })
 
+// herdr 테마를 따른다 — 설정의 [theme] name, auto_switch 면 맥 라이트·다크로 짝을 고른다. 바뀌면 다시 그린다.
+async function refreshTheme($: EngineInterface): Promise<void> {
+  try {
+    const xdg = (await $.env.get('XDG_CONFIG_HOME')) || `${home}/.config`
+    const toml = String(await $.fs.read(`${xdg}/herdr/config.toml`))
+    const dark = /auto_switch\s*=\s*true/.test(toml) ? (await sh($, ['defaults', 'read', '-g', 'AppleInterfaceStyle'])) === 'Dark' : true
+    if (setTheme(herdrTheme(toml, dark))) $.ui.invalidate('ui.render')
+  } catch {
+    // herdr 설정이 없으면 지금 색(기본 gruvbox) 그대로
+  }
+}
+
 async function start($: EngineInterface): Promise<void> {
   if (started) return
   started = true
@@ -145,7 +157,11 @@ async function start($: EngineInterface): Promise<void> {
   effort = (await $.env.get('CLAUDE_EFFORT')) || (await sh($, ['node', '-e', `try{console.log(require(${JSON.stringify(`${dir}/settings.json`)}).effortLevel||'')}catch{}`]))
   await Promise.all([refreshGit($), refreshUsage($)])
   void refreshCi($)
-  $.clock.every(10_000, () => void refreshGit($))
+  await refreshTheme($)
+  $.clock.every(10_000, () => {
+    void refreshGit($)
+    void refreshTheme($)
+  })
   $.clock.every(5_000, () => void refreshUsage($))
   $.clock.every(60_000, () => void refreshCi($))
   // 도는 동안만 스피너를 돌린다.
@@ -372,7 +388,7 @@ type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
 
-const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
+const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', mode: 'auto' }
 let picMode: Mode | undefined
 const mermaidDrawn = new Map<string, Png | { text: string } | Failed>()
 const mermaidQueue = new Map<string, MermaidJob>()
@@ -414,7 +430,8 @@ async function drainMermaid($: EngineInterface): Promise<void> {
   const items = [...mermaidQueue.values()]
   mermaidQueue.clear()
   try {
-    const results = await runRenderer($, 'mermaid.mjs', { items, theme: pic.theme, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style, maxRows: pic.maxRows })
+    const colors = { bg: C.base, fg: C.text, line: C.overlay, accent: C.yellow, muted: C.sub }
+    const results = await runRenderer($, 'mermaid.mjs', { items, colors, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style, maxRows: pic.maxRows })
     for (const { key, ...d } of results) mermaidDrawn.set(key, d as Png | { text: string } | Failed)
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!mermaidDrawn.has(item.key)) mermaidDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
@@ -433,7 +450,8 @@ async function drainChart($: EngineInterface): Promise<void> {
   const items = [...chartQueue.values()]
   chartQueue.clear()
   try {
-    const results = await runRenderer($, 'chart.mjs', { items, cellAspect: pic.cellAspect, style: pic.style })
+    const colors = { text: C.text, grid: C.overlay, category: [C.blue, C.green, C.peach, C.mauve, C.yellow, C.teal, C.red, C.sub] }
+    const results = await runRenderer($, 'chart.mjs', { items, colors, cellAspect: pic.cellAspect, style: pic.style })
     for (const { key, ...d } of results) chartDrawn.set(key, d as Png | Failed)
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!chartDrawn.has(item.key)) chartDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
@@ -470,7 +488,7 @@ async function drainConvert($: EngineInterface): Promise<void> {
 }
 
 function mermaidOf($: EngineInterface, source: string, kind: 'png' | 'text', maxColumns: number) {
-  const key = `${kind}|${kind === 'png' ? maxColumns : ''}|${source}`
+  const key = `${kind}|${kind === 'png' ? `${maxColumns}|${C.name}` : ''}|${source}` // 테마가 바뀌면 다른 그림
   const hit = mermaidDrawn.get(key)
   if (!hit && !mermaidQueue.has(key)) {
     mermaidQueue.set(key, { key, source, kind, maxColumns })
@@ -481,7 +499,7 @@ function mermaidOf($: EngineInterface, source: string, kind: 'png' | 'text', max
 
 // 같은 spec 은 같은 그림 — 크기만 다르면 다시 그린다.
 function chartOf($: EngineInterface, spec: string, maxColumns: number, maxRows?: number) {
-  const key = `${maxColumns}x${maxRows ?? ''}|${spec}`
+  const key = `${maxColumns}x${maxRows ?? ''}|${C.name}|${spec}`
   const hit = chartDrawn.get(key)
   if (!hit && !chartQueue.has(key)) {
     chartQueue.set(key, { key, spec, maxColumns, maxRows })
@@ -891,9 +909,9 @@ export const register: Register = (on, options) => {
     void start($)
     const { Box, Text } = $.ui.resolve(e)
     const now = await $.clock.now()
-    // 바탕색은 누그러뜨린 쪽(SOFT)으로 칠한다.
-    const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={SOFT[bg] ?? bg} color={fg} bold={bold}>{` ${text} `}</Text>
-    const label = (bg: string, text: string) => pill(bg, C.base, text)
+    // 바탕색은 테마 바탕 쪽으로 누그러뜨려(soft) 칠한다.
+    const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={soft(bg)} color={fg} bold={bold}>{` ${text} `}</Text>
+    const label = (bg: string, text: string) => pill(bg, C.ink, text)
 
     const full = Math.max(20, e.props.bodyColumns)
     // 드론: 100칸 넘을 때만, idle 이면 쉬는 동안만. 그 폭만큼 계기판 알약이 줄어든다.
@@ -915,7 +933,7 @@ export const register: Register = (on, options) => {
       return item(
         <Text>
           {label(tone, name)}
-          <Text backgroundColor={C.surface} color={SOFT[tone] ?? tone}>{lit}</Text>
+          <Text backgroundColor={C.surface} color={soft(tone)}>{lit}</Text>
           <Text backgroundColor={C.surface} color={C.overlay}>{off}</Text>
           <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
         </Text>,
@@ -925,14 +943,14 @@ export const register: Register = (on, options) => {
 
     // ── 윗줄: 어디서 ────────────────────────────────────
     const top: Item[] = []
-    if (cwd) top.push(pillItem(C.yellow, C.base, `📁 ${shortPath(cwd, home)}`, 1))
+    if (cwd) top.push(pillItem(C.yellow, C.ink, `📁 ${shortPath(cwd, home)}`, 1))
     if (git) {
       const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
-      top.push(pillItem(C.teal, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
+      top.push(pillItem(C.teal, C.ink, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
     }
     // 모델은 브랜치 바로 옆.
     if (model) {
-      top.push(pillItem(C.peach, C.base, `◆ ${model}`, 2))
+      top.push(pillItem(C.peach, C.ink, `◆ ${model}`, 2))
       if (effort) top.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
     }
     if (git) {
@@ -950,7 +968,7 @@ export const register: Register = (on, options) => {
     }
     if (ci) {
       const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
-      top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.base, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
+      top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
 
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
@@ -981,7 +999,7 @@ export const register: Register = (on, options) => {
       const bg = cachePill.tone === 'warm' ? C.blue : cachePill.tone === 'cold' ? C.red : C.overlay
       const head = ` ${cachePill.head} `
       const body = ` ${cachePill.body} `
-      bottom.push(item(pill(bg, cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text, cachePill.head), head, 3))
+      bottom.push(item(pill(bg, cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.ink : C.text, cachePill.head), head, 3))
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     const bottomRight: Item[] = []
@@ -991,7 +1009,7 @@ export const register: Register = (on, options) => {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
       if (turn.agents > 0) parts.push(`에이전트 ${turn.agents}`)
-      bottomRight.push(pillItem(C.mauve, C.base, parts.join('  '), 2))
+      bottomRight.push(pillItem(C.mauve, C.ink, parts.join('  '), 2))
     } else if (last) {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
       bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
