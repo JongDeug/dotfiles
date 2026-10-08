@@ -125,10 +125,9 @@ export function fit(items: Fit[], cols: number): boolean[] {
   return keep
 }
 
-// git commit 명령에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session:)이 들었으면 그 줄을, 아니면 null.
-// 이 사용자는 커밋에 트레일러를 넣지 않는다 — 들어간 채 커밋되기 전에 막으려고. (-F 파일로 넘긴 메시지는 못 본다.)
-const CLAUDE_TRAILER = /Co-Authored-By:\s*Claude\b[^\n"']*|Claude-Session:[^\n"']*/i
+// 글에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session: · 🤖 Generated with)이 들었으면 그 줄을, 아니면 null.
+// 이 사용자는 커밋에 트레일러를 넣지 않는다 — 들어간 채 커밋되기 전에 막으려고. git commit 인지는 commit.ts 가 가린다.
+const CLAUDE_TRAILER = /Co-Authored-By:\s*Claude\b[^\n"']*|Claude-Session:[^\n"']*|(?:🤖\s*)?Generated with \[?Claude Code\]?[^\n"']*/i
 export function claudeTrailer(command: string): string | null {
-  if (!/\bgit\b[\s\S]*\bcommit\b/.test(command)) return null
   return CLAUDE_TRAILER.exec(command)?.[0].trim() ?? null
 }

@@ -6,11 +6,12 @@ import {
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
+import { commitProblems, readCommit, type Repo } from './commit'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C, SOFT } from './theme'
 import { splitAll } from './blocks'
-import { ago, cellWidth, claudeTrailer, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
@@ -46,6 +47,30 @@ let usage: Usage | null = null
 async function sh($: EngineInterface, argv: string[]): Promise<string> {
   const { exitCode, stdout } = await $.process.run(argv, { cwd, timeoutMs: 15_000 })
   return exitCode === 0 ? stdout.trim() : ''
+}
+
+async function commitCheck($: EngineInterface, command: string): Promise<string | null> {
+  const plan = readCommit(command, cwd)
+  if (!plan) return null
+  let repo: Repo | undefined
+  if (plan.commit && plan.dir) {
+    try {
+      const git = async (...args: string[]) => {
+        const r = await $.process.run(['git', '-C', plan.dir!, ...args], { timeoutMs: 5_000 })
+        return r.exitCode === 0 ? r.stdout.trim() : ''
+      }
+      const branch = await git('rev-parse', '--abbrev-ref', 'HEAD')
+      const root = await git('rev-parse', '--show-toplevel')
+      // 팀 레포 = CLAUDE.md 가 백엔드팀 공통 블록(backend-llm-wiki/REPO-CLAUDE.md)을 import 하는 저장소.
+      const md = root ? await $.fs.read(`${root}/CLAUDE.md`).catch(() => '') : ''
+      if (branch) repo = { branch, team: /backend-llm-wiki\/REPO-CLAUDE\.md/.test(String(md)) }
+    } catch {
+      // 저장소를 못 읽으면 브랜치 규칙만 건너뛴다.
+    }
+  }
+  const problems = commitProblems(plan, repo)
+  if (!problems.length) return null
+  return `deck: 커밋을 막았다 — git-commit 스킬 규칙에 걸린다. 아래를 고쳐 다시 한다.\n${problems.map(p => `- ${p}`).join('\n')}`
 }
 
 async function guarded($: EngineInterface, key: keyof typeof busy, work: () => Promise<void>): Promise<void> {
@@ -363,7 +388,7 @@ async function drainMermaid($: EngineInterface): Promise<void> {
   const items = [...mermaidQueue.values()]
   mermaidQueue.clear()
   try {
-    const results = await runRenderer($, 'mermaid.mjs', { items, theme: pic.theme, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style })
+    const results = await runRenderer($, 'mermaid.mjs', { items, theme: pic.theme, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style, maxRows: pic.maxRows })
     for (const { key, ...d } of results) mermaidDrawn.set(key, d as Png | { text: string } | Failed)
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!mermaidDrawn.has(item.key)) mermaidDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
@@ -598,9 +623,9 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e)) // 계기판이 깨져도 프롬프트는 막지 않는다
 
   on('tool.call', async ($, e, next) => {
-    // 서명 줄이 든 커밋은 커밋되기 전에 돌려보낸다 — 빼고 다시 하게.
-    const sig = e.tool === 'Bash' ? claudeTrailer(e.command) : null
-    if (sig) return { deny: `deck: 커밋 메시지에 Claude 서명 줄(${sig})이 있어 막았다. 이 사용자는 커밋에 Co-Authored-By·Claude-Session 트레일러를 넣지 않는다(git-commit 스킬) — 그 줄을 빼고 다시 커밋한다.` }
+    // 커밋 검문: git-commit 스킬 규칙에 걸리면 실행 전에 돌려보낸다 — 고칠 곳을 짚어 주면 모델이 고쳐 다시 한다.
+    const why = e.tool === 'Bash' ? await commitCheck($, e.command) : null
+    if (why) return { deny: why }
     const t = turn
     if (t) {
       t.tools += 1
@@ -673,7 +698,7 @@ export const register: Register = (on, options) => {
     for (const [n, b] of blocks.entries()) {
       if (b.kind === 'text') await asText(b.text)
       else if (b.kind === 'mermaid') {
-        const d = mode === 'off' ? undefined : mermaidOf($, b.source, mode === 'pictures' ? 'png' : 'text', width)
+        const d = mode === 'off' ? undefined : mermaidOf($, b.source, mode === 'pictures' ? 'png' : 'text', Math.min(110, width)) // 폭 상한을 키에 — 창 폭이 바뀌어도 다시 안 그린다
         if (!d || 'error' in d) {
           await asText(b.raw)
           if (d) failed('다이어그램을', d.error)

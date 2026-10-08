@@ -1,7 +1,7 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 돌려준다. 훅 모듈은 Node 가 없어서
 // 렌더는 이 프로세스가 한다.
 //
-//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect, scale, style: 'clean' | 'sketch' }
+//   { items: [{ key, source, kind: 'png' | 'text', maxColumns }], theme, cellAspect, scale, style: 'clean' | 'sketch', maxRows? }
 //   -> { results: [{ key, png, columns, rows } | { key, text } | { key, error }] }
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -187,7 +187,7 @@ export function resolveCss(svg) {
 // beautiful-mermaid 에 없는 gruvbox dark — herdr 테마에 맞춘다(선은 bg3, 강조는 herdr 노랑).
 const OWN_THEMES = { gruvbox: { bg: '#282828', fg: '#ebdbb2', line: '#665c54', accent: '#fabd2f', muted: '#a89984' } }
 
-export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1, style = 'clean' }) {
+export function renderPicture(source, { theme, cellAspect, maxColumns, maxRows = 255, scale = 1, style = 'clean' }) {
   const colors = OWN_THEMES[theme] ?? THEMES[theme] ?? OWN_THEMES.gruvbox
   const hand = style === 'sketch'
   const raw = renderMermaidSVG(plain(source), { ...colors, font: hand ? HAND : FONT, transparent: true, padding: 8 })
@@ -200,7 +200,11 @@ export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1
     columns = maxColumns
     rows = Math.max(1, Math.round((columns * h) / (w * cellAspect)))
   }
-  rows = Math.min(rows, 255)
+  // 키 큰 그림은 max_rows 에서 자른다 — 폭은 비율대로 줄인다(크게 보기로 펼쳐 본다).
+  if (rows > Math.min(maxRows, 255)) {
+    rows = Math.min(maxRows, 255)
+    columns = Math.max(1, Math.round((rows * cellAspect * w) / h))
+  }
   let svg = resolveCss(raw).replace(/font-family:[^;}]*/g, hand ? `font-family: '${HAND}', '${FONT}'` : `font-family: '${FONT}'`)
   if (hand) svg = sketch(svg).replace(/font-size="([\d.]+)"/g, (_, s) => `font-size="${(s * HAND_SIZE).toFixed(1)}"`)
   const png = new Resvg(svg, {

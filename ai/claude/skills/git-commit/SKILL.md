@@ -27,7 +27,7 @@ owner: jongdeug
 
 ## 2. 스테이징과 커밋 단위
 
-- **`git add -A` 금지.** 검증한 파일만 명시적으로 건다 — 남의 미커밋 변경과 심볼릭 링크를 쓸어담는다
+- **`git add -A` · `git add .` · `git commit -a` 금지.** 검증한 파일만 명시적으로 건다 — 남의 미커밋 변경과 심볼릭 링크를 쓸어담는다
   (`.gitignore` 의 `node_modules/` 는 디렉토리 패턴이라 링크를 못 거른다).
 - 커밋 직전 `git status --short` 로 확인하고 보고에 적는다.
 - 관련 없는 파일이 섞여 있으면 지적한다 (`.env`, 빌드 산출물, 남은 디버그 로그).
@@ -36,7 +36,7 @@ owner: jongdeug
 ## 3. 제목
 
 Conventional Commits — `type(scope): 제목`.
-`type` 은 `feat` `fix` `refactor` `perf` `test` `docs` `chore` 중 하나이고, **브랜치 prefix 와 맞춘다.**
+`type` 은 `feat` `fix` `refactor` `perf` `test` `docs` `chore` `style` `build` `ci` `revert` 중 하나이고, **브랜치 prefix 와 맞춘다** (`feature/` → `feat`, `fix/`·`hotfix/` → `fix`).
 
 ## 4. 본문
 
@@ -76,6 +76,12 @@ git log --format='%h %(trailers:key=Co-Authored-By,valueonly)' <base>..HEAD
 - "되돌림"·"재구현"·"1차 구현 제거" 같은 흔적을 남기지 않는다 — **최종안만 설명**한다
 - 판단 이력(왜 뒤엎었는지)은 커밋이 아니라 노션 작업 페이지·MR 본문·`spec.md` 에 남긴다
 - **이미 push 된 브랜치는 예외** — 히스토리를 다시 쓰지 않는다. 트레일러가 쌓인 경우만 5번의 절차를 따른다
+
+## 훅이 한 번 더 본다 (deck mod)
+
+deck mod 가 Claude 의 `git commit`·`git add` 를 실행 직전에 검문한다 — 이 스킬을 놓쳐도 아래에 걸리면 실행되지 않고 고칠 곳이 돌아온다.
+서명 줄(5번) · 한꺼번에 담기(2번) · 제목 꼴과 type(3번) · 브랜치 prefix 와 type · 폭 맞춰 끊은 줄 · 표 · 공백 열 맞춤(4번) · 팀 레포의 develop·main·master 직접 커밋.
+막히면 돌아온 줄대로 고쳐 다시 커밋한다. 판단이 드는 것(왜를 쓰기 · 커밋 나누기 · 스쿼시)은 이 스킬만 본다.
 
 ## 하지 않는 것
 

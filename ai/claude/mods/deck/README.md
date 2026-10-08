@@ -43,28 +43,35 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 그림 요소(kitty 그래픽)가 되는 터미널이 필요하다 — herdr 안이면 settings 의 env 에 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`. 못 그리면 코드 그대로 두고 아래에 이유를 흐리게 단다.
 
-## 커밋 서명 막기
+## 커밋 검문
 
-커밋에 `Co-Authored-By: Claude…`·`Claude-Session:` 트레일러를 넣지 않는다. 두 겹이다.
+git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전에 기계로 가를 수 있는 규칙만 한 번 더 본다. 걸리면 `git commit`·`git add` 를 실행하지 않고 고칠 곳(몇째 줄이 왜)을 짚어 돌려보낸다 — 모델이 고쳐 다시 한다.
 
 - 원천 — `attribution.text`: 엔진이 커밋·PR 에 서명을 붙이라고 시키는 문구를 비운다. 모델이 처음부터 안 쓴다.
-- 커밋 순간 — `tool.call`(Bash): 그래도 `git commit` 명령에 그 줄이 들었으면 실행 전에 막고 "빼고 다시 커밋"으로 돌려보낸다. 사람 공동작성자 줄은 건드리지 않는다. `-F 파일` 로 넘긴 메시지는 못 본다.
+- 서명 줄: `Co-Authored-By: Claude…` · `Claude-Session:` · `🤖 Generated with [Claude Code]`. 사람 공동작성자 줄은 건드리지 않는다.
+- 한꺼번에 담기: `git add -A` · `git add .` · `git commit -a`.
+- 제목: `type(scope): 제목`, type 은 feat · fix · refactor · perf · test · docs · chore · style · build · ci · revert. Merge·Revert 기본 제목과 fixup! 은 넘긴다.
+- 브랜치: `fix/…` 에선 `fix:` 처럼 브랜치 prefix 와 type 을 맞춘다.
+- 본문: 60칸 넘는 줄이 문장부호 없이 끝나고 다음 줄이 이어지면(폭 맞춰 끊은 줄), 표(`|`), 공백 여러 칸으로 맞춘 열.
+- 팀 레포만: develop · main · master 에 바로 커밋. 팀 레포 = 저장소 CLAUDE.md 가 `backend-llm-wiki/REPO-CLAUDE.md` 를 import 하는 곳.
+
+명령 속 글만 읽으므로 `-F 파일` 로 넘긴 메시지와 편집기로 쓴 메시지는 못 본다. 따옴표 속 글·heredoc 은 명령으로 치지 않는다(글 속 "git commit" 에 속지 않는다).
 
 ## 설정 (`/plugin` → deck → configure)
 
 | 키 | 기본 | |
 |---|---|---|
 | `cell_aspect` | `2.2` | 칸 높이÷너비. 그림이 길쭉하면 줄이고 납작하면 키운다 |
-| `max_rows` | `30` | 답 속 이미지 하나의 최대 높이(줄) |
+| `max_rows` | `30` | 답 속 이미지·mermaid 하나의 최대 높이(줄) |
 | `scale` | `1` | 다이어그램 크기(0.5~2). 1 이면 라벨이 터미널 글자 크기 |
 | `style` | `clean` | `sketch` 면 손그림 — 다이어그램은 rough 선·손글씨체, 차트는 흔들리는 모양을 단색으로 채우고 축·글자도 손그림 |
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·커밋 서명 찾기), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다).
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다).
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 72개
+claude plugin test ai/claude/mods/deck     # 79개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```
