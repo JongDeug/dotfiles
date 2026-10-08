@@ -1,4 +1,6 @@
 // /deck — deck 이 하는 일과 명령을 한 장으로. 줄마다 [무엇, 설명].
+import { cellWidth } from './board'
+
 export type HelpSection = { title: string; rows: [string, string][] }
 
 export const HELP: HelpSection[] = [
@@ -40,3 +42,9 @@ export const HELP: HelpSection[] = [
     ],
   },
 ]
+
+// 명령 결과로 대화에 찍을 글 — 왼쪽 열을 화면 칸 폭으로 맞춘다(한글은 두 칸).
+export function helpText(): string {
+  const w = Math.max(...HELP.flatMap(sec => sec.rows.map(([k]) => cellWidth(k)))) + 2
+  return HELP.map(sec => [sec.title, ...sec.rows.map(([k, d]) => `  ${k}${' '.repeat(w - cellWidth(k))}${d}`)].join('\n')).join('\n\n')
+}

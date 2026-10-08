@@ -1,6 +1,6 @@
 # Flight Deck (`deck`)
 
-`/deck` — 하는 일과 명령을 한 장으로 띄운다(Esc 로 닫기).
+`/deck` — 하는 일과 명령을 한 장으로 대화에 찍는다.
 
 Claude Code 화면 한 벌. 입력창 위 계기판, 답 속 그림, 크게 보기 pane, 프롬프트 캐시 keepwarm 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
 

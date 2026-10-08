@@ -5,7 +5,7 @@ import {
   MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
-import { HELP } from './help'
+import { helpText } from './help'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C } from './theme'
@@ -459,7 +459,7 @@ const chartTitle = (spec: string): string => {
 
 // 크게 보기 pane 하나 — 무엇을 띄웠느냐에 따라 그린다.
 const VIEW = 'deck-view'
-type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'file'; title: string; img: ImageFile } | { kind: 'help'; title: string }
+type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'file'; title: string; img: ImageFile }
 let viewing: Viewing | null = null
 
 async function openView($: EngineInterface, v: Viewing): Promise<void> {
@@ -552,8 +552,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'deck' }, async $ => {
-    await openView($, { kind: 'help', title: 'Flight Deck' })
-    return { text: 'deck 안내를 열었다 (Esc 로 닫기)' }
+    return { text: helpText() }
   })
 
   on('command.run', { command: 'cache' }, async ($, e) => {
@@ -779,25 +778,7 @@ export const register: Register = (on, options) => {
     let body: RenderElement
     let meta = ''
     let save: string | null = null
-    if (v.kind === 'help') {
-      // 섹션마다 노란 제목, 줄마다 왼쪽 열(청록)을 같은 폭으로 맞춘다.
-      const keyWidth = Math.min(22, Math.max(...HELP.flatMap(sec => sec.rows.map(([k]) => cellWidth(k)))) + 2)
-      body = (
-        <Box flexDirection="column" rowGap={1} width={Math.min(cols, 100)}>
-          {HELP.map(sec => (
-            <Box key={sec.title} flexDirection="column">
-              <Text bold color={C.yellow}>{sec.title}</Text>
-              {sec.rows.map(([k, desc]) => (
-                <Box key={k} flexDirection="row">
-                  <Box width={keyWidth} flexShrink={0}><Text color={C.teal}>{`  ${k}`}</Text></Box>
-                  <Text color={C.sub}>{desc}</Text>
-                </Box>
-              ))}
-            </Box>
-          ))}
-        </Box>
-      )
-    } else if (v.kind === 'file') {
+    if (v.kind === 'file') {
       const grid = gridFor(v.img.width, v.img.height, cols, room, pic.cellAspect)
       body = <Image source={{ file: v.img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={v.title} />
       meta = `${v.img.width}×${v.img.height}`
