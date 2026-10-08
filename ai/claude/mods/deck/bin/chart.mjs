@@ -121,7 +121,9 @@ export async function renderChart(specText, { maxColumns, maxRows, cellAspect, s
   return { png: png.toString('base64'), columns, rows }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// 직접 실행일 때만 — 두 경로를 실제 경로로 맞춰 비교한다. 심링크 경로(~/.claude-work/plugins → ~/.claude/plugins)로
+// 띄우면 import.meta.url 은 실제 경로, argv[1] 은 심링크라 글자 비교가 늘 거짓 → 아무것도 안 내고 0 으로 끝났다(2026-10-08).
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(new URL(import.meta.url))) {
   const req = JSON.parse(fs.readFileSync(0, 'utf8'))
   const results = []
   for (const item of req.items) {
