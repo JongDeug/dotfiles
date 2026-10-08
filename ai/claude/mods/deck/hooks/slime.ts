@@ -50,7 +50,7 @@ function draw(body: Body | null, trail: [number, number][] = [], dots: [number, 
         }
         put(ex, ey, C.E)
         if (b >= 5 && eyes === 'open') put(ex, ey - 1, C.E)
-        put(ex - Math.sign(dx), ey + 1, C.c, [C.y])
+        put(ex + Math.sign(dx), ey + 1, C.c, [C.y]) // 볼: 눈 아래 바깥쪽(안쪽이면 코처럼 보인다)
         if (eyes === 'sad' && dx < 0) put(ex, ey + 1, C.tear)
       }
     }
