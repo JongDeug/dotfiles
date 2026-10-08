@@ -24,19 +24,11 @@ const RING: [number, number][] = [[1, 0], [2, 0], [3, 0], [4, 1], [4, 2], [3, 3]
 
 const P = {
   ring: '#504945', blade: '#d5c4a1', hub: '#a89984', arm: '#665c54', body: '#3c3836', edge: '#7c6f64',
-  cam: '#83a598', lens: '#076678', red: '#fb4934', green: '#b8bb26', amber: '#fabd2f', dim: '#504945',
+  cam: '#83a598', lens: '#076678', stripe: '#fe8019', red: '#fb4934', green: '#b8bb26', amber: '#fabd2f', dim: '#504945',
 }
 
 export type DroneState = 'ARMED' | 'HOVER' | 'RTB' | 'DAMAGED' | 'LOW BAT'
 export type PetState = DroneState
-export type Grade = { name: string; stripe: string }
-
-// 끝낸 턴 수로 등급 — 등급마다 몸통 띠 색이 바뀐다.
-export function gradeOf(turns: number): Grade & { next?: number } {
-  if (turns >= 300) return { name: 'MK-III', stripe: '#8ec07c' }
-  if (turns >= 50) return { name: 'MK-II', stripe: '#fabd2f', next: 300 }
-  return { name: 'MK-I', stripe: '#fe8019', next: 50 }
-}
 
 // 지금 상태: 도는 중 > 다쳤음(최근 거절·도구 오류) > 배터리(5H 한도) > 캐시 식음 > 호버.
 export function stateOf(s: { working: boolean; hurtUntil: number; now: number; fiveHour?: number; cold: boolean }): DroneState {
@@ -49,12 +41,12 @@ export function stateOf(s: { working: boolean; hurtUntil: number; now: number; f
 
 type Px = (string | null)[][]
 
-function pixels(state: DroneState, frame: number, grade: Grade): Px {
+function pixels(state: DroneState, frame: number): Px {
   const blink = frame % 2 === 0
   const nav = state === 'RTB' ? [P.dim, P.dim] : state === 'DAMAGED' ? [blink ? P.red : P.body, blink ? P.red : P.body] : [blink ? P.red : P.body, blink ? P.green : P.body]
   const tail = state === 'ARMED' ? P.amber : state === 'DAMAGED' ? (blink ? P.red : P.body) : state === 'LOW BAT' ? (blink ? P.amber : P.body) : P.edge
   const color: Record<string, string> = {
-    r: P.ring, h: P.hub, a: P.arm, e: P.edge, B: P.body, l: P.lens, O: grade.stripe,
+    r: P.ring, h: P.hub, a: P.arm, e: P.edge, B: P.body, l: P.lens, O: P.stripe,
     C: state === 'ARMED' ? P.red : P.cam, N: nav[0]!, M: nav[1]!, T: tail,
   }
   const px: Px = PLATE.map(row => [...row].map(c => color[c] ?? null))
@@ -88,6 +80,6 @@ export function runsOf(px: (string | null)[][]): Run[][] {
   return rows
 }
 
-export function droneRows(state: DroneState, frame: number, grade: Grade): Run[][] {
-  return runsOf(pixels(state, frame, grade))
+export function droneRows(state: DroneState, frame: number): Run[][] {
+  return runsOf(pixels(state, frame))
 }

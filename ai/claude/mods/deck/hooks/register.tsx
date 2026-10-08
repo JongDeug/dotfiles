@@ -7,7 +7,7 @@ import {
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { DRONE_COLS, droneRows, gradeOf, stateOf, type PetState } from './drone'
+import { DRONE_COLS, droneRows, stateOf, type PetState } from './drone'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
@@ -34,14 +34,8 @@ const busy = { git: false, ci: false, usage: false }
 
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
-// 펫: 설정(slime·drone·off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지, 끝낸 턴 수(모든 세션이 함께 — $.store).
-const pet = { kind: 'slime' as 'slime' | 'drone' | 'off', hidden: false, hurtUntil: 0, turns: 0, since: 0 }
-const PET = {
-  slime: { cols: SLIME_COLS, name: '말랑이', mark: '🟡' },
-  drone: { cols: DRONE_COLS, name: 'DECK-1', mark: '🛸' },
-}
-const DRONE_TURNS = 'drone:turns'
-const DRONE_SINCE = 'drone:since'
+// 펫: 설정(slime·drone·off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
+const pet = { kind: 'slime' as 'slime' | 'drone' | 'off', hidden: false, hurtUntil: 0 }
 let last: { seconds: number; tools: number; edits: number } | null = null
 
 type Usage = {
@@ -162,9 +156,6 @@ async function start($: EngineInterface): Promise<void> {
   $.clock.every(250, () => {
     if (!turn && pet.kind !== 'off' && !pet.hidden) $.ui.invalidate('ui.render')
   })
-  pet.turns = Number(await $.store.get(DRONE_TURNS)) || 0
-  pet.since = Number(await $.store.get(DRONE_SINCE)) || 0
-  if (!pet.since) await $.store.set(DRONE_SINCE, (pet.since = await $.clock.now()))
 }
 
 // ── 프롬프트 캐시 keepwarm · 식은 채 보내기 경고 ─────────────────────────────
@@ -298,8 +289,8 @@ async function initCache($: EngineInterface, surface: string | null, fresh = fal
   })
   await $.command.register({
     name: 'pet',
-    description: '계기판 오른쪽 펫(슬라임·드론) 카드. on · off(이 세션에서 숨김)',
-    argumentHint: '[on | off]',
+    description: '계기판 오른쪽 펫을 이 세션에서 띄운다. off 면 숨긴다',
+    argumentHint: '[off]',
     immediate: true,
   })
   await $.command.register({
@@ -622,25 +613,12 @@ export const register: Register = (on, options) => {
     return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
 
+  // /pet: 이 세션에서 숨기기·띄우기만. 종류(slime · drone · off)는 설정에서.
   on('command.run', { command: 'pet' }, async ($, e) => {
-    const arg = String(e.args ?? '').trim()
-    const who = PET[pet.kind === 'drone' ? 'drone' : 'slime']
-    if (arg === 'off' || arg === 'on') {
-      pet.hidden = arg === 'off'
-      $.ui.invalidate('ui.render')
-      return { text: arg === 'off' ? `${who.name} 쉬러 감 — 이 세션에서 숨겼다 (/pet on 으로 다시)` : `${who.name} 나왔다` }
-    }
-    const now = await $.clock.now()
-    const g = gradeOf(pet.turns)
-    const days = Math.max(1, Math.ceil((now - pet.since) / 86_400_000))
-    return {
-      text: [
-        `${who.mark} ${who.name} · ${g.name} · ${petState(now)}`,
-        `  함께한 턴  ${pet.turns}턴 · ${days}일째`,
-        g.next ? `  다음 등급  ${g.next - pet.turns}턴 남음` : '  최고 등급',
-        `  표시      ${pet.kind === 'off' ? '설정에서 꺼짐' : pet.hidden ? '이 세션에서 숨김' : '늘'} (/plugin → deck → configure 의 pet: slime · drone · off)`,
-      ].join('\n'),
-    }
+    const off = String(e.args ?? '').trim() === 'off'
+    pet.hidden = off
+    $.ui.invalidate('ui.render')
+    return { text: off ? '펫을 이 세션에서 숨겼다 (/pet 으로 다시)' : '펫을 띄웠다 (/pet off 로 숨김 · 종류는 /plugin → deck → configure 의 pet)' }
   })
 
   on('command.run', { command: 'cache' }, async ($, e) => {
@@ -722,9 +700,6 @@ export const register: Register = (on, options) => {
     turn = null
     void refreshGit($)
     void refreshUsage($)
-    // 여러 세션이 함께 키운다 — 읽고 하나 더해 쓴다(동시에 끝나면 하나 빠질 수 있지만 상관없다).
-    pet.turns = (Number(await $.store.get(DRONE_TURNS)) || 0) + 1
-    await $.store.set(DRONE_TURNS, pet.turns)
     return r
   }).catch(($, e, next) => next(e))
 
@@ -1012,7 +987,6 @@ export const register: Register = (on, options) => {
     const bottomRight: Item[] = []
     // 펫은 그림만 — 등급·상태 글자는 /pet 카드에서.
     const dstate = petState(now)
-    const grade = gradeOf(pet.turns)
     if (turn) {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
@@ -1074,7 +1048,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row" columnGap={2}>
           {dash}
           <Box flexDirection="column" width={petCols} flexShrink={0}>
-            {(pet.kind === 'drone' ? droneRows(dstate, Math.floor(now / 500), grade) : slimeRows(dstate, now)).map((runs, y) => (
+            {(pet.kind === 'drone' ? droneRows(dstate, Math.floor(now / 500)) : slimeRows(dstate, now)).map((runs, y) => (
               <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
             ))}
           </Box>

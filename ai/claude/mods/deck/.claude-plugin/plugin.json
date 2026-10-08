@@ -1,6 +1,6 @@
 {
   "name": "deck",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Flight Deck — Claude Code 화면 한 벌: 입력창 위 두 줄 계기판(statusline 대체)·프롬프트 캐시 keepwarm·커밋 검문, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane, 오른쪽 끝 펫(노란 슬라임 · 탑뷰 드론). herdr 테마(gruvbox).",
   "author": {
     "name": "JongDeug",
