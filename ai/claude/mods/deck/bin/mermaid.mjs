@@ -226,5 +226,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       return { key: item.key, error: String(error?.message ?? error).split('\n')[0].slice(0, 200) }
     }
   })
-  process.stdout.write(JSON.stringify({ results }))
+  // 측정(임시): node 가 뜬 때부터 여기까지 — 엔진에서 잰 시간과 견줘 process.run 몫을 가른다.
+  const nodeMs = Math.round(performance.now())
+  process.stdout.write(JSON.stringify({ results: results.map(r => ({ ...r, nodeMs })) }))
 }

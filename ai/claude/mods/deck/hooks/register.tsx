@@ -356,6 +356,19 @@ const converted = new Map<string, ImageFile | Failed>()
 const convertQueue = new Set<string>()
 const picBusy = { mermaid: false, chart: false, convert: false }
 
+// 측정(임시): mermaid 한 장이 큐에서 얼마나 기다리고, 렌더러가 얼마나 걸리고, 그려지기까지·몇 번 다시 그려지나.
+// ~/.cache/claude-deck/mermaid-timing.log 에 블록마다 한 줄. 원인을 찾으면 지운다.
+type Trace = { seen: number; title: string; start?: number; end?: number; nodeMs?: number; kb?: number; batch?: number; firstDraw?: number; draws: number }
+const mmTrace = new Map<string, Trace>()
+async function writeTrace($: EngineInterface): Promise<void> {
+  const at = (n: number) => new Date(n + 9 * 3_600_000).toISOString().slice(11, 23)
+  const ms = (a?: number, b?: number) => (a === undefined || b === undefined ? '-' : `${b - a}ms`)
+  const lines = [...mmTrace.values()].slice(-40).map(t =>
+    `${at(t.seen)} 큐대기 ${ms(t.seen, t.start)} · 렌더(엔진에서 잰 것) ${ms(t.start, t.end)} · node 안 ${t.nodeMs ?? '-'}ms · 결과→첫 그리기 ${ms(t.end, t.firstDraw)} · 보임→첫 그리기 ${ms(t.seen, t.firstDraw)} · 다시 그림 ${t.draws}번 · PNG ${t.kb ?? '-'}KB · 묶음 ${t.batch ?? '-'}장 · ${t.title}`)
+  const home = (await $.env.get('HOME')) ?? '/tmp'
+  await $.fs.write(`${home}/.cache/claude-deck/mermaid-timing.log`, `${lines.join('\n')}\n`).catch(() => undefined)
+}
+
 const PICTURE_PROMPT = [
   '# Pictures in this terminal',
   'This terminal draws pictures in your replies; use them when a picture is clearer than text.',
@@ -388,8 +401,15 @@ async function drainMermaid($: EngineInterface): Promise<void> {
   const items = [...mermaidQueue.values()]
   mermaidQueue.clear()
   try {
+    const t0 = Date.now()
+    for (const item of items) Object.assign(mmTrace.get(item.key) ?? {}, { start: t0, batch: items.length })
     const results = await runRenderer($, 'mermaid.mjs', { items, theme: pic.theme, cellAspect: pic.cellAspect, scale: pic.scale, style: pic.style, maxRows: pic.maxRows })
-    for (const { key, ...d } of results) mermaidDrawn.set(key, d as Png | { text: string } | Failed)
+    const t1 = Date.now()
+    for (const { key, ...d } of results) {
+      const png = (d as { png?: string }).png
+      Object.assign(mmTrace.get(key) ?? {}, { end: t1, nodeMs: (d as { nodeMs?: number }).nodeMs, kb: png ? Math.round(png.length / 1024) : undefined })
+      mermaidDrawn.set(key, d as Png | { text: string } | Failed)
+    }
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!mermaidDrawn.has(item.key)) mermaidDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
   } catch (error) {
@@ -447,8 +467,15 @@ function mermaidOf($: EngineInterface, source: string, kind: 'png' | 'text', max
   const key = `${kind}|${kind === 'png' ? maxColumns : ''}|${source}`
   const hit = mermaidDrawn.get(key)
   if (!hit && !mermaidQueue.has(key)) {
+    mmTrace.set(key, { seen: Date.now(), title: source.trim().split('\n')[0] ?? '', draws: 0 })
     mermaidQueue.set(key, { key, source, kind, maxColumns })
     void drainMermaid($)
+  }
+  const t = hit ? mmTrace.get(key) : undefined
+  if (t) {
+    t.draws += 1
+    t.firstDraw ??= Date.now()
+    if (t.draws === 1 || t.draws % 25 === 0) void writeTrace($)
   }
   return hit
 }
