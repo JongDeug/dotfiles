@@ -51,3 +51,29 @@ test('렌더러가 어떤 블록의 결과를 빠뜨려도 다시 부르기를 �
   expect((await ui.find({ text: /차트를 그리지 못했다/ }))?.text).toMatch(/그리지 못했다/)
   expect(runs).toBe(1)
 })
+
+test('HTML 파일 줄: 미리보기에 ▾ 펼치기, 누르면 끝까지 여러 장, 다시 누르면 접힌다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : undefined }))
+  const asked: { slices?: boolean }[] = []
+  on('process.run', ($, e) => {
+    const items = (JSON.parse(String(e.init?.stdin ?? '{"items":[]}')).items ?? []) as { key: string; slices?: boolean }[]
+    asked.push(...items)
+    const results = items.map(it => it.slices
+      ? { key: it.key, png: PNG, columns: 40, rows: 250, file: '/x.html', cut: false, parts: [{ png: PNG, columns: 40, rows: 250 }, { png: PNG, columns: 40, rows: 60 }] }
+      : { key: it.key, png: PNG, columns: 40, rows: 30, file: '/x.html', cut: true })
+    return { value: { exitCode: 0, stdout: JSON.stringify({ results }), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props('![리포트](/tmp/report.html)') })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
+  expect((await ui.find({ text: /아래 이어짐/ }))?.text).toMatch(/리포트 · 아래 이어짐/)
+  const fold = (await ui.findAll({ type: 'Button' })).find(b => /펼치기/.test(b.text ?? ''))
+  expect(fold).toBeTruthy()
+  await ui.press({ key: String(fold?.props.key) })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(2)
+  expect(asked.some(a => a.slices)).toBe(true)
+  const back = (await ui.findAll({ type: 'Button' })).find(b => /접기/.test(b.text ?? ''))
+  await ui.press({ key: String(back?.props.key) })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
+})

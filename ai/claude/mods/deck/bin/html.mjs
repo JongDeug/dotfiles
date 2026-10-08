@@ -1,7 +1,8 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 — 답 속 ```page 블록(HTML)을 맥의 Chrome 으로 찍는다.
 //
-//   { items: [{ key, html | path, maxColumns, maxRows? }], cellAspect }
-//   -> { results: [{ key, png, columns, rows, file, cut } | { key, error }] }
+//   { items: [{ key, html | path, maxColumns, maxRows?, slices? }], cellAspect }
+//   -> { results: [{ key, png, columns, rows, file, cut, parts? } | { key, error }] }
+//   slices 면 페이지 끝까지 찍어 터미널 그림 한 장(255줄)에 들어가게 위에서부터 잘라 parts 로 준다(펼치기).
 //   html 은 답 속 조각(기본 CSS 를 깔아 감싼다), path 는 이미 있는 HTML 파일(그대로 연다). cut 은 한도에서 잘렸는지.
 //
 // Chrome 을 화면 없이(headless) 한 번 띄워 DevTools 프로토콜로 항목마다 새 탭을 열고, 터미널 폭에 맞춘 창에서
@@ -16,6 +17,7 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const PX_PER_COLUMN = 8 // 터미널 한 칸을 이 CSS 픽셀로 본다(chart.mjs 와 같다)
 const SCALE = 2
 const CACHE = path.join(os.homedir(), '.cache', 'claude-deck')
+const MAX_FULL = 40_000 // 펼치기의 한도(CSS px) — 이보다 긴 페이지는 Chrome 에서
 
 // herdr 테마(gruvbox dark) 기본 모양 — 페이지가 자기 CSS 를 쓰면 그쪽이 이긴다(앞에 넣는다).
 const BASE_CSS = `
@@ -127,11 +129,23 @@ async function shoot(cdp, item, cellAspect) {
     // 창 높이가 아니라 내용이 끝나는 곳까지 — documentElement.scrollHeight 는 창보다 작아지지 않는다.
     const { result } = await cdp.send('Runtime.evaluate', { expression: 'Math.ceil(document.body ? document.body.getBoundingClientRect().bottom + parseFloat(getComputedStyle(document.body).marginBottom || 0) : 0)', returnByValue: true }, sessionId)
     const full = Number(result.value) || 20
+    const columns = Math.min(255, Math.max(1, Math.round(width / PX_PER_COLUMN)))
+    const rowsOf = h => Math.min(255, Math.max(1, Math.round(h / (PX_PER_COLUMN * cellAspect))))
+    if (item.slices) {
+      // 끝까지(너무 긴 페이지는 MAX_FULL 에서 끊는다) 250줄씩 잘라 찍는다.
+      const total = Math.min(full, MAX_FULL)
+      const step = Math.floor(250 * PX_PER_COLUMN * cellAspect)
+      const parts = []
+      for (let y = 0; y < total; y += step) {
+        const h = Math.min(step, total - y)
+        const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y, width, height: h, scale: 1 } }, sessionId)
+        parts.push({ png: data, columns, rows: rowsOf(h) })
+      }
+      return { ...parts[0], file, cut: full > total, parts }
+    }
     const height = Math.max(20, Math.min(maxHeight, full))
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height, scale: 1 } }, sessionId)
-    const columns = Math.min(255, Math.max(1, Math.round(width / PX_PER_COLUMN)))
-    const rows = Math.min(255, Math.max(1, Math.round(height / (PX_PER_COLUMN * cellAspect))))
-    return { png: data, columns, rows, file, cut: full > maxHeight }
+    return { png: data, columns, rows: rowsOf(height), file, cut: full > maxHeight }
   } finally {
     await cdp.send('Target.closeTarget', { targetId }).catch(() => {})
   }

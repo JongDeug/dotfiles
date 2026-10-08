@@ -37,7 +37,7 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 | ```` ```mermaid ```` | 다이어그램. 그림이 안 되는 터미널(iTerm2, tmux 안)이면 선 문자 도형 | `bin/mermaid.mjs` — [beautiful-mermaid](https://github.com/lukilabs/beautiful-mermaid) 레이아웃 + resvg. 한글 칸 맞춤, `style: sketch` 면 손그림(rough.js · Gaegu, `fonts/OFL.txt`) — 상자·마름모·원·실린더·선 모두, 작은 아이콘(시작·끝 점, ER 기호)과 화살촉은 반듯하게 |
 | ```` ```page ```` (HTML) | 카드·표·작은 대시보드처럼 레이아웃이 필요한 것. 그 자리엔 사진이고, `↗ Chrome 에서 열기` 로 진짜 페이지 | `bin/html.mjs` — 맥의 Chrome 을 화면 없이 띄워 DevTools 로 터미널 폭 창에서 내용 높이만큼 2배로 찍는다(바탕 투명, gruvbox 기본 CSS). 한 장 약 1초. ```` ```html ```` 은 코드로 남는다 |
 | ```` ```chart ```` (Vega-Lite JSON) | 막대·선·도넛·나란히(`hconcat`) | `bin/chart.mjs` — vega-lite → vega → SVG → resvg PNG 2배. `style: sketch` 면 rough.js 로 흔들리는 모양(단색 채움)·손그림 선. 크게 보기는 pane 크기로 다시 그린다 |
-| `![제목](/절대/경로.html)` 줄 | HTML 파일(아티팩트로 만든 설명·리포트)의 위쪽 첫 화면. 아래가 더 있으면 `· 아래 이어짐`, 전체는 크게 보기·Chrome | `bin/html.mjs` 가 파일을 그대로 열어 찍는다 |
+| `![제목](/절대/경로.html)` 줄 | HTML 파일(아티팩트로 만든 설명·리포트)의 위쪽 첫 화면. 아래가 더 있으면 `· 아래 이어짐` 과 `▾ 펼치기` — 누르면 그 자리에 페이지 끝까지 여러 장(250줄씩)을 이어 붙인다, `▴ 접기` 로 돌아간다 | `bin/html.mjs` 가 파일을 그대로 열어 찍는다 |
 | `![설명](/절대/경로.png)` 줄 | 그림(한 줄에 여러 개면 나란히), 영상은 프레임 6장 | `bin/convert.sh` — macOS `sips`, 영상은 `ffmpeg`. `~/.cache/claude-img` 에 둔다 |
 | Read 로 읽은 이미지 | 그 도구 줄 아래 | 〃 |
 
@@ -58,6 +58,6 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 70개
+claude plugin test ai/claude/mods/deck     # 71개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

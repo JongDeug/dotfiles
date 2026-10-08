@@ -314,8 +314,8 @@ type Failed = { error: string }
 type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
-type PageJob = { key: string; html?: string; path?: string; maxColumns: number; maxRows?: number }
-type Shot = Png & { file: string; cut?: boolean }
+type PageJob = { key: string; html?: string; path?: string; maxColumns: number; maxRows?: number; slices?: boolean }
+type Shot = Png & { file: string; cut?: boolean; parts?: Png[] }
 
 const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
 let picMode: Mode | undefined
@@ -460,14 +460,23 @@ function chartOf($: EngineInterface, spec: string, maxColumns: number, maxRows?:
 // 같은 HTML 은 같은 그림 — 폭(과 크게 보기의 높이)이 다르면 다시 찍는다.
 // src 는 답 속 HTML 조각이거나 HTML 파일 경로.
 type PageSrc = { html: string } | { path: string }
-function pageOf($: EngineInterface, src: PageSrc, maxColumns: number, maxRows?: number) {
-  const key = `${maxColumns}x${maxRows ?? ''}|${'path' in src ? `file:${src.path}` : src.html}`
+// slices 면 끝까지 찍어 여러 장으로(펼치기).
+function pageOf($: EngineInterface, src: PageSrc, maxColumns: number, maxRows?: number, slices = false) {
+  const key = `${slices ? 'all|' : ''}${maxColumns}x${maxRows ?? ''}|${'path' in src ? `file:${src.path}` : src.html}`
   const hit = pageDrawn.get(key)
   if (!hit && !pageQueue.has(key)) {
-    pageQueue.set(key, { key, ...src, maxColumns, maxRows })
+    pageQueue.set(key, { key, ...src, maxColumns, maxRows, slices })
     void drainPage($)
   }
   return hit
+}
+
+// 펼친 페이지(파일 경로나 HTML 그대로를 열쇠로). 펼치면 그 자리에 페이지 끝까지.
+const expanded = new Set<string>()
+function toggleExpand($: EngineInterface, id: string): void {
+  if (expanded.has(id)) expanded.delete(id)
+  else expanded.add(id)
+  $.ui.invalidate('ui.render')
 }
 
 // HTML 의 <title>·첫 제목을 이름으로.
@@ -702,6 +711,28 @@ export const register: Register = (on, options) => {
         <Box display="none" columnGap={2} hover={{ display: 'flex', scope }}>{buttons}</Box>
       </Box>
     )
+    // 페이지(```page · HTML 파일) 한 칸: 미리보기, 잘렸으면 ▾ 펼치기 — 펼치면 끝까지 여러 장을 이어 붙인다.
+    const pageView = (id: string, scopeId: string, title: string, src: PageSrc, d: Shot, cols: number, captioned = false) => {
+      const scope = scopeId.slice(0, 64)
+      const open = expanded.has(id)
+      const all = open ? pageOf($, src, cols, undefined, true) : undefined
+      const parts = all && !('error' in all) ? (all.parts ?? [all]) : null
+      const caption = captioned ? (open ? title : d.cut ? `${title} · 아래 이어짐` : title) : open ? title : ''
+      const buttons = [
+        <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src })}>⤢ 크게 보기</Button>,
+        ...(d.cut || open ? [<Button key={`${scope}-fold`} plain dimColor onPress={() => toggleExpand($, id)}>{open ? '▴ 접기' : '▾ 펼치기'}</Button>] : []),
+        <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
+      ]
+      return (
+        <Box flexDirection="column" hover={{ scope }}>
+          {parts
+            ? parts.map((part, i) => <Image key={`${scope}-part-${i}`} source={{ png: part.png }} columns={part.columns} rows={part.rows} alt={`[page: ${title} ${i + 1}/${parts.length}]`} />)
+            : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />}
+          {open && !parts ? <Text dimColor>{all && 'error' in all ? `펼치지 못했다: ${all.error}` : '펼치는 중…'}</Text> : null}
+          {under(scope, caption, buttons)}
+        </Box>
+      )
+    }
     for (const [n, b] of blocks.entries()) {
       if (b.kind === 'text') await asText(b.text)
       else if (b.kind === 'mermaid') {
@@ -747,16 +778,7 @@ export const register: Register = (on, options) => {
         } else {
           const title = pageTitle(b.html)
           const html = b.html
-          const scope = `deck-p-${n}-${html.length}`.slice(0, 64)
-          picture(
-            <Box flexDirection="column" hover={{ scope }}>
-              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />
-              {under(scope, '', [
-                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src: { html } })}>⤢ 크게 보기</Button>,
-                <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
-              ])}
-            </Box>,
-          )
+          picture(pageView(`html:${html}`, `deck-p-${n}-${html.length}`, title, { html }, d, Math.min(110, width - 1)))
         }
       } else if (b.pictures.length === 1 && isPagePath(b.pictures[0]?.path)) {
         // HTML 파일 한 장 — 위쪽 첫 화면을 미리보기로(높이는 이미지 한도), 전체는 크게 보기·Chrome.
@@ -767,16 +789,7 @@ export const register: Register = (on, options) => {
           if (d) failed('페이지를', d.error)
         } else {
           const title = p.alt || (p.path.split('/').pop() ?? p.path)
-          const scope = `deck-f-${n}-${p.path.length}`.slice(0, 64)
-          picture(
-            <Box flexDirection="column" hover={{ scope }}>
-              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />
-              {under(scope, d.cut ? `${title} · 아래 이어짐` : title, [
-                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src: { path: p.path } })}>⤢ 크게 보기</Button>,
-                <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
-              ])}
-            </Box>,
-          )
+          picture(pageView(`file:${p.path}`, `deck-f-${n}-${p.path.length}`, title, { path: p.path }, d, Math.min(110, width - 1), true))
         }
       } else {
         // 한 줄의 그림이 다 준비돼야 그린다 — 그 전엔 원래 글(이미지 문법)로 둔다.
