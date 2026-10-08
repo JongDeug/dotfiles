@@ -35,7 +35,7 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 | 쓰는 것 | 그림 | 그리는 것 |
 |---|---|---|
 | ```` ```mermaid ```` | 다이어그램. 그림이 안 되는 터미널(iTerm2, tmux 안)이면 선 문자 도형 | `bin/mermaid.mjs` — [beautiful-mermaid](https://github.com/lukilabs/beautiful-mermaid) 레이아웃 + resvg. 한글 칸 맞춤, `style: sketch` 면 손그림(rough.js · Gaegu, `fonts/OFL.txt`) |
-| ```` ```chart ```` (Vega-Lite JSON) | 막대·선·도넛·나란히(`hconcat`) | `bin/chart.mjs` — vega-lite → vega → SVG → resvg PNG 2배. 크게 보기는 pane 크기로 다시 그린다 |
+| ```` ```chart ```` (Vega-Lite JSON) | 막대·선·도넛·나란히(`hconcat`) | `bin/chart.mjs` — vega-lite → vega → SVG → resvg PNG 2배. `style: sketch` 면 rough.js 로 빗금 채움·손그림 선. 크게 보기는 pane 크기로 다시 그린다 |
 | `![설명](/절대/경로.png)` 줄 | 그림(한 줄에 여러 개면 나란히), 영상은 프레임 6장 | `bin/convert.sh` — macOS `sips`, 영상은 `ffmpeg`. `~/.cache/claude-img` 에 둔다 |
 | Read 로 읽은 이미지 | 그 도구 줄 아래 | 〃 |
 
@@ -48,7 +48,7 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 | `cell_aspect` | `2.2` | 칸 높이÷너비. 그림이 길쭉하면 줄이고 납작하면 키운다 |
 | `max_rows` | `30` | 답 속 이미지 하나의 최대 높이(줄) |
 | `scale` | `1` | 다이어그램 크기(0.5~2). 1 이면 라벨이 터미널 글자 크기 |
-| `style` | `clean` | `sketch` 면 다이어그램을 손그림으로 |
+| `style` | `clean` | `sketch` 면 손그림 — 다이어그램은 rough 선·손글씨체, 차트는 빗금 채움·흔들리는 축·손글씨체 |
 
 ## 구조
 

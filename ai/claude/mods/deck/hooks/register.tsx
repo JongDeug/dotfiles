@@ -376,7 +376,7 @@ async function drainChart($: EngineInterface): Promise<void> {
   const items = [...chartQueue.values()]
   chartQueue.clear()
   try {
-    const results = await runRenderer($, 'chart.mjs', { items, cellAspect: pic.cellAspect })
+    const results = await runRenderer($, 'chart.mjs', { items, cellAspect: pic.cellAspect, style: pic.style })
     for (const { key, ...d } of results) chartDrawn.set(key, d as Png | Failed)
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!chartDrawn.has(item.key)) chartDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })

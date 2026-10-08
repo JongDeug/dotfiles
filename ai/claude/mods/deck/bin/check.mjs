@@ -1,4 +1,4 @@
-// node bin/check.mjs (npm ci 뒤) — 떼어 낸 글꼴로 그린 그림이 .ttc 로 그린 그림과 같은지 본다.
+// node bin/check.mjs (npm ci 뒤) — 떼어 낸 글꼴로 그린 그림이 .ttc 로 그린 그림과 같은지, 손그림(다이어그램·차트)이 그려지는지 본다.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -21,4 +21,11 @@ const opts = { theme: 'gruvbox', cellAspect: 2.2, maxColumns: 80 }
 const sketched = renderPicture('flowchart LR\n  A["t2 \u2212 t0"] --> B["추론"]', { ...opts, style: 'sketch' })
 assert.ok(sketched.png.length > 1000 && sketched.columns > 0)
 assert.notEqual(sketched.png, renderPicture('flowchart LR\n  A["t2 \u2212 t0"] --> B["추론"]', opts).png)
+// 손그림 차트: 그려지고, 반듯한 차트와 다르다
+const { renderChart } = await import('./chart.mjs')
+const spec = JSON.stringify({ data: { values: [{ a: '식비', b: 3 }, { a: '교통', b: 1 }] }, mark: 'bar', encoding: { x: { field: 'a', type: 'nominal' }, y: { field: 'b', type: 'quantitative' } } })
+const clean = await renderChart(spec, { maxColumns: 60, cellAspect: 2.2 })
+const hand = await renderChart(spec, { maxColumns: 60, cellAspect: 2.2, style: 'sketch' })
+assert.ok(hand.png.length > 1000 && hand.columns === clean.columns)
+assert.notEqual(hand.png, clean.png)
 console.log('ok')
