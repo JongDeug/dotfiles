@@ -432,9 +432,25 @@ async function modeOf($: EngineInterface): Promise<Mode> {
 
 // 쌓인 일을 렌더러 한 번에 넘기고 key 별 결과를 받는다.
 async function runRenderer($: EngineInterface, script: string, payload: object): Promise<({ key: string } & Record<string, unknown>)[]> {
-  const { exitCode, stdout, stderr } = await $.process.run(['node', `${$.plugin.root}/bin/${script}`], { stdin: JSON.stringify(payload), timeoutMs: 60_000 })
-  if (exitCode !== 0) throw new Error(stderr.trim().split('\n').pop() ?? `exit ${exitCode}`)
+  const { exitCode, stdout, stderr, isStdoutTruncated } = await $.process.run(['node', `${$.plugin.root}/bin/${script}`], { stdin: JSON.stringify(payload), timeoutMs: 60_000 })
+  const why = stderr.trim().split('\n').pop()   // 빈 stderr 는 '' — ?? 로는 exit 코드가 안 나온다
+  if (exitCode !== 0) throw new Error(why || `exit ${exitCode}`)
+  // 빈·잘린 출력을 그대로 JSON.parse 하면 "Unexpected EOF" 만 남아 원인이 안 보인다(2026-10-08).
+  if (isStdoutTruncated) throw new Error('렌더러 출력이 4MiB 를 넘어 잘렸다')
+  if (!stdout.trim()) throw new Error(`렌더러가 아무것도 내지 않았다${why ? ` — ${why}` : ''}`)
   return JSON.parse(stdout).results
+}
+
+// 프로세스 쪽 실패(빈·잘린 출력, 비정상 종료)는 대개 한 번뿐이다 — 묶음 전부를 '못 그림'으로 박으면
+// 그 그림들은 세션 내내 안 그려진다. 한 번 더 줄을 세우고, 또 실패하면 그때 못 그린 것으로.
+// 렌더러가 답했는데 결과를 빠뜨린 블록(그 블록 자체의 문제)은 다시 부르지 않는다.
+const retried = new Set<string>()
+function failOrRetry<T>(items: T[], keyOf: (it: T) => string, queue: Map<string, T>, drawn: Map<string, unknown>, error: unknown) {
+  for (const item of items) {
+    const key = keyOf(item)
+    if (retried.has(key)) drawn.set(key, { error: String(error) })
+    else { retried.add(key); queue.set(key, item) }
+  }
 }
 
 async function drainMermaid($: EngineInterface): Promise<void> {
@@ -449,7 +465,7 @@ async function drainMermaid($: EngineInterface): Promise<void> {
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!mermaidDrawn.has(item.key)) mermaidDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
   } catch (error) {
-    for (const item of items) mermaidDrawn.set(item.key, { error: String(error) })
+    failOrRetry(items, (it) => it.key, mermaidQueue, mermaidDrawn, error)
   } finally {
     picBusy.mermaid = false
   }
@@ -469,7 +485,7 @@ async function drainChart($: EngineInterface): Promise<void> {
     // 결과가 빠진 블록은 못 그린 것으로 — 안 그러면 그릴 때마다 다시 줄을 선다.
     for (const item of items) if (!chartDrawn.has(item.key)) chartDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
   } catch (error) {
-    for (const item of items) chartDrawn.set(item.key, { error: String(error) })
+    failOrRetry(items, (it) => it.key, chartQueue, chartDrawn, error)
   } finally {
     picBusy.chart = false
   }

@@ -100,3 +100,31 @@ test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운
   expect(ran.some(c => c.endsWith('/bin/sync.mjs'))).toBe(true)
   expect(toasts).toContain('deck sync: deck 설치: .claude 0.4.5 — 세션 리로드 2')
 })
+
+test('렌더러가 한 번 빈 출력을 줘도 다시 한 번 불러 그린다 — 두 번째도 실패하면 이유를 보여 준다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : undefined }))
+  let runs = 0
+  on('process.run', ($, e) => {
+    runs += 1
+    const items = (JSON.parse(String(e.init?.stdin ?? '{"items":[]}')).items ?? []) as { key: string }[]
+    // 첫 부름은 빈 출력(2026-10-08 "JSON Parse error: Unexpected EOF"), 두 번째는 정상.
+    const stdout = runs === 1 ? '' : JSON.stringify({ results: items.map(it => ({ key: it.key, png: PNG, columns: 40, rows: 10 })) })
+    return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(['```mermaid', 'flowchart LR', '  A --> B', '```'].join('\n')) })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
+  expect(runs).toBe(2)
+})
+
+test('두 번 다 빈 출력이면 못 그림 — Unexpected EOF 대신 무엇이 비었는지 말한다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : undefined }))
+  let runs = 0
+  on('process.run', () => { runs += 1; return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } } })
+  on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(['```mermaid', 'flowchart LR', '  C --> D', '```'].join('\n')) })
+  expect((await ui.find({ text: /아무것도 내지 않았다/ }))?.text).toMatch(/그리지 못했다/)
+  expect(runs).toBe(2)
+})
