@@ -7,7 +7,8 @@ export type Ci = { state: 'ok' | 'fail' | 'run' | 'other'; name: string; url: st
 export function parseGit(status: string, numstat: string): Git {
   const git: Git = { branch: '', ahead: 0, behind: 0, files: [], added: 0, deleted: 0 }
   for (const line of status.split('\n')) {
-    if (line.startsWith('# branch.head ')) git.branch = line.slice(14)
+    // 커밋이 하나도 없는 저장소는 git 이 (unknown) 이라고 답한다.
+    if (line.startsWith('# branch.head ')) git.branch = line.slice(14) === '(unknown)' ? '커밋 없음' : line.slice(14)
     else if (line.startsWith('# branch.ab ')) {
       const [a, b] = line.slice(12).split(' ')
       git.ahead = Math.abs(Number(a) || 0)
@@ -103,3 +104,43 @@ export function untilText(at: number, now: number): string {
 
 // 0~100 값들을 ▁▂▃▄▅▆▇█ 로.
 export const sparkline = (values: number[]): string => values.map(v => '▁▂▃▄▅▆▇█'[Math.min(7, Math.max(0, Math.floor((v / 100) * 8)))] ?? '▁').join('')
+
+// 터미널 칸 수: 한글·한자·전각과 그림 문자(☕🔥🧊⏸ 등)는 2칸, 나머지는 1칸.
+export function cellWidth(text: string): number {
+  let n = 0
+  for (const ch of text) {
+    const c = ch.codePointAt(0) ?? 0
+    const wide =
+      (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) || (c >= 0xf900 && c <= 0xfaff) ||
+      (c >= 0xfe30 && c <= 0xfe4f) || (c >= 0xff00 && c <= 0xff60) || (c >= 0xffe0 && c <= 0xffe6) ||
+      (c >= 0x23e9 && c <= 0x23fa) || c === 0x2614 || c === 0x2615 || (c >= 0x1f300 && c <= 0x1faff)
+    if (c === 0xfe0f || c === 0x200d) continue
+    n += wide ? 2 : 1
+  }
+  return n
+}
+
+// 한 줄에 다 안 들어가면 덜 중요한 것(p 가 큰 것)부터 뺀다. glue 는 앞 알약에 붙어 사이 칸이 없다.
+export type Fit = { w: number; p: number; glue?: boolean }
+export function fit(items: Fit[], cols: number): boolean[] {
+  const keep = items.map(() => true)
+  const total = () => {
+    let n = 0
+    let first = true
+    items.forEach((it, i) => {
+      if (!keep[i]) return
+      n += it.w + (first || it.glue ? 0 : 1)
+      first = false
+    })
+    return n
+  }
+  while (total() > cols) {
+    let drop = -1
+    items.forEach((it, i) => {
+      if (keep[i] && (drop < 0 || it.p >= (items[drop]?.p ?? -1))) drop = i
+    })
+    if (drop < 0) break
+    keep[drop] = false
+  }
+  return keep
+}

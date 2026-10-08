@@ -682,4 +682,17 @@ describe('board band', () => {
     expect(await ui.find({ text: /생각 중/ })).toBe(undefined)
     expect((await ui.find({ text: /캐시 식음/ }))?.text).toMatch(/캐시 식음/)
   })
+
+  for (const [cols, path] of [[200, true], [40, false]] as const) {
+    test(`폭 ${cols}칸: 브랜치·모델·컨텍스트는 남고 경로는 ${path ? '보인다' : '빠진다'}`, async ($, on) => {
+      mock.clock(on, { now: START })
+      world(on, [])
+      shell(on)
+      const ui = await $.ui.mount({ plugin: 'board', surface: 'terminal', component: 'AbovePrompt', props: { ...band, bodyColumns: cols } })
+      expect((await ui.find({ text: /⎇ develop/ }))?.text).toMatch(/develop/)
+      expect((await ui.find({ text: /Fable 5\.1/ }))?.text).toMatch(/Fable/)
+      expect((await ui.find({ text: /^ CTX $/ }))?.text).toBe(' CTX ')
+      expect(Boolean(await ui.find({ text: /\/work/ }))).toBe(path)
+    })
+  }
 })

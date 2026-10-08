@@ -1,5 +1,5 @@
 {
   "name": "board",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "입력창 위 두 줄 계기판 — statusline 대체. 프롬프트 캐시 keepwarm·식은 채 보내기 경고 포함(cache-tax 2.2.1 포크, MIT)."
 }

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, barCells, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText } from './board'
+import { ago, barCells, cellWidth, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText } from './board'
 
 test('git 상태와 변경 줄 수', () => {
   const status = [
@@ -52,4 +52,13 @@ test('계기판 글자', () => {
   expect(shortPath('/Users/j/dotfiles', '/Users/j')).toBe('~/dotfiles')
   expect([untilText(42 * 60_000, 0), untilText(142 * 60_000, 0), untilText((3 * 1440 + 200) * 60_000, 0)]).toEqual(['42m', '2h22m', '3d3h'])
   expect(sparkline([0, 50, 100])).toBe('▁▅█')
+})
+
+test('칸 수와 줄 맞추기', () => {
+  expect([cellWidth('develop'), cellWidth('도구 8'), cellWidth('☕ 캐시'), cellWidth('🔥 $2.2/h'), cellWidth('⎇ ▰▱█')]).toEqual([7, 6, 7, 9, 5])
+  const items = [{ w: 10, p: 0 }, { w: 5, p: 3, glue: true }, { w: 20, p: 7 }, { w: 8, p: 1 }]
+  expect(fit(items, 100)).toEqual([true, true, true, true])
+  expect(fit(items, 30)).toEqual([true, true, false, true])
+  expect(fit(items, 15)).toEqual([true, false, false, false])
+  expect(parseGit('# branch.head (unknown)\n', '').branch).toBe('커밋 없음')
 })

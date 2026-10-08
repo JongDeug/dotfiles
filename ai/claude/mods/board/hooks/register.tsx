@@ -1,11 +1,11 @@
-import type { EngineInterface, PromptSubmitInput, PromptSubmitResult, Register, TurnCompleteInput, TurnCompleteResult } from 'claude-code'
+import type { EngineInterface, PromptSubmitInput, RenderElement, PromptSubmitResult, Register, TurnCompleteInput, TurnCompleteResult } from 'claude-code'
 
 import {
   armedText, AUTO_WARM_MS, BIG_TOKENS, card, deadlineKey, DEFAULT_WINDOW_MS, disarm, everyKey, freshState, guardText, KEY_ALWAYS, KEY_DEADLINE, KEY_EVERY, KEY_GUARD,
   MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
-import { ago, barCells, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText, type Ci, type Git, type Slice } from './board'
+import { ago, barCells, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, sparkline, tokensOf, untilText, type Ci, type Git, type Slice } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
@@ -463,102 +463,137 @@ export const register: Register = on => {
     const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={bg} color={fg} bold={bold}>{` ${text} `}</Text>
     const label = (bg: string, text: string) => <Text backgroundColor={bg} color={C.base} bold>{` ${text} `}</Text>
 
+    const cols = Math.max(20, e.props.bodyColumns)
+    // 알약 하나 = 그림 + 칸 수 + 중요도(작을수록 끝까지 남는다). 좁으면 fit 이 큰 p 부터 뺀다.
+    type Item = Fit & { el: RenderElement }
+    const item = (el: RenderElement, text: string, p: number, glue = false): Item => ({ el, w: cellWidth(text), p, glue })
+    const pillItem = (bg: string, fg: string, text: string, p: number, opts: { bold?: boolean; glue?: boolean } = {}) =>
+      item(pill(bg, fg, text, opts.bold ?? true), ` ${text} `, p, opts.glue)
+
     // ── 윗줄: 어디서 무엇을 ─────────────────────────────
-    const top = []
+    const top: Item[] = []
     if (model) {
-      top.push(
-        <Text>
-          {pill(C.peach, C.base, `◆ ${model}`)}
-          {effort ? pill(C.overlay, C.peach, effort, false) : null}
-        </Text>,
-      )
+      top.push(pillItem(C.peach, C.base, `◆ ${model}`, 1))
+      if (effort) top.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
     }
-    if (cwd) top.push(pill(C.surface, C.text, shortPath(cwd, home), false))
     if (git) {
       const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
-      top.push(pill(C.blue, C.base, `⎇ ${git.branch || '(detached)'}${ab}`))
-      top.push(
-        git.files.length > 0 ? (
+      top.push(pillItem(C.blue, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
+    }
+    if (cwd) top.splice(git ? top.length - 1 : top.length, 0, pillItem(C.surface, C.text, shortPath(cwd, home), 7, { bold: false }))
+    if (git) {
+      if (git.files.length > 0) {
+        const t = [` ● ${git.files.length} `, `+${git.added} `, `−${git.deleted} `]
+        top.push(item(
           <Box hover={{ scope: FILES }}>
-            <Text backgroundColor={C.surface} color={C.yellow} bold>{` ● ${git.files.length} `}</Text>
-            <Text backgroundColor={C.surface} color={C.green}>{`+${git.added} `}</Text>
-            <Text backgroundColor={C.surface} color={C.red}>{`−${git.deleted} `}</Text>
-          </Box>
-        ) : (
-          pill(C.surface, C.green, '✓ 깨끗', false)
-        ),
-      )
+            <Text backgroundColor={C.surface} color={C.yellow} bold>{t[0]}</Text>
+            <Text backgroundColor={C.surface} color={C.green}>{t[1]}</Text>
+            <Text backgroundColor={C.surface} color={C.red}>{t[2]}</Text>
+          </Box>,
+          t.join(''), 3,
+        ))
+      } else top.push(pillItem(C.surface, C.green, '✓ 깨끗', 8, { bold: false }))
     }
     if (ci) {
       const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
-      top.push(pill(bg, ci.state === 'other' ? C.sub : C.base, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`))
+      top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.base, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
-    let work = null
+    let work: Item | null = null
     if (turn) {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
       if (turn.agents > 0) parts.push(`에이전트 ${turn.agents}`)
-      work = pill(C.mauve, C.base, parts.join('  '))
+      work = pillItem(C.mauve, C.base, parts.join('  '), 2)
     } else if (last) {
-      work = <Text color={C.sub}>{`지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`}</Text>
+      const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
+      work = item(<Text color={C.sub}>{t}</Text>, t, 9)
     }
 
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
-    const bottom = []
+    const bottom: Item[] = []
     if (usage) {
       const u = usage
-      const cells = barCells(u.slices, u.window, BAR)
+      // 좁으면 막대도 줄인다.
+      const bar = cols >= 150 ? BAR : cols >= 110 ? 16 : 10
+      const cells = barCells(u.slices, u.window, bar)
       const used = cells.reduce((n, c) => n + c.cells, 0)
       // 자동 압축이 시작되는 자리에 눈금.
-      const mark = u.compactAt ? Math.min(BAR - 1, Math.round((u.compactAt / u.window) * BAR)) : -1
-      const free = Array.from({ length: Math.max(0, BAR - used) }, (_, i) => (used + i === mark ? '┃' : '░')).join('')
-      bottom.push(
+      const mark = u.compactAt ? Math.min(bar - 1, Math.round((u.compactAt / u.window) * bar)) : -1
+      const free = Array.from({ length: Math.max(0, bar - used) }, (_, i) => (used + i === mark ? '┃' : '░')).join('')
+      const head = u.percent >= 80 ? 'CTX 압축 임박' : 'CTX'
+      const pct = ` ${u.percent}% `
+      const tok = ` ${tokensOf(u.tokens)}/${tokensOf(u.window)} `
+      const spark = history.length > 1 ? `${sparkline(history)} ` : ''
+      bottom.push(item(
         <Box hover={{ scope: CTX }}>
-          {label(level(u.percent), u.percent >= 80 ? 'CTX 압축 임박' : 'CTX')}
-          <Text backgroundColor={C.surface} color={level(u.percent)} bold>{` ${u.percent}% `}</Text>
+          {label(level(u.percent), head)}
+          <Text backgroundColor={C.surface} color={level(u.percent)} bold>{pct}</Text>
           <Text backgroundColor={C.surface}>
             {cells.map(c => <Text color={c.color}>{'█'.repeat(c.cells)}</Text>)}
             <Text color={C.overlay}>{free}</Text>
           </Text>
-          <Text backgroundColor={C.surface} color={C.sub}>{` ${tokensOf(u.tokens)}/${tokensOf(u.window)} `}</Text>
-          {history.length > 1 ? <Text backgroundColor={C.surface} color={C.teal}>{`${sparkline(history)} `}</Text> : null}
         </Box>,
-      )
-      for (const l of u.limits) {
+        ` ${head} ${pct}${'x'.repeat(bar)}`, 0,
+      ))
+      bottom.push(item(<Text backgroundColor={C.surface} color={C.sub}>{tok}</Text>, tok, 6, true))
+      if (spark) bottom.push(item(<Text backgroundColor={C.surface} color={C.teal}>{spark}</Text>, spark, 9, true))
+      u.limits.forEach((l, i) => {
         const name = l.kind === 'five_hour' ? '5H' : l.kind === 'seven_day' ? '7D' : l.kind === 'spend_limit' ? '한도' : l.kind
         const filled = Math.min(8, Math.round((l.percent / 100) * 8))
-        bottom.push(
+        const gauge = ` ${'▰'.repeat(filled)}`
+        const rest = '▱'.repeat(8 - filled)
+        const num = ` ${Math.round(l.percent)}% `
+        bottom.push(item(
           <Text>
             {label(level(l.percent), name)}
-            <Text backgroundColor={C.surface} color={level(l.percent)}>{` ${'▰'.repeat(filled)}`}</Text>
-            <Text backgroundColor={C.surface} color={C.overlay}>{'▱'.repeat(8 - filled)}</Text>
-            <Text backgroundColor={C.surface} color={C.text} bold>{` ${Math.round(l.percent)}% `}</Text>
-            {l.resetsAt ? <Text backgroundColor={C.surface} color={C.sub}>{`⟲${untilText(l.resetsAt, now)} `}</Text> : null}
+            <Text backgroundColor={C.surface} color={level(l.percent)}>{gauge}</Text>
+            <Text backgroundColor={C.surface} color={C.overlay}>{rest}</Text>
+            <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
           </Text>,
-        )
-      }
+          ` ${name} ${gauge}${rest}${num}`, i === 0 ? 2 : 4,
+        ))
+        if (l.resetsAt) {
+          const t = `⟲${untilText(l.resetsAt, now)} `
+          bottom.push(item(<Text backgroundColor={C.surface} color={C.sub}>{t}</Text>, t, 7, true))
+        }
+      })
       if (u.usd !== undefined) {
+        bottom.push(item(label(C.green, `$${u.usd.toFixed(2)}`), ` $${u.usd.toFixed(2)} `, 5))
         const hours = (now - u.startedAt) / 3_600_000
-        bottom.push(
-          <Text>
-            {label(C.green, `$${u.usd.toFixed(2)}`)}
-            {hours > 0.1 ? <Text backgroundColor={C.surface} color={C.peach}>{` 🔥 $${(u.usd / hours).toFixed(1)}/h `}</Text> : null}
-          </Text>,
-        )
+        if (hours > 0.1) {
+          const t = ` 🔥 $${(u.usd / hours).toFixed(1)}/h `
+          bottom.push(item(<Text backgroundColor={C.surface} color={C.peach}>{t}</Text>, t, 8, true))
+        }
       }
     }
     const cachePill = viewOf(cache, now)
-    if (turn) bottom.push(label(C.teal, '☕ 캐시 데우는 중'))
+    if (turn) bottom.push(item(label(C.teal, '☕ 캐시 데우는 중'), ' ☕ 캐시 데우는 중 ', 3))
     else if (cachePill) {
       const bg = cachePill.tone === 'warm' ? C.teal : cachePill.tone === 'cold' ? C.red : C.overlay
-      bottom.push(
-        <Text>
-          <Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{` ${cachePill.head} `}</Text>
-          <Text backgroundColor={C.surface} color={C.text}>{` ${cachePill.body} `}</Text>
-        </Text>,
-      )
+      const head = ` ${cachePill.head} `
+      const body = ` ${cachePill.body} `
+      bottom.push(item(<Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{head}</Text>, head, 3))
+      bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     if (top.length === 0 && bottom.length === 0) return below
+
+    // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. 지금 도는 작업은 오른쪽 끝으로.
+    const line = (items: Item[], right: Item | null) => {
+      const keep = fit(items, cols)
+      const left: RenderElement[] = []
+      items.forEach((it, i) => {
+        if (!keep[i] || it === right) return
+        if (left.length && !it.glue) left.push(<Text> </Text>)
+        left.push(it.el)
+      })
+      return (
+        <Box flexDirection="row">
+          {left}
+          <Box flexGrow={1} />
+          {right && keep[items.indexOf(right)] ? right.el : null}
+        </Box>
+      )
+    }
 
     // ── 포인터를 올리면 위로 펼쳐지는 줄 (띠는 아래가 붙박이라 위로 펼쳐야 알약이 안 움직인다) ──
     const shown = git?.files.slice(0, 8) ?? []
@@ -591,12 +626,8 @@ export const register: Register = on => {
         {below}
         {legend}
         {files}
-        <Box flexDirection="row" columnGap={1}>
-          {top}
-          <Box flexGrow={1} />
-          {work}
-        </Box>
-        {bottom.length ? <Box flexDirection="row" columnGap={1}>{bottom}</Box> : null}
+        {line(work ? [...top, work] : top, work)}
+        {bottom.length ? line(bottom, null) : null}
       </Box>
     )
   })
