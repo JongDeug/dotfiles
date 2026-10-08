@@ -41,6 +41,13 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 그림 요소(kitty 그래픽)가 되는 터미널이 필요하다 — herdr 안이면 settings 의 env 에 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`. 못 그리면 코드 그대로 두고 아래에 이유를 흐리게 단다.
 
+## 커밋 서명 막기
+
+커밋에 `Co-Authored-By: Claude…`·`Claude-Session:` 트레일러를 넣지 않는다. 두 겹이다.
+
+- 원천 — `attribution.text`: 엔진이 커밋·PR 에 서명을 붙이라고 시키는 문구를 비운다. 모델이 처음부터 안 쓴다.
+- 커밋 순간 — `tool.call`(Bash): 그래도 `git commit` 명령에 그 줄이 들었으면 실행 전에 막고 "빼고 다시 커밋"으로 돌려보낸다. 사람 공동작성자 줄은 건드리지 않는다. `-F 파일` 로 넘긴 메시지는 못 본다.
+
 ## 설정 (`/plugin` → deck → configure)
 
 | 키 | 기본 | |
@@ -56,6 +63,6 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 68개
+claude plugin test ai/claude/mods/deck     # 71개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

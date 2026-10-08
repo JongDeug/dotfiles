@@ -50,3 +50,24 @@ test('렌더러가 어떤 블록의 결과를 빠뜨려도 다시 부르기를 �
   expect((await ui.find({ text: /차트를 그리지 못했다/ }))?.text).toMatch(/그리지 못했다/)
   expect(runs).toBe(1)
 })
+
+test('커밋·PR 서명 지시는 비우고 다른 문구는 엔진대로', async ($, on) => {
+  on('attribution.text', ($, e) => ({ text: `engine:${e.kind}` }))
+  expect((await $.attribution.text({ kind: 'commit', text: 'Co-Authored-By: Claude' })).text).toBe('')
+  expect((await $.attribution.text({ kind: 'pr', text: 'Generated with Claude Code' })).text).toBe('')
+  expect((await $.attribution.text({ kind: 'remedy', text: 'x' })).text).toBe('engine:remedy')
+})
+
+test('Claude 서명 줄이 든 git commit 은 실행 전에 막고, 깨끗한 커밋은 그대로 실행', async ($, on) => {
+  const ran: string[] = []
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('tool.call', ($, e) => {
+    ran.push(String((e as { command?: unknown }).command))
+    return { result: { stdout: 'ok' } } as never
+  })
+  const bad = await $.tool.call({ tool: 'Bash', command: 'git commit -m "feat" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"' })
+  expect(String(bad.deny ?? bad.text)).toMatch(/서명 줄/)
+  expect(ran).toEqual([])
+  await $.tool.call({ tool: 'Bash', command: 'git commit -m "feat: 깨끗"' })
+  expect(ran).toEqual(['git commit -m "feat: 깨끗"'])
+})

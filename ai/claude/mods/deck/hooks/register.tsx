@@ -9,7 +9,7 @@ import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C } from './theme'
 import { splitAll } from './blocks'
-import { ago, cellWidth, fit, type Fit,ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
+import { ago, cellWidth, claudeTrailer, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
@@ -588,6 +588,9 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e)) // 계기판이 깨져도 프롬프트는 막지 않는다
 
   on('tool.call', async ($, e, next) => {
+    // 서명 줄이 든 커밋은 커밋되기 전에 돌려보낸다 — 빼고 다시 하게.
+    const sig = e.tool === 'Bash' ? claudeTrailer(e.command) : null
+    if (sig) return { deny: `deck: 커밋 메시지에 Claude 서명 줄(${sig})이 있어 막았다. 이 사용자는 커밋에 Co-Authored-By·Claude-Session 트레일러를 넣지 않는다(git-commit 스킬) — 그 줄을 빼고 다시 커밋한다.` }
     const t = turn
     if (t) {
       t.tools += 1
@@ -604,6 +607,9 @@ export const register: Register = (on, options) => {
       if (e.tool === 'Bash' || EDITS.has(e.tool)) void refreshGit($)
     }
   }).catch(($, e, next) => next(e))
+
+  // 커밋·PR 에 Claude 서명을 붙이라는 엔진의 지시를 비운다 — 모델이 처음부터 안 쓰게.
+  on('attribution.text', ($, e, next) => (e.kind === 'commit' || e.kind === 'pr' ? { text: '' } : next(e)))
 
   on('turn.complete', async ($, e, next) => {
     const r = await scoreTurn($, e, next)

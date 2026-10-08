@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import {ago, cellWidth, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
 
 test('git 상태와 변경 줄 수', () => {
   const status = [
@@ -53,4 +53,14 @@ test('칸 수와 줄 맞추기', () => {
   expect(fit(items, 30)).toEqual([true, true, false, true])
   expect(fit(items, 15)).toEqual([true, false, false, false])
   expect(parseGit('# branch.head (unknown)\n', '').branch).toBe('커밋 없음')
+})
+
+test('claudeTrailer: 커밋 명령 속 Claude 서명 줄만 잡는다', () => {
+  const heredoc = `git commit -m "$(cat <<'EOF'\nfeat: x\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nEOF\n)"`
+  expect(claudeTrailer(heredoc)).toBe('Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>')
+  expect(claudeTrailer('git commit -m "fix" -m "Claude-Session: https://claude.ai/code/x"')).toBe('Claude-Session: https://claude.ai/code/x')
+  expect(claudeTrailer('git -C repo commit --trailer "Co-authored-by: claude"')).toBe('Co-authored-by: claude')
+  expect(claudeTrailer('git commit -m "feat: 깨끗"')).toBeNull()
+  expect(claudeTrailer('git commit -m "x" -m "Co-Authored-By: Kim <k@x.com>"')).toBeNull()
+  expect(claudeTrailer('echo "Co-Authored-By: Claude"')).toBeNull()
 })
