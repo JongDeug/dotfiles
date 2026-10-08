@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { gridFor, isImagePath, isMediaPath, splitImages } from './images'
+import { gridFor, isImagePath, isMediaPath, isPagePath, splitImages } from './images'
 
 test('이미지 경로만 고른다', () => {
   expect(['/a/b.png', '/a/b.JPG', '/x.heic'].map(isImagePath)).toEqual([true, true, true])
@@ -31,4 +31,11 @@ test('칸 수는 비율을 지키고 한도를 넘지 않는다', () => {
 test('공백이 든 경로', () => {
   const [seg] = splitImages('![배경](/System/Library/Desktop Pictures/iMac Blue.heic)')
   expect(seg).toEqual({ kind: 'image', pictures: [{ alt: '배경', path: '/System/Library/Desktop Pictures/iMac Blue.heic' }], raw: '![배경](/System/Library/Desktop Pictures/iMac Blue.heic)' })
+})
+
+test('HTML 파일 줄도 그림 줄로 잡는다', () => {
+  const [seg] = splitImages('![리포트](/Users/me/.cache/explain/2026-10-08-mods.html)')
+  expect(seg?.kind).toBe('image')
+  expect(isPagePath('/a/b.html')).toBe(true)
+  expect(isPagePath('/a/b.png')).toBe(false)
 })

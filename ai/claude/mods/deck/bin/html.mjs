@@ -1,7 +1,8 @@
 // stdin 으로 JSON 하나 받아 stdout 으로 JSON 하나 — 답 속 ```page 블록(HTML)을 맥의 Chrome 으로 찍는다.
 //
-//   { items: [{ key, html, maxColumns, maxRows? }], cellAspect }
-//   -> { results: [{ key, png, columns, rows, file } | { key, error }] }
+//   { items: [{ key, html | path, maxColumns, maxRows? }], cellAspect }
+//   -> { results: [{ key, png, columns, rows, file, cut } | { key, error }] }
+//   html 은 답 속 조각(기본 CSS 를 깔아 감싼다), path 는 이미 있는 HTML 파일(그대로 연다). cut 은 한도에서 잘렸는지.
 //
 // Chrome 을 화면 없이(headless) 한 번 띄워 DevTools 프로토콜로 항목마다 새 탭을 열고, 터미널 폭에 맞춘 창에서
 // 페이지 전체 높이를 2배로 찍는다. 바탕은 투명 — 터미널 테마가 비친다. 쓴 HTML 은 file 로 남겨 Chrome 에서 열 수 있게.
@@ -20,7 +21,7 @@ const CACHE = path.join(os.homedir(), '.cache', 'claude-deck')
 const BASE_CSS = `
 :root { color-scheme: dark; }
 html, body { margin: 0; background: transparent; }
-body { padding: 12px 14px; color: #ebdbb2; font: 14px/1.55 'Apple SD Gothic Neo', -apple-system, 'Helvetica Neue', sans-serif; }
+body { padding: 12px 14px; word-break: keep-all; color: #ebdbb2; font: 14px/1.55 'Apple SD Gothic Neo', -apple-system, 'Helvetica Neue', sans-serif; }
 h1, h2, h3, h4 { color: #fabd2f; margin: 0.4em 0 0.5em; line-height: 1.3; }
 a { color: #83a598; }
 code, pre { font-family: 'SF Mono', Menlo, monospace; font-size: 12.5px; background: #3c3836; border-radius: 4px; }
@@ -100,9 +101,14 @@ function launch() {
 const timeout = (ms, what) => new Promise((_, reject) => setTimeout(() => reject(new Error(`${what} 시간이 넘었다`)), ms))
 
 async function shoot(cdp, item, cellAspect) {
-  fs.mkdirSync(CACHE, { recursive: true })
-  const file = path.join(CACHE, crypto.createHash('md5').update(item.html).digest('hex') + '.html')
-  fs.writeFileSync(file, wrapHtml(item.html))
+  let file = item.path
+  if (file) {
+    if (!fs.existsSync(file)) throw new Error('파일이 없다')
+  } else {
+    fs.mkdirSync(CACHE, { recursive: true })
+    file = path.join(CACHE, crypto.createHash('md5').update(item.html).digest('hex') + '.html')
+    fs.writeFileSync(file, wrapHtml(item.html))
+  }
   const width = Math.max(200, item.maxColumns * PX_PER_COLUMN)
   // 높이 한도: 그림 요소는 255줄까지, 크게 보기는 pane 높이까지.
   const maxRows = Math.min(255, item.maxRows ?? 255)
@@ -120,11 +126,12 @@ async function shoot(cdp, item, cellAspect) {
     await cdp.send('Runtime.evaluate', { expression: 'document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300)))', awaitPromise: true }, sessionId)
     // 창 높이가 아니라 내용이 끝나는 곳까지 — documentElement.scrollHeight 는 창보다 작아지지 않는다.
     const { result } = await cdp.send('Runtime.evaluate', { expression: 'Math.ceil(document.body ? document.body.getBoundingClientRect().bottom + parseFloat(getComputedStyle(document.body).marginBottom || 0) : 0)', returnByValue: true }, sessionId)
-    const height = Math.max(20, Math.min(maxHeight, Number(result.value) || 20))
+    const full = Number(result.value) || 20
+    const height = Math.max(20, Math.min(maxHeight, full))
     const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height, scale: 1 } }, sessionId)
     const columns = Math.min(255, Math.max(1, Math.round(width / PX_PER_COLUMN)))
     const rows = Math.min(255, Math.max(1, Math.round(height / (PX_PER_COLUMN * cellAspect))))
-    return { png: data, columns, rows, file }
+    return { png: data, columns, rows, file, cut: full > maxHeight }
   } finally {
     await cdp.send('Target.closeTarget', { targetId }).catch(() => {})
   }

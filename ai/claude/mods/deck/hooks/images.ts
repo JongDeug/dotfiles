@@ -6,7 +6,10 @@ const VIDEO_EXT = /\.(mp4|mov|mkv|webm|avi|m4v)$/i
 
 export const isImagePath = (path: unknown): path is string => typeof path === 'string' && path.startsWith('/') && IMAGE_EXT.test(path)
 export const isVideoPath = (path: unknown): path is string => typeof path === 'string' && path.startsWith('/') && VIDEO_EXT.test(path)
-export const isMediaPath = (path: unknown): path is string => isImagePath(path) || isVideoPath(path)
+// HTML 파일(아티팩트로 만든 페이지)은 Chrome 으로 찍어 미리보기한다(bin/html.mjs).
+const PAGE_EXT = /\.html?$/i
+export const isPagePath = (path: unknown): path is string => typeof path === 'string' && path.startsWith('/') && PAGE_EXT.test(path)
+export const isMediaPath = (path: unknown): path is string => isImagePath(path) || isVideoPath(path) || isPagePath(path)
 
 export type Picture = { path: string; alt: string }
 export type Segment = { kind: 'text'; text: string } | { kind: 'image'; pictures: Picture[]; raw: string }

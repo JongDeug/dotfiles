@@ -5,7 +5,7 @@ import {
   MIN_PING_MS, parseDuration, PING_AFTER_MS, PING_PROMPT, pingUsd, resetForClear, seedFromResume, statusText, type State,
 } from './cache'
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
-import { gridFor, isImagePath } from './images'
+import { gridFor, isImagePath, isPagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C } from './theme'
 import { splitAll } from './blocks'
@@ -314,8 +314,8 @@ type Failed = { error: string }
 type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
-type PageJob = { key: string; html: string; maxColumns: number; maxRows?: number }
-type Shot = Png & { file: string }
+type PageJob = { key: string; html?: string; path?: string; maxColumns: number; maxRows?: number }
+type Shot = Png & { file: string; cut?: boolean }
 
 const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
 let picMode: Mode | undefined
@@ -335,6 +335,7 @@ const PICTURE_PROMPT = [
   '- Diagrams: a ```mermaid block at the top level of the reply (not inside a list) for a flow, sequence, state machine or entity model. Keep it small: about 12 nodes, short one-line labels (no <br/>). Node ids in ASCII; labels may be Korean.',
   '- Charts: a ```chart block holding a Vega-Lite JSON spec for numbers that read better as a chart (a comparison, a trend, a breakdown). Put the data inline under "data": {"values": [...]}; leave out width, height and colors (they are fitted to the terminal); add a short "title"; labels may be Korean. Keep a table of the key numbers in text too if the user needs exact values. Two charts side by side: {"hconcat": [spec1, spec2]}; a pie or donut: mark "arc" with a theta encoding.',
   '- Pages: a ```page block holding HTML (a fragment or a whole document) when a laid-out view says it best — cards, a styled table, a small dashboard, a timeline. It is rendered by Chrome and shown as a picture (not clickable here; the user can open it in Chrome). It already has a dark gruvbox base style; inline your own CSS/JS, no external fetches needed. Use ```html only to show HTML source as code.',
+  '- A local HTML file you wrote (an explainer, a report): put `![title](/absolute/path.html)` on a line of its own to show its first screen here, with a button to open it in Chrome.',
   '- Images: `![short description](/absolute/path.png)` on a line of its own. Several on one line separated by spaces sit side by side. A video path (`.mp4` …) shows six frames spread over the video. Reading an image file with the Read tool also shows it under the tool call.',
 ].join('\n')
 
@@ -457,11 +458,13 @@ function chartOf($: EngineInterface, spec: string, maxColumns: number, maxRows?:
 }
 
 // 같은 HTML 은 같은 그림 — 폭(과 크게 보기의 높이)이 다르면 다시 찍는다.
-function pageOf($: EngineInterface, html: string, maxColumns: number, maxRows?: number) {
-  const key = `${maxColumns}x${maxRows ?? ''}|${html}`
+// src 는 답 속 HTML 조각이거나 HTML 파일 경로.
+type PageSrc = { html: string } | { path: string }
+function pageOf($: EngineInterface, src: PageSrc, maxColumns: number, maxRows?: number) {
+  const key = `${maxColumns}x${maxRows ?? ''}|${'path' in src ? `file:${src.path}` : src.html}`
   const hit = pageDrawn.get(key)
   if (!hit && !pageQueue.has(key)) {
-    pageQueue.set(key, { key, html, maxColumns, maxRows })
+    pageQueue.set(key, { key, ...src, maxColumns, maxRows })
     void drainPage($)
   }
   return hit
@@ -498,7 +501,7 @@ const chartTitle = (spec: string): string => {
 
 // 크게 보기 pane 하나 — 무엇을 띄웠느냐에 따라 그린다.
 const VIEW = 'deck-view'
-type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'page'; title: string; html: string } | { kind: 'file'; title: string; img: ImageFile }
+type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'page'; title: string; src: PageSrc } | { kind: 'file'; title: string; img: ImageFile }
 let viewing: Viewing | null = null
 
 async function openView($: EngineInterface, v: Viewing): Promise<void> {
@@ -737,7 +740,7 @@ export const register: Register = (on, options) => {
           )
         }
       } else if (b.kind === 'page') {
-        const d = pageOf($, b.html, Math.min(110, width - 1))
+        const d = pageOf($, { html: b.html }, Math.min(110, width - 1))
         if (!d || 'error' in d) {
           await asText(b.raw)
           if (d) failed('페이지를', d.error)
@@ -749,7 +752,27 @@ export const register: Register = (on, options) => {
             <Box flexDirection="column" hover={{ scope }}>
               <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />
               {under(scope, '', [
-                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, html })}>⤢ 크게 보기</Button>,
+                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src: { html } })}>⤢ 크게 보기</Button>,
+                <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
+              ])}
+            </Box>,
+          )
+        }
+      } else if (b.pictures.length === 1 && isPagePath(b.pictures[0]?.path)) {
+        // HTML 파일 한 장 — 위쪽 첫 화면을 미리보기로(높이는 이미지 한도), 전체는 크게 보기·Chrome.
+        const p = b.pictures[0] as { path: string; alt: string }
+        const d = pageOf($, { path: p.path }, Math.min(110, width - 1), pic.maxRows)
+        if (!d || 'error' in d) {
+          await asText(b.raw)
+          if (d) failed('페이지를', d.error)
+        } else {
+          const title = p.alt || (p.path.split('/').pop() ?? p.path)
+          const scope = `deck-f-${n}-${p.path.length}`.slice(0, 64)
+          picture(
+            <Box flexDirection="column" hover={{ scope }}>
+              <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />
+              {under(scope, d.cut ? `${title} · 아래 이어짐` : title, [
+                <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'page', title, src: { path: p.path } })}>⤢ 크게 보기</Button>,
                 <Button key={`${scope}-open`} plain dimColor onPress={() => void openInChrome($, d.file)}>↗ Chrome 에서 열기</Button>,
               ])}
             </Box>,
@@ -837,7 +860,7 @@ export const register: Register = (on, options) => {
       body = <Image source={{ png: v.png.png }} columns={Math.max(1, Math.floor(v.png.columns * grow))} rows={Math.max(1, Math.floor(v.png.rows * grow))} alt={v.title} />
     } else if (v.kind === 'page') {
       // 페이지는 pane 폭으로 다시 찍는다(레이아웃이 넓어진 폭에 맞게 다시 흐른다).
-      const d = pageOf($, v.html, Math.max(20, cols - 1), Math.max(8, room - 1))
+      const d = pageOf($, v.src, Math.max(20, cols - 1), Math.max(8, room - 1))
       body = !d ? <Text dimColor>찍는 중…</Text>
         : 'error' in d ? <Text dimColor>페이지를 그리지 못했다: {d.error}</Text>
         : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={v.title} />
