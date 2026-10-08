@@ -7,7 +7,7 @@ import {
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { DRONE_COLS, droneRows, stateOf, type PetState } from './drone'
+import { stateOf, type PetState } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
@@ -34,8 +34,8 @@ const busy = { git: false, ci: false, usage: false }
 
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
-// 펫: 설정(slime·drone·off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
-const pet = { kind: 'slime' as 'slime' | 'drone' | 'off', hidden: false, hurtUntil: 0 }
+// 펫(슬라임): 설정에서 껐나(pet: off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
+const pet = { kind: 'slime' as 'slime' | 'off', hidden: false, hurtUntil: 0 }
 let last: { seconds: number; tools: number; edits: number } | null = null
 
 type Usage = {
@@ -557,7 +557,7 @@ export const register: Register = (on, options) => {
   if (typeof options.max_rows === 'number') pic.maxRows = options.max_rows
   if (typeof options.scale === 'number') pic.scale = options.scale
   if (options.style === 'sketch') pic.style = 'sketch'
-  if (options.pet === 'drone' || options.pet === 'off') pet.kind = options.pet
+  if (options.pet === 'off') pet.kind = 'off'
 
 
   on('session.start', async ($, e, next) => {
@@ -631,12 +631,12 @@ export const register: Register = (on, options) => {
     return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
 
-  // /pet: 이 세션에서 숨기기·띄우기만. 종류(slime · drone · off)는 설정에서.
+  // /pet: 이 세션에서 숨기기·띄우기만. 아예 끄기는 설정 pet: off.
   on('command.run', { command: 'pet' }, async ($, e) => {
     const off = String(e.args ?? '').trim() === 'off'
     pet.hidden = off
     $.ui.invalidate('ui.render')
-    return { text: off ? '펫을 이 세션에서 숨겼다 (/pet 으로 다시)' : '펫을 띄웠다 (/pet off 로 숨김 · 종류는 /plugin → deck → configure 의 pet)' }
+    return { text: off ? '펫을 이 세션에서 숨겼다 (/pet 으로 다시)' : '펫을 띄웠다 (/pet off 로 숨김 · 아예 끄기는 /plugin → deck → configure 의 pet)' }
   })
 
   on('command.run', { command: 'cache' }, async ($, e) => {
@@ -914,9 +914,9 @@ export const register: Register = (on, options) => {
     const label = (bg: string, text: string) => pill(bg, C.ink, text)
 
     const full = Math.max(20, e.props.bodyColumns)
-    // 드론: 100칸 넘을 때만, idle 이면 쉬는 동안만. 그 폭만큼 계기판 알약이 줄어든다.
+    // 펫: 100칸 넘을 때만. 그 폭만큼 계기판 알약이 줄어든다.
     const showPet = pet.kind !== 'off' && !pet.hidden && full >= 100
-    const petCols = pet.kind === 'drone' ? DRONE_COLS : SLIME_COLS
+    const petCols = SLIME_COLS
     const cols = showPet ? full - petCols - 2 : full
     // 알약 하나 = 그림 + 칸 수 + 중요도(작을수록 끝까지 남는다). 좁으면 fit 이 큰 p 부터 뺀다.
     type Item = Fit & { el: RenderElement }
@@ -1066,7 +1066,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="row" columnGap={2}>
           {dash}
           <Box flexDirection="column" width={petCols} flexShrink={0}>
-            {(pet.kind === 'drone' ? droneRows(dstate, Math.floor(now / 500)) : slimeRows(dstate, now)).map((runs, y) => (
+            {slimeRows(dstate, now).map((runs, y) => (
               <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
             ))}
           </Box>

@@ -1,6 +1,6 @@
 // 계기판 오른쪽 끝의 노란 슬라임 — 바닥에 앉은 반타원 젤리를 너비·높이·기울기·위치로 그때그때 계산해 21×8 픽셀에 찍는다.
 // 21칸 × 4줄. $ 를 안 쓴다: 상태와 시각(ms)을 받아 줄마다 글자 덩어리를 돌려준다.
-import { runsOf, type PetState, type Run } from './drone'
+import { runsOf, type PetState, type Run } from './pet'
 import { C, mix } from './theme'
 
 export const SLIME_COLS = 21
@@ -128,10 +128,10 @@ function frames() {
 
 export function slimeRows(state: PetState, now: number): Run[][] {
   const f = frames()
-  if (state === 'ARMED') return runsOf(f.HOP[Math.floor(now / 250) % f.HOP.length]!)
-  if (state === 'RTB') return runsOf(f.PUDDLE[Math.floor(now / 1000) % 2]!)
-  if (state === 'DAMAGED') return runsOf(f.SAD)
-  if (state === 'LOW BAT') return runsOf(f.TIRED)
+  if (state === 'work') return runsOf(f.HOP[Math.floor(now / 250) % f.HOP.length]!)
+  if (state === 'cold') return runsOf(f.PUDDLE[Math.floor(now / 1000) % 2]!)
+  if (state === 'hurt') return runsOf(f.SAD)
+  if (state === 'tired') return runsOf(f.TIRED)
   let t = now % f.GLIDE_MS
   for (const step of f.GLIDE) {
     if (t < step.ms) return runsOf(step.px)

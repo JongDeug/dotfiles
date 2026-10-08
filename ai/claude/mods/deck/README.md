@@ -58,18 +58,17 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 
 명령 속 글만 읽으므로 `-F 파일` 로 넘긴 메시지와 편집기로 쓴 메시지는 못 본다. 따옴표 속 글·heredoc 은 명령으로 치지 않는다(글 속 "git commit" 에 속지 않는다).
 
-## 펫 (슬라임 말랑이 · 드론 DECK-1)
+## 펫 (슬라임 말랑이)
 
-계기판 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `drone` · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
+계기판 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
 
 - 슬라임(21칸 × 4줄): 바닥에 앉은 반타원 젤리를 너비·높이·기울기·위치로 그때그때 계산해 찍는다(`slime.ts`). 쉬는 동안엔 깜빡이다 왼쪽을 힐끔 보고, 왼쪽으로 사르륵 녹아 흘러가 사라졌다가(바닥 자국이 말라 간다) 오른쪽 위에서 뚝 떨어져 뿅 하고 다시 선다.
-- 드론(17칸 × 5줄): 손으로 찍은 탑뷰 쿼드콥터 판(`drone.ts`). 가드 링을 따라 날개 끝이 돌고 항법등이 깜빡인다.
-- 상태는 둘이 같다: `ARMED` 일하는 중(슬라임은 콩콩 뛰며 땀), `HOVER` 쉬는 중, `RTB` 캐시 식음(슬라임은 웅덩이로 꾸벅), `DAMAGED` 커밋 검문·도구 오류 뒤 20초(시무룩), `LOW BAT` 5H 한도 80% 넘음(지쳐서 납작).
+- 일하는 중엔 콩콩 뛰며 땀, 캐시가 식으면 웅덩이로 꾸벅, 커밋 검문·도구 오류 뒤 20초는 시무룩, 5H 한도 80% 넘으면 지쳐서 납작.
 - `/pet off` 는 이 세션에서만 숨기고 `/pet` 은 다시 띄운다.
 
 ## 테마
 
-herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herdr 내장 18개 — gruvbox·catppuccin·tokyo-night·dracula·nord·one-dark·solarized·kanagawa·rose-pine·vesper 와 그 라이트판)을 10초마다 읽고, `auto_switch = true` 면 맥 라이트·다크 모드로 짝을 고른다. 계기판 알약·게이지·안내·답 속 mermaid·chart·슬라임·드론이 다 같이 바뀌고, 리로드는 필요 없다. 그림은 테마마다 따로 그려 둔다(돌아오면 다시 안 그린다). `terminal` 처럼 고정 색이 없는 테마는 gruvbox.
+herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herdr 내장 18개 — gruvbox·catppuccin·tokyo-night·dracula·nord·one-dark·solarized·kanagawa·rose-pine·vesper 와 그 라이트판)을 10초마다 읽고, `auto_switch = true` 면 맥 라이트·다크 모드로 짝을 고른다. 계기판 알약·게이지·안내·답 속 mermaid·chart·슬라임이 다 같이 바뀌고, 리로드는 필요 없다. 그림은 테마마다 따로 그려 둔다(돌아오면 다시 안 그린다). `terminal` 처럼 고정 색이 없는 테마는 gruvbox.
 
 ## 설정 (`/plugin` → deck → configure)
 
@@ -78,15 +77,15 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 | `cell_aspect` | `2.2` | 칸 높이÷너비. 그림이 길쭉하면 줄이고 납작하면 키운다 |
 | `max_rows` | `30` | 답 속 이미지·mermaid 하나의 최대 높이(줄) |
 | `scale` | `1` | 다이어그램 크기(0.5~2). 1 이면 라벨이 터미널 글자 크기 |
-| `pet` | `slime` | `drone` 이면 탑뷰 드론, `off` 면 안 띄움 |
+| `pet` | `slime` | `off` 면 안 띄움 |
 | `style` | `clean` | `sketch` 면 손그림 — 다이어그램은 rough 선·손글씨체, 차트는 흔들리는 모양을 단색으로 채우고 축·글자도 손그림 |
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·펫 상태), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 91개
+claude plugin test ai/claude/mods/deck     # 88개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

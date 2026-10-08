@@ -34,12 +34,12 @@ export const HELP: HelpSection[] = [
     ],
   },
   {
-    title: '🟡 펫 — 계기판 오른쪽 끝 (100칸 넘을 때). 슬라임 말랑이 · 드론 DECK-1',
+    title: '🟡 펫 — 계기판 오른쪽 끝 슬라임 말랑이 (100칸 넘을 때)',
     rows: [
-      ['HOVER', '쉬는 중 — 슬라임은 왼쪽으로 사르륵 녹아 흘러갔다가 위에서 뚝 떨어져 돌아온다'],
-      ['ARMED', '일하는 중 — 콩콩 뛰며 땀 (드론은 날개 빠르게)'],
-      ['RTB · DAMAGED', '캐시 식음(웅덩이로 꾸벅) · 커밋 검문·도구 오류 뒤 20초(시무룩)'],
-      ['LOW BAT', '5H 한도 80% 넘음 — 지쳐서 납작'],
+      ['쉬는 중', '왼쪽으로 사르륵 녹아 흘러갔다가 위에서 뚝 떨어져 돌아온다'],
+      ['일하는 중', '콩콩 뛰며 땀'],
+      ['캐시 식음 · 검문·오류', '웅덩이로 꾸벅 · 20초 시무룩'],
+      ['5H 80% 넘음', '지쳐서 납작'],
       ['/pet', '이 세션에서 띄우기 · /pet off 숨기기'],
     ],
   },
@@ -47,7 +47,7 @@ export const HELP: HelpSection[] = [
     title: '🔧 설정 — /plugin → deck → configure',
     rows: [
       ['style', 'clean | sketch (손그림)'],
-      ['pet', 'slime | drone | off'],
+      ['pet', 'slime | off'],
       ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
       ['/deck', '이 안내'],
       ['/deck sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
