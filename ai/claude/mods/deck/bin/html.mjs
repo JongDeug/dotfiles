@@ -3,6 +3,7 @@
 //   { items: [{ key, html | path, maxColumns, maxRows?, slices? }], cellAspect }
 //   -> { results: [{ key, png, columns, rows, file, cut } | { key, columns, rows, file, cut, parts } | { key, error }] }
 //   slices 면 페이지 끝까지 찍어 터미널 그림 한 장(255줄)에 들어가게 위에서부터 잘라 parts: [{ path, columns, rows }] 로 준다(펼치기).
+//   경로만 주는 건 stdout 4 MiB 한도 때문 — 훅이 장마다 $.fs.read 로 읽어 base64 로 그린다(herdr 는 파일 그림을 못 넘긴다).
 //   html 은 답 속 조각(기본 CSS 를 깔아 감싼다), path 는 이미 있는 HTML 파일(그대로 연다). cut 은 한도에서 잘렸는지.
 //
 // Chrome 을 화면 없이(headless) 한 번 띄워 DevTools 프로토콜로 항목마다 새 탭을 열고, 터미널 폭에 맞춘 창에서
@@ -132,9 +133,9 @@ async function shoot(cdp, item, cellAspect) {
     const columns = Math.min(255, Math.max(1, Math.round(width / PX_PER_COLUMN)))
     const rowsOf = h => Math.min(255, Math.max(1, Math.round(h / (PX_PER_COLUMN * cellAspect))))
     if (item.slices) {
-      // 끝까지(너무 긴 페이지는 MAX_FULL 에서 끊는다) 250줄씩 잘라 찍는다.
+      // 끝까지(너무 긴 페이지는 MAX_FULL 에서 끊는다) 125줄씩 잘라 찍는다 — 한 장이 그림 한도(2 MiB)보다 넉넉히 작게.
       const total = Math.min(full, MAX_FULL)
-      const step = Math.floor(250 * PX_PER_COLUMN * cellAspect)
+      const step = Math.floor(125 * PX_PER_COLUMN * cellAspect)
       const parts = []
       for (let y = 0; y < total; y += step) {
         const h = Math.min(step, total - y)

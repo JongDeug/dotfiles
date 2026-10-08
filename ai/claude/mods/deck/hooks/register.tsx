@@ -315,7 +315,7 @@ type ImageFile = { file: string; width: number; height: number }
 type MermaidJob = { key: string; source: string; kind: 'png' | 'text'; maxColumns: number }
 type ChartJob = { key: string; spec: string; maxColumns: number; maxRows?: number }
 type PageJob = { key: string; html?: string; path?: string; maxColumns: number; maxRows?: number; slices?: boolean }
-type Shot = Png & { file: string; cut?: boolean; parts?: { path: string; columns: number; rows: number }[] }
+type Shot = Png & { file: string; cut?: boolean; parts?: { path: string; columns: number; rows: number; png?: string }[] }
 
 const pic = { cellAspect: 2.2, maxRows: 30, scale: 1, style: 'clean', theme: 'gruvbox', mode: 'auto' }
 let picMode: Mode | undefined
@@ -402,7 +402,11 @@ async function drainPage($: EngineInterface): Promise<void> {
   pageQueue.clear()
   try {
     const results = await runRenderer($, 'html.mjs', { items, cellAspect: pic.cellAspect })
-    for (const { key, ...d } of results) pageDrawn.set(key, d as Shot | Failed)
+    for (const { key, ...d } of results) {
+      // 펼친 장은 파일로 온다 — 터미널이 파일 그림을 못 받는 곳(herdr)도 있어 장마다 읽어 base64 로.
+      for (const part of (d as Shot).parts ?? []) part.png = (await $.fs.read(part.path, { as: 'bytes' })).base64
+      pageDrawn.set(key, d as Shot | Failed)
+    }
     for (const item of items) if (!pageDrawn.has(item.key)) pageDrawn.set(item.key, { error: '렌더러가 결과를 주지 않았다' })
   } catch (error) {
     for (const item of items) pageDrawn.set(item.key, { error: String(error) })
@@ -726,7 +730,7 @@ export const register: Register = (on, options) => {
       return (
         <Box flexDirection="column" hover={{ scope }}>
           {parts
-            ? parts.map((part, i) => <Image key={`${scope}-part-${i}`} source={{ file: part.path, format: 'png' }} columns={part.columns} rows={part.rows} alt={`[page: ${title} ${i + 1}/${parts.length}]`} />)
+            ? parts.map((part, i) => <Image key={`${scope}-part-${i}`} source={{ png: part.png ?? '' }} columns={part.columns} rows={part.rows} alt={`[page: ${title} ${i + 1}/${parts.length}]`} />)
             : <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[page: ${title}]`} />}
           {open && !parts ? <Text dimColor>{all && 'error' in all ? `펼치지 못했다: ${all.error}` : '펼치는 중…'}</Text> : null}
           {under(scope, caption, buttons)}

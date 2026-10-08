@@ -64,6 +64,8 @@ test('HTML 파일 줄: 미리보기에 ▾ 펼치기, 누르면 끝까지 여러
       : { key: it.key, png: PNG, columns: 40, rows: 30, file: '/x.html', cut: true })
     return { value: { exitCode: 0, stdout: JSON.stringify({ results }), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
+  const read: string[] = []
+  on('fs.read', ($, e) => (read.push(e.path), { value: { base64: PNG } }))
   on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [String((e.props as { text?: unknown }).text ?? '')] }))
   const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props('![리포트](/tmp/report.html)') })
   expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
@@ -72,7 +74,8 @@ test('HTML 파일 줄: 미리보기에 ▾ 펼치기, 누르면 끝까지 여러
   expect(fold).toBeTruthy()
   await ui.press({ key: String(fold?.props.key) })
   const imgs = await ui.findAll({ type: 'Image' })
-  expect(imgs.map(i => (i.props.source as { file?: string }).file)).toEqual(['/c/a.png', '/c/b.png'])
+  expect(imgs.map(i => (i.props.source as { png?: string }).png)).toEqual([PNG, PNG])
+  expect(read).toEqual(['/c/a.png', '/c/b.png'])
   expect(asked.some(a => a.slices)).toBe(true)
   const back = (await ui.findAll({ type: 'Button' })).find(b => /접기/.test(b.text ?? ''))
   await ui.press({ key: String(back?.props.key) })
