@@ -480,6 +480,13 @@ export const register: Register = on => {
     if (git) {
       const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
       top.push(pillItem(C.teal, C.base, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
+    }
+    // 모델은 브랜치 바로 옆.
+    if (model) {
+      top.push(pillItem(C.peach, C.base, `◆ ${model}`, 2))
+      if (effort) top.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
+    }
+    if (git) {
       if (git.files.length > 0) {
         const t = [` ● ${git.files.length} `, `+${git.added} `, `−${git.deleted} `]
         top.push(item(
@@ -495,11 +502,6 @@ export const register: Register = on => {
     if (ci) {
       const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
       top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.base, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
-    }
-    const topRight: Item[] = []
-    if (model) {
-      topRight.push(pillItem(C.peach, C.base, `◆ ${model}`, 2))
-      if (effort) topRight.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
     }
 
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
@@ -543,7 +545,7 @@ export const register: Register = on => {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
       bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
     }
-    if (top.length + topRight.length + bottom.length + bottomRight.length === 0) return below
+    if (top.length + bottom.length + bottomRight.length === 0) return below
 
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
     const line = (left: Item[], right: Item[]) => {
@@ -585,7 +587,7 @@ export const register: Register = on => {
       <Box flexDirection="column">
         {below}
         {files}
-        {top.length + topRight.length ? line(top, topRight) : null}
+        {top.length ? line(top, []) : null}
         {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
       </Box>
     )

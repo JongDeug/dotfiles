@@ -684,7 +684,7 @@ describe('board band', () => {
   })
 
   for (const [cols, wide] of [[200, true], [26, false]] as const) {
-    test(`폭 ${cols}칸: 경로·브랜치·CTX 는 남고 모델은 ${wide ? '오른쪽 끝에 보인다' : '빠진다'}`, async ($, on) => {
+    test(`폭 ${cols}칸: 경로·브랜치·CTX 는 남고 모델은 ${wide ? '브랜치 옆에 보인다' : '빠진다'}`, async ($, on) => {
       mock.clock(on, { now: START })
       world(on, [], { live: { tokens: 300000 } })
       shell(on)
