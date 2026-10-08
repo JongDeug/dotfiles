@@ -820,8 +820,13 @@ export const register: Register = (on, options) => {
     void start($)
     const { Box, Text } = $.ui.resolve(e)
     const now = await $.clock.now()
-    const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={bg} color={fg} bold={bold}>{` ${text} `}</Text>
-    const label = (bg: string, text: string) => <Text backgroundColor={bg} color={C.base} bold>{` ${text} `}</Text>
+    // 연하게: 색은 바탕 대신 글자에 싣는다 — 알약은 모두 어두운 바탕(surface) 위 색 글자.
+    const soft = (bg: string, fg: string) => (bg === C.surface || bg === C.overlay ? [bg, fg] : [C.surface, bg])
+    const pill = (bg: string, fg: string, text: string, bold = true) => {
+      const [b, f] = soft(bg, fg)
+      return <Text backgroundColor={b} color={f} bold={bold}>{` ${text} `}</Text>
+    }
+    const label = (bg: string, text: string) => pill(bg, C.base, text)
 
     const cols = Math.max(20, e.props.bodyColumns)
     // 알약 하나 = 그림 + 칸 수 + 중요도(작을수록 끝까지 남는다). 좁으면 fit 이 큰 p 부터 뺀다.
@@ -905,7 +910,7 @@ export const register: Register = (on, options) => {
       const bg = cachePill.tone === 'warm' ? C.blue : cachePill.tone === 'cold' ? C.red : C.overlay
       const head = ` ${cachePill.head} `
       const body = ` ${cachePill.body} `
-      bottom.push(item(<Text backgroundColor={bg} color={cachePill.tone === 'warm' || cachePill.tone === 'cold' ? C.base : C.text} bold>{head}</Text>, head, 3))
+      bottom.push(item(pill(bg, C.text, cachePill.head), head, 3))
       bottom.push(item(<Text backgroundColor={C.surface} color={C.text}>{body}</Text>, body, 6, true))
     }
     const bottomRight: Item[] = []
