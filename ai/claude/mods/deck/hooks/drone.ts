@@ -1,14 +1,29 @@
-// 계기판 오른쪽 끝의 탑뷰 쿼드콥터 — 픽셀을 도형(로터 원판·팔·몸통)으로 찍고 반 칸 블록(▀▄)으로 그린다.
-// 1칸 = 가로 1px · 세로 2px. 17칸 × 5줄(10px). $ 를 안 쓴다: 상태·프레임·등급을 받아 줄마다 글자 덩어리를 돌려준다.
+// 계기판 오른쪽 끝의 탑뷰 쿼드콥터 — 손으로 찍은 17×10 픽셀 판을 반 칸 블록(▀▄)으로 그린다.
+// 1칸 = 가로 1px · 세로 2px → 17칸 × 5줄. $ 를 안 쓴다: 상태·프레임·등급을 받아 줄마다 글자 덩어리를 돌려준다.
 
 export const DRONE_COLS = 17
+
+// r 가드 링 · h 모터 · a 팔 · e 몸통 테 · B 몸통 · C 카메라 · l 렌즈 · N/M 왼·오 항법등 · O 등급 띠 · T 뒤 상태등
+const PLATE = [
+  '.rrr.........rrr.',
+  'r...r.......r...r',
+  'r.h.ra.....ar.h.r',
+  '.rrr..aeCea..rrr.',
+  '......NBlBM......',
+  '......eOOOe......',
+  '.rrr..aeTea..rrr.',
+  'r.h.ra.....ar.h.r',
+  'r...r.......r...r',
+  '.rrr.........rrr.',
+]
 const W = 17
 const H = 10
-const R = 2 // 로터 반지름
+// 로터마다 왼쪽 위 모서리, 링 위 점(시계 방향) — 날개 끝 둘이 이 점들을 따라 돈다.
+const ROTORS: [number, number][] = [[0, 0], [12, 0], [0, 6], [12, 6]]
+const RING: [number, number][] = [[1, 0], [2, 0], [3, 0], [4, 1], [4, 2], [3, 3], [2, 3], [1, 3], [0, 2], [0, 1]]
 
 const P = {
-  disc: '#32302f', ring: '#504945', blade: '#bdae93', hub: '#ebdbb2',
-  arm: '#665c54', body: '#3c3836', edge: '#7c6f64',
+  ring: '#504945', blade: '#d5c4a1', hub: '#a89984', arm: '#665c54', body: '#3c3836', edge: '#7c6f64',
   cam: '#83a598', lens: '#076678', red: '#fb4934', green: '#b8bb26', amber: '#fabd2f', dim: '#504945',
 }
 
@@ -34,48 +49,23 @@ export function stateOf(s: { working: boolean; hurtUntil: number; now: number; f
 type Px = (string | null)[][]
 
 function pixels(state: DroneState, frame: number, grade: Grade): Px {
-  const px: Px = Array.from({ length: H }, () => Array<string | null>(W).fill(null))
-  const set = (x: number, y: number, c: string) => {
-    const X = Math.round(x), Y = Math.round(y)
-    if (Y >= 0 && Y < H && X >= 0 && X < W) px[Y]![X] = c
-  }
-  const cx = (W - 1) / 2, cy = (H - 1) / 2
-  const rotors: [number, number][] = [[R, R], [W - 1 - R, R], [R, H - 1 - R], [W - 1 - R, H - 1 - R]]
-  // 팔: 2px 두께로 로터 축에서 몸통까지
-  for (const [x0, y0] of rotors) {
-    for (let i = 0; i <= 60; i++) {
-      const x = x0 + ((cx - x0) * i) / 60, y = y0 + ((cy - y0) * i) / 60
-      set(x, y, P.arm)
-      set(x + 1, y, P.arm)
-    }
-  }
-  // 날개: ARMED 는 프레임마다 45°, HOVER·DAMAGED·LOW BAT 은 두 프레임에 45°, RTB 는 멈춤. 대각 로터끼리 반대로 돈다.
-  const step = state === 'ARMED' ? frame : state === 'RTB' ? 0 : Math.floor(frame / 2)
-  rotors.forEach(([x0, y0], i) => {
-    for (let y = -R; y <= R; y++)
-      for (let x = -R; x <= R; x++) {
-        const d = Math.hypot(x, y)
-        if (d <= R + 0.3) set(x0 + x, y0 + y, d > R - 0.8 ? P.ring : P.disc)
-      }
-    const a = (step * Math.PI) / 4 * (i === 0 || i === 3 ? 1 : -1) + (i === 0 || i === 3 ? 0 : Math.PI / 2)
-    for (let t = -R + 0.5; t <= R - 0.5; t += 0.25) set(x0 + Math.cos(a) * t, y0 + Math.sin(a) * t, state === 'RTB' ? P.edge : P.blade)
-    set(x0, y0, P.hub)
-  })
-  // 몸통: 앞(위)이 좁은 육각, 등급 띠, 카메라(앞), 항법등(앞 양옆), 상태등(뒤)
-  const bw = 2, bh = 3
-  for (let y = -bh; y <= bh; y++) {
-    const half = bw - (y < -bh + 2 ? -bh + 2 - y : 0)
-    for (let x = -half; x <= half; x++) set(cx + x, cy + y, Math.abs(x) === half ? P.edge : P.body)
-  }
-  for (let x = -bw + 1; x <= bw - 1; x++) set(cx + x, cy + 1, grade.stripe)
   const blink = frame % 2 === 0
-  set(cx, cy - bh + 1, state === 'ARMED' ? P.red : P.cam)
-  set(cx, cy - bh + 2, P.lens)
   const nav = state === 'RTB' ? [P.dim, P.dim] : state === 'DAMAGED' ? [blink ? P.red : P.body, blink ? P.red : P.body] : [blink ? P.red : P.body, blink ? P.green : P.body]
-  set(cx - bw - 1, cy - bh + 2, nav[0]!)
-  set(cx + bw + 1, cy - bh + 2, nav[1]!)
   const tail = state === 'ARMED' ? P.amber : state === 'DAMAGED' ? (blink ? P.red : P.body) : state === 'LOW BAT' ? (blink ? P.amber : P.body) : P.edge
-  set(cx, cy + bh - 1, tail)
+  const color: Record<string, string> = {
+    r: P.ring, h: P.hub, a: P.arm, e: P.edge, B: P.body, l: P.lens, O: grade.stripe,
+    C: state === 'ARMED' ? P.red : P.cam, N: nav[0]!, M: nav[1]!, T: tail,
+  }
+  const px: Px = PLATE.map(row => [...row].map(c => color[c] ?? null))
+  // 날개: ARMED 는 프레임마다 한 칸, 쉬는 중은 두 프레임에 한 칸, RTB 는 멈춤. 대각 로터끼리 반대로 돈다.
+  const step = state === 'ARMED' ? frame : state === 'RTB' ? 0 : Math.floor(frame / 2)
+  ROTORS.forEach(([x0, y0], i) => {
+    const at = (((i === 0 || i === 3 ? step : -step) % 5) + 5) % 5
+    for (const k of [at, at + 5]) {
+      const [x, y] = RING[k]!
+      px[y0 + y]![x0 + x] = state === 'RTB' ? P.edge : P.blade
+    }
+  })
   return px
 }
 
