@@ -133,8 +133,11 @@ export function resolveCss(svg) {
   return out
 }
 
+// beautiful-mermaid 에 없는 gruvbox dark — herdr 테마에 맞춘다(선은 bg3, 강조는 herdr 노랑).
+const OWN_THEMES = { gruvbox: { bg: '#282828', fg: '#ebdbb2', line: '#665c54', accent: '#fabd2f', muted: '#a89984' } }
+
 export function renderPicture(source, { theme, cellAspect, maxColumns, scale = 1, style = 'clean' }) {
-  const colors = THEMES[theme] ?? THEMES['catppuccin-mocha']
+  const colors = OWN_THEMES[theme] ?? THEMES[theme] ?? OWN_THEMES.gruvbox
   const hand = style === 'sketch'
   const raw = renderMermaidSVG(plain(source), { ...colors, font: hand ? HAND : FONT, transparent: true, padding: 8 })
   const [, , w, h] = (/viewBox="([^"]+)"/.exec(raw)?.[1] ?? '').split(/\s+/).map(Number)

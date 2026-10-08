@@ -13,7 +13,7 @@ let isRendering = false
 let mode: Mode | undefined
 // 크게 보기 pane 에 띄운 그림. 이미 그린 PNG 를 pane 크기로 키워 보인다(1행 40px 로 그려 두어 두세 배까지 선명하다).
 const VIEW = 'mermaid-view'
-const ACCENT = '#8aadf4'
+const ACCENT = '#fabd2f'  // herdr 테마(gruvbox) 강조색
 let viewing: { png: string; columns: number; rows: number; title: string } | null = null
 
 async function modeOf($: EngineInterface, wanted: unknown): Promise<Mode> {
@@ -63,7 +63,7 @@ async function openView($: EngineInterface, next: { png: string; columns: number
 }
 
 export const register: Register = (on, options) => {
-  const theme = typeof options.theme === 'string' ? options.theme : 'catppuccin-mocha'
+  const theme = typeof options.theme === 'string' ? options.theme : 'gruvbox'
   const cellAspect = typeof options.cell_aspect === 'number' ? options.cell_aspect : 2.2
   const scale = typeof options.scale === 'number' ? options.scale : 1
   const style = options.style === 'sketch' ? 'sketch' : 'clean'

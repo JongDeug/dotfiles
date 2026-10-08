@@ -25,7 +25,7 @@ Claude Code 가 설치하면서 `package-lock.json` 대로 npm 의존성을 받�
 | `scale` | `1` | 그림 크기 (0.5~2). 1 이면 라벨이 터미널 글자 크기. 창 폭은 넘지 않는다 |
 | `style` | `clean` | `sketch` 면 excalidraw 처럼 손으로 그린 선(rough.js)과 손글씨체(Gaegu, `fonts/OFL.txt`) |
 
-그림 · 선 도형은 터미널을 보고 고른다 — kitty · Ghostty 면 그림, 아니면 선 도형. **herdr 안에서는 바깥 터미널을 알 수 없어서** `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`(settings 의 env)을 보고 그림으로 그린다(herdr `[experimental] kitty_graphics = true` 필요). 색은 catppuccin-mocha.
+그림 · 선 도형은 터미널을 보고 고른다 — kitty · Ghostty 면 그림, 아니면 선 도형. **herdr 안에서는 바깥 터미널을 알 수 없어서** `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`(settings 의 env)을 보고 그림으로 그린다(herdr `[experimental] kitty_graphics = true` 필요). 색은 herdr 테마에 맞춘 gruvbox dark(`bin/render.mjs` 의 `OWN_THEMES`).
 
 ## 개발
 

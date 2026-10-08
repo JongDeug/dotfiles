@@ -23,9 +23,9 @@ const fontOptions = fs.existsSync(FONT_FILE)
   ? { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }
   : { loadSystemFonts: true, defaultFontFamily: 'sans-serif' }
 
-// 배경은 투명 — 터미널 테마가 비친다. 글자·축은 밝은 회색이라 어두운 테마(Catppuccin)에 맞춘다.
-const TEXT = '#cad3f5'
-const GRID = '#494d64'
+// 배경은 투명 — 터미널 테마가 비친다. 글자·축·계열 색은 herdr 테마(gruvbox dark)에 맞춘다.
+const TEXT = '#ebdbb2'
+const GRID = '#504945'
 const THEME = {
   background: null,
   font: FONT,
@@ -38,7 +38,7 @@ const THEME = {
   legend: { labelColor: TEXT, titleColor: TEXT, labelFontSize: 11, titleFontSize: 12 },
   header: { labelColor: TEXT, titleColor: TEXT },
   text: { color: TEXT },
-  range: { category: ['#8aadf4', '#a6da95', '#f5a97f', '#c6a0f6', '#eed49f', '#91d7e3', '#f5bde6', '#ed8796'] },
+  range: { category: ['#83a598', '#b8bb26', '#fe8019', '#d3869b', '#fabd2f', '#8ec07c', '#fb4934', '#a89984'] },
 }
 
 export async function renderChart(specText, { maxColumns, maxRows, cellAspect }) {

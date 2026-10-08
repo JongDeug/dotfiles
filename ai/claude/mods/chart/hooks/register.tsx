@@ -13,7 +13,7 @@ let busy = false
 let cellAspect = 2.2
 // 크게 보기 pane 에 띄운 차트(spec). 한 번에 하나.
 const VIEW = 'chart-view'
-const ACCENT = '#8aadf4'
+const ACCENT = '#fabd2f'  // herdr 테마(gruvbox) 강조색
 let viewing: { spec: string; title: string } | null = null
 
 const PROMPT = [

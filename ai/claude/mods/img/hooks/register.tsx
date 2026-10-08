@@ -18,7 +18,7 @@ let cacheDir = ''
 const VIEW = 'img-view'
 let viewing: { title: string; img: Ready } | null = null
 
-const ACCENT = '#8aadf4'
+const ACCENT = '#fabd2f'  // herdr 테마(gruvbox) 강조색
 
 const PROMPT = [
   '# Images in this terminal',

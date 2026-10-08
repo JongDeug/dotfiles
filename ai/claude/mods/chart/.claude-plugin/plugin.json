@@ -1,6 +1,6 @@
 {
   "name": "chart",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "답 속 ```chart (Vega-Lite JSON) 블록을 막대·선·산점도 그래프 그림으로 그린다. 한글 라벨, 투명 배경.",
   "author": {
     "name": "JongDeug",
