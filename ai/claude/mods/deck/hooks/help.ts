@@ -34,9 +34,20 @@ export const HELP: HelpSection[] = [
     ],
   },
   {
+    title: '🛸 드론 — 계기판 오른쪽 끝 (100칸 넘을 때)',
+    rows: [
+      ['ARMED', '일하는 중 — 날개 빠르게, 카메라 빨강'],
+      ['HOVER · RTB', '쉬는 중 · 캐시 식음(날개 멈춤)'],
+      ['DAMAGED', '커밋 검문·도구 오류 뒤 20초'],
+      ['LOW BAT', '5H 한도 80% 넘음'],
+      ['/drone', '기체 카드 — 끝낸 턴으로 MK-I → II(50) → III(300). on · off'],
+    ],
+  },
+  {
     title: '🔧 설정 — /plugin → deck → configure',
     rows: [
       ['style', 'clean | sketch (손그림)'],
+      ['drone', 'on | idle (쉴 때만) | off'],
       ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
       ['/deck', '이 안내'],
       ['/deck sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],

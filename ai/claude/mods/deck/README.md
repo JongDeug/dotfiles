@@ -58,6 +58,16 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 
 명령 속 글만 읽으므로 `-F 파일` 로 넘긴 메시지와 편집기로 쓴 메시지는 못 본다. 따옴표 속 글·heredoc 은 명령으로 치지 않는다(글 속 "git commit" 에 속지 않는다).
 
+## 드론 (DECK-1)
+
+계기판 오른쪽 끝에 위에서 본 쿼드콥터(23칸 × 8줄, 반 칸 블록)가 떠 있다. 날개가 돌고 항법등이 깜빡이며, 세션 상태를 그대로 보인다.
+
+- `ARMED` — 일하는 중: 날개 빠르게, 카메라 빨강, 뒤 상태등 노랑.
+- `HOVER` — 쉬는 중: 날개 천천히. `RTB` — 캐시 식음: 날개가 멈추고 불이 어둡다.
+- `DAMAGED` — 커밋 검문에 걸리거나 도구가 오류를 내면 20초 동안 항법등이 빨갛게 깜빡인다.
+- `LOW BAT` — 5H 한도 80% 넘음.
+- 등급은 모든 세션이 함께 끝낸 턴 수(`$.store`)로 MK-I → MK-II(50) → MK-III(300), 몸통 띠 색이 바뀐다. `/drone` 은 기체 카드, `/drone off`·`on` 은 이 세션에서만 숨기기·띄우기. 100칸보다 좁으면 숨는다.
+
 ## 설정 (`/plugin` → deck → configure)
 
 | 키 | 기본 | |
@@ -65,14 +75,15 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 | `cell_aspect` | `2.2` | 칸 높이÷너비. 그림이 길쭉하면 줄이고 납작하면 키운다 |
 | `max_rows` | `30` | 답 속 이미지·mermaid 하나의 최대 높이(줄) |
 | `scale` | `1` | 다이어그램 크기(0.5~2). 1 이면 라벨이 터미널 글자 크기 |
+| `drone` | `on` | `idle` 이면 쉬는 동안만, `off` 면 안 띄움 |
 | `style` | `clean` | `sketch` 면 손그림 — 다이어그램은 rough 선·손글씨체, 차트는 흔들리는 모양을 단색으로 채우고 축·글자도 손그림 |
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(색), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `drone.ts`(드론 픽셀·상태·등급), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 81개
+claude plugin test ai/claude/mods/deck     # 86개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

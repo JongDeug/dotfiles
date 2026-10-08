@@ -7,6 +7,7 @@ import {
 import { fmtDuration, fmtTok, fmtUsd, isCold, priceOf, TTL_MS, viewOf } from './cacheview'
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
+import { DRONE_COLS, droneRows, gradeOf, stateOf, type DroneState } from './drone'
 import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C, SOFT } from './theme'
@@ -32,6 +33,10 @@ const busy = { git: false, ci: false, usage: false }
 
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
+// 드론: 설정(on·off·idle), 이 세션에서 /drone off 로 숨겼나, 다친 때(거절·도구 오류)까지, 끝낸 턴 수(모든 세션이 함께 — $.store).
+const drone = { mode: 'on' as 'on' | 'off' | 'idle', hidden: false, hurtUntil: 0, turns: 0, since: 0 }
+const DRONE_TURNS = 'drone:turns'
+const DRONE_SINCE = 'drone:since'
 let last: { seconds: number; tools: number; edits: number } | null = null
 
 type Usage = {
@@ -47,6 +52,18 @@ let usage: Usage | null = null
 async function sh($: EngineInterface, argv: string[]): Promise<string> {
   const { exitCode, stdout } = await $.process.run(argv, { cwd, timeoutMs: 15_000 })
   return exitCode === 0 ? stdout.trim() : ''
+}
+
+const STATE_COLOR: Record<DroneState, string> = { ARMED: C.red, HOVER: C.teal, RTB: C.sub, DAMAGED: C.red, 'LOW BAT': C.yellow }
+
+function droneState(now: number): DroneState {
+  return stateOf({
+    working: turn !== null,
+    hurtUntil: drone.hurtUntil,
+    now,
+    fiveHour: usage?.limits.find(l => l.kind === 'five_hour')?.percent,
+    cold: viewOf(cache, now)?.tone === 'cold',
+  })
 }
 
 async function commitCheck($: EngineInterface, command: string): Promise<string | null> {
@@ -137,6 +154,13 @@ async function start($: EngineInterface): Promise<void> {
   $.clock.every(250, () => {
     if (turn) $.ui.invalidate('ui.render')
   })
+  // 쉬는 동안엔 드론만 0.5초마다 — 도는 동안은 위 스피너가 다시 그린다.
+  $.clock.every(500, () => {
+    if (!turn && drone.mode === 'on' && !drone.hidden) $.ui.invalidate('ui.render')
+  })
+  drone.turns = Number(await $.store.get(DRONE_TURNS)) || 0
+  drone.since = Number(await $.store.get(DRONE_SINCE)) || 0
+  if (!drone.since) await $.store.set(DRONE_SINCE, (drone.since = await $.clock.now()))
 }
 
 // ── 프롬프트 캐시 keepwarm · 식은 채 보내기 경고 ─────────────────────────────
@@ -266,6 +290,12 @@ async function initCache($: EngineInterface, surface: string | null, fresh = fal
     name: 'deck',
     description: 'deck 이 하는 일과 명령 한 장. sync: push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션을 리로드',
     argumentHint: '[sync]',
+    immediate: true,
+  })
+  await $.command.register({
+    name: 'drone',
+    description: '계기판 오른쪽 드론 — 기체 카드. on · off(이 세션에서 숨김)',
+    argumentHint: '[on | off]',
     immediate: true,
   })
   await $.command.register({
@@ -514,6 +544,7 @@ export const register: Register = (on, options) => {
   if (typeof options.max_rows === 'number') pic.maxRows = options.max_rows
   if (typeof options.scale === 'number') pic.scale = options.scale
   if (options.style === 'sketch') pic.style = 'sketch'
+  if (options.drone === 'off' || options.drone === 'idle') drone.mode = options.drone
 
 
   on('session.start', async ($, e, next) => {
@@ -587,6 +618,27 @@ export const register: Register = (on, options) => {
     return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
 
+  on('command.run', { command: 'drone' }, async ($, e) => {
+    const arg = String(e.args ?? '').trim()
+    if (arg === 'off' || arg === 'on') {
+      drone.hidden = arg === 'off'
+      $.ui.invalidate('ui.render')
+      return { text: arg === 'off' ? 'DECK-1 착륙 — 이 세션에서 숨겼다 (/drone on 으로 다시)' : 'DECK-1 이륙' }
+    }
+    const now = await $.clock.now()
+    const g = gradeOf(drone.turns)
+    const days = Math.max(1, Math.ceil((now - drone.since) / 86_400_000))
+    const state = droneState(now)
+    return {
+      text: [
+        `🛸 DECK-1 · ${g.name} · ${state}`,
+        `  비행     ${drone.turns}턴 · ${days}일째`,
+        g.next ? `  다음 등급 ${g.next - drone.turns}턴 남음` : '  최고 등급',
+        `  표시     ${drone.mode === 'off' ? '설정에서 꺼짐' : drone.hidden ? '이 세션에서 숨김' : drone.mode === 'idle' ? '쉴 때만' : '늘'} (/plugin → deck → configure 의 drone)`,
+      ].join('\n'),
+    }
+  })
+
   on('command.run', { command: 'cache' }, async ($, e) => {
     const words = String(e.args ?? '').trim().split(/\s+/).filter(Boolean)
     const now = await $.clock.now()
@@ -632,7 +684,10 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     // 커밋 검문: git-commit 스킬 규칙에 걸리면 실행 전에 돌려보낸다 — 고칠 곳을 짚어 주면 모델이 고쳐 다시 한다.
     const why = e.tool === 'Bash' ? await commitCheck($, e.command) : null
-    if (why) return { deny: why }
+    if (why) {
+      drone.hurtUntil = (await $.clock.now().catch(() => 0)) + 20_000 // 시계를 못 읽어도 검문·결과는 그대로
+      return { deny: why }
+    }
     const t = turn
     if (t) {
       t.tools += 1
@@ -643,7 +698,9 @@ export const register: Register = (on, options) => {
       $.ui.invalidate('ui.render')
     }
     try {
-      return await next(e)
+      const r = await next(e)
+      if (r.isError) drone.hurtUntil = (await $.clock.now().catch(() => 0)) + 20_000 // 시계를 못 읽어도 검문·결과는 그대로
+      return r
     } finally {
       if (t && e.tool === 'Agent') t.agents -= 1
       if (e.tool === 'Bash' || EDITS.has(e.tool)) void refreshGit($)
@@ -661,6 +718,9 @@ export const register: Register = (on, options) => {
     turn = null
     void refreshGit($)
     void refreshUsage($)
+    // 여러 세션이 함께 키운다 — 읽고 하나 더해 쓴다(동시에 끝나면 하나 빠질 수 있지만 상관없다).
+    drone.turns = (Number(await $.store.get(DRONE_TURNS)) || 0) + 1
+    await $.store.set(DRONE_TURNS, drone.turns)
     return r
   }).catch(($, e, next) => next(e))
 
@@ -856,7 +916,10 @@ export const register: Register = (on, options) => {
     const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={SOFT[bg] ?? bg} color={fg} bold={bold}>{` ${text} `}</Text>
     const label = (bg: string, text: string) => pill(bg, C.base, text)
 
-    const cols = Math.max(20, e.props.bodyColumns)
+    const full = Math.max(20, e.props.bodyColumns)
+    // 드론: 100칸 넘을 때만, idle 이면 쉬는 동안만. 그 폭만큼 계기판 알약이 줄어든다.
+    const showDrone = drone.mode !== 'off' && !drone.hidden && full >= 100 && !(drone.mode === 'idle' && turn)
+    const cols = showDrone ? full - DRONE_COLS - 2 : full
     // 알약 하나 = 그림 + 칸 수 + 중요도(작을수록 끝까지 남는다). 좁으면 fit 이 큰 p 부터 뺀다.
     type Item = Fit & { el: RenderElement }
     const item = (el: RenderElement, text: string, p: number, glue = false): Item => ({ el, w: cellWidth(text), p, glue })
@@ -989,12 +1052,30 @@ export const register: Register = (on, options) => {
       </Box>
     ) : null
 
-    return (
-      <Box flexDirection="column">
-        {below}
+    const dash = (
+      <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
         {top.length ? line(top, []) : null}
         {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
+      </Box>
+    )
+    if (!showDrone) return <Box flexDirection="column">{below}{dash}</Box>
+    const state = droneState(now)
+    const g = gradeOf(drone.turns)
+    const tag = `${g.name} · ${state}`
+    const pad = Math.max(0, Math.floor((DRONE_COLS - tag.length) / 2))
+    return (
+      <Box flexDirection="column">
+        {below}
+        <Box flexDirection="row" columnGap={2}>
+          {dash}
+          <Box flexDirection="column" width={DRONE_COLS} flexShrink={0}>
+            {droneRows(state, Math.floor(now / 500), g).map((runs, y) => (
+              <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
+            ))}
+            <Text color={STATE_COLOR[state]}>{' '.repeat(pad) + tag}</Text>
+          </Box>
+        </Box>
       </Box>
     )
   })
