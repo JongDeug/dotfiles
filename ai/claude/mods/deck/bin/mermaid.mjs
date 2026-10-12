@@ -212,6 +212,23 @@ export function resolveCss(svg) {
   return out
 }
 
+// resvg 는 orient="auto-start-reverse" 를 모르고 0도(늘 오른쪽)로 그린다 — 왼쪽으로 가는 화살표가 거꾸로 선다.
+// "auto" 로 바꾸고, 선의 시작점(marker-start)에 쓰는 것 중 앞(+x)을 향해 그린 것(기준점이 칸 오른쪽 절반 — 상속 삼각형)만
+// 기준점(refX·refY)으로 180도 돌린 사본을 단다. 처음부터 뒤를 향해 그린 것(flowchart arrowhead-start)은 그대로가 맞다.
+// 돌리면 화살촉 칸 밖으로 나가 잘리니 overflow 를 연다.
+export function fixMarkerOrient(svg) {
+  const fixed = new Set()
+  const out = svg.replace(/<marker\b[^>]*orient="auto-start-reverse"[^>]*>([\s\S]*?)<\/marker>/g, (whole, body) => {
+    const id = attr(whole, 'id')
+    const open = whole.slice(0, whole.indexOf('>') + 1).replace('orient="auto-start-reverse"', 'orient="auto"')
+    if (!(Number(attr(whole, 'refX')) > Number(attr(whole, 'markerWidth')) / 2)) return `${open}${body}</marker>`
+    fixed.add(id)
+    const turned = `<g transform="rotate(180 ${attr(whole, 'refX') ?? 0} ${attr(whole, 'refY') ?? 0})">${body}</g>`
+    return `${open}${body}</marker>${open.replace(`id="${id}"`, `id="${id}-rev" overflow="visible"`)}${turned}</marker>`
+  })
+  return out.replace(/marker-start="url\(#([^)]+)\)"/g, (m, id) => (fixed.has(id) ? `marker-start="url(#${id}-rev)"` : m))
+}
+
 // 색은 훅이 herdr 테마에서 골라 넘긴다(colors: bg · fg · line · accent · muted). 안 넘기면 gruvbox dark.
 const GRUVBOX = { bg: '#282828', fg: '#ebdbb2', line: '#665c54', accent: '#fabd2f', muted: '#a89984' }
 
@@ -233,7 +250,7 @@ export function renderPicture(source, { theme, colors: given, cellAspect, maxCol
     rows = Math.min(maxRows, 255)
     columns = Math.max(1, Math.round((rows * cellAspect * w) / h))
   }
-  let svg = resolveCss(raw).replace(/font-family:[^;}]*/g, hand ? `font-family: '${HAND}', '${FONT}'` : `font-family: '${FONT}'`)
+  let svg = fixMarkerOrient(resolveCss(raw)).replace(/font-family:[^;}]*/g, hand ? `font-family: '${HAND}', '${FONT}'` : `font-family: '${FONT}'`)
   if (hand) svg = sketch(svg).replace(/font-size="([\d.]+)"/g, (_, s) => `font-size="${(s * HAND_SIZE).toFixed(1)}"`)
   const png = new Resvg(svg, {
     fitTo: { mode: 'height', value: rows * ROW_PNG_PX },
