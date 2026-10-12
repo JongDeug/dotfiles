@@ -138,20 +138,27 @@ export function sketch(svg, seed = 7) {
   // 상자(rect)는 작아도(화살표 위 라벨) 다른 상자와 맞춰 손그림으로.
   const SMALL = 32
   // 선만 지우고(채움은 남긴다) 손그림 선을 얹는다. 선이 없는 도형은 건드리지 않는다.
-  // 화살촉(marker)이 달린 선은 지우지 않고 투명하게 — 지우면 화살촉도 같이 사라진다.
+  // 화살촉(marker)이 달린 선은 지우지 않고 투명하게 — 지우면 화살촉도 같이 사라진다. 손그림 선 위에 얹어야 안 가린다.
   const redraw = (tag, make, size = Infinity) => {
     const stroke = attr(tag, 'stroke')
     if (!stroke || stroke === 'none' || size < SMALL) return tag
     const drawable = make(opts(stroke, attr(tag, 'stroke-width')))
     if (!drawable) return tag
-    const hidden = /\smarker-(start|mid|end)=/.test(tag) ? tag.replace(/\/>$/, ' stroke-opacity="0"/>') : tag.replace(/\sstroke="[^"]*"/, ' stroke="none"')
+    const marked = /\smarker-(start|mid|end)=/.test(tag)
+    const hidden = marked ? tag.replace(/\/>$/, ' stroke-opacity="0"/>') : tag.replace(/\sstroke="[^"]*"/, ' stroke="none"')
     const t = attr(tag, 'transform')
     const lines = roughPaths(drawable)
-    return hidden + (t ? `<g transform="${t}">${lines}</g>` : lines)
+    const drawn = t ? `<g transform="${t}">${lines}</g>` : lines
+    return marked ? drawn + hidden : hidden + drawn
   }
+  // 화살촉은 손그림 선(1.4배 굵기)에 묻혀 방향이 안 보인다 — viewBox 를 달아 모양째 키운다(끝점 refX·refY 는 그대로).
+  const ARROW = 2
+  const grow = tag => /\sviewBox=/.test(tag) ? tag : tag
+    .replace(/\smarkerWidth="([\d.]+)"/, (_, w) => ` markerWidth="${w * ARROW}" viewBox="0 0 ${w} ${attr(tag, 'markerHeight')}"`)
+    .replace(/\smarkerHeight="([\d.]+)"/, (_, h) => ` markerHeight="${h * ARROW}"`)
   const defs = []
   const body = svg.replace(/<defs\b[\s\S]*?<\/defs>/g, m => {
-    defs.push(m)
+    defs.push(m.replace(/<marker\b[^>]*>/g, grow))
     return `\u0000${defs.length - 1}\u0000`
   })
   return body
