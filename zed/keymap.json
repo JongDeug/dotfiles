@@ -61,9 +61,11 @@
     }
   },
   // Same key closes the panel when it has focus (no per-panel toggle action exists).
+  // Toggle*Dock, not CloseActiveDock: CloseActiveDock leaves focus in the hidden panel,
+  // so the next prefix+key still matches the panel context and never reopens it.
   {
     "context": "ProjectPanel",
-    "bindings": { "ctrl-space e": "workspace::CloseActiveDock" }
+    "bindings": { "ctrl-space e": "workspace::ToggleLeftDock" }
   },
   {
     // neo-tree style file ops.
@@ -82,25 +84,25 @@
       "shift-o": "project_panel::RevealInFileManager",
       "s": "project_panel::OpenSplitVertical",
       "shift-s": "project_panel::OpenSplitHorizontal",
-      "q": "workspace::CloseActiveDock"
+      "q": "workspace::ToggleLeftDock"
     }
   },
   {
     // ctrl-space alone is StageAll here; free it for the prefix.
     "context": "GitPanel",
-    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::CloseActiveDock" }
+    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::ToggleLeftDock" }
   },
   {
     "context": "AgentPanel",
-    "bindings": { "ctrl-space v": "workspace::CloseActiveDock" }
+    "bindings": { "ctrl-space v": "workspace::ToggleRightDock" }
   },
   {
     "context": "OutlinePanel",
-    "bindings": { "ctrl-space o": "workspace::CloseActiveDock" }
+    "bindings": { "ctrl-space o": "workspace::ToggleLeftDock" }
   },
   {
     "context": "DebugPanel",
-    "bindings": { "ctrl-space d": "workspace::CloseActiveDock" }
+    "bindings": { "ctrl-space d": "workspace::ToggleBottomDock" }
   },
   {
     // Claude Code newline, carried over from VS Code.
