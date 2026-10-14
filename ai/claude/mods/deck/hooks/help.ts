@@ -20,7 +20,7 @@ export const HELP: HelpSection[] = [
     ],
   },
   {
-    title: '🎨 답 속 그림 — 포인터를 올리면 ⤢ 크게 보기 · ↓ PNG 저장',
+    title: '🎨 답 속 그림 — 포인터를 올리면 ⤢ 크게 보기 · ▴ 접기 · ↓ PNG 저장',
     rows: [
       ['```mermaid', '흐름 · 시퀀스 · 상태 · ER 다이어그램'],
       ['```chart', 'Vega-Lite 차트 (막대 · 선 · 원)'],

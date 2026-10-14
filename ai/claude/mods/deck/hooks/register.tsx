@@ -577,6 +577,14 @@ async function savePng($: EngineInterface, png: string, title: string): Promise<
   $.ui.toast(exitCode === 0 ? `저장했다: ${file}` : '저장하지 못했다')
 }
 
+// 접은 그림 — 그림 밑 ▴ 접기로 한 줄이 되고 ▾ 펼치기로 돌아온다. 키는 답(메시지 id)·블록 순서, Read 그림은 tool_use_id 라
+// 같은 그림이 다른 답에 또 나와도 따로 접힌다. 모듈 변수라 리로드하면 다 펼쳐진다.
+const folded = new Set<string>()
+function toggleFold($: EngineInterface, key: string): void {
+  if (!folded.delete(key)) folded.add(key)
+  $.ui.invalidate('ui.render')
+}
+
 const level = (percent: number) => (percent >= 80 ? C.red : percent >= 50 ? C.yellow : C.green)
 
 
@@ -787,16 +795,29 @@ export const register: Register = (on, options) => {
           {body}
         </Box>,
       )
-    // 그림 밑 한 줄: 설명은 흐리게, 버튼은 그림에 포인터를 올렸을 때만.
-    const under = (scope: string, caption: string, buttons: RenderElement[]) => (
+    // 그림 밑 한 줄: 설명은 흐리게, 버튼은 그림에 포인터를 올렸을 때만. 끝은 늘 ▴ 접기(fk = 이 블록).
+    const under = (scope: string, caption: string, fk: string, buttons: RenderElement[]) => (
       <Box flexDirection="row" columnGap={2} minHeight={1}>
         {caption ? <Text dimColor wrap="truncate-end">{caption}</Text> : null}
-        <Box display="none" columnGap={2} hover={{ display: 'flex', scope }}>{buttons}</Box>
+        <Box display="none" columnGap={2} hover={{ display: 'flex', scope }}>
+          {[...buttons, <Button key={`${scope}-fold`} plain dimColor onPress={() => toggleFold($, fk)}>▴ 접기</Button>]}
+        </Box>
       </Box>
     )
+    // 접은 그림은 그 자리에 한 줄 — 무엇이었는지 흐리게, 옆에 ▾ 펼치기.
+    const foldedRow = (fk: string, label: string) =>
+      picture(
+        <Box flexDirection="row" columnGap={2}>
+          <Text dimColor wrap="truncate-end">▸ {label}</Text>
+          <Button key={`fold-${fk}`} plain dimColor onPress={() => toggleFold($, fk)}>▾ 펼치기</Button>
+        </Box>,
+      )
     for (const [n, b] of blocks.entries()) {
+      const fk = `${e.requestId}:${n}`
       if (b.kind === 'text') await asText(b.text)
-      else if (b.kind === 'mermaid') {
+      else if (folded.has(fk)) {
+        foldedRow(fk, b.kind === 'mermaid' ? '다이어그램' : b.kind === 'chart' ? `차트 · ${chartTitle(b.spec)}` : b.pictures.map(p => p.alt || (p.path.split('/').pop() ?? p.path)).join(' · '))
+      } else if (b.kind === 'mermaid') {
         const d = mode === 'off' ? undefined : mermaidOf($, b.source, mode === 'pictures' ? 'png' : 'text', Math.min(110, width)) // 폭 상한을 키에 — 창 폭이 바뀌어도 다시 안 그린다
         if (!d || 'error' in d) {
           await asText(b.raw)
@@ -808,7 +829,7 @@ export const register: Register = (on, options) => {
           picture(
             <Box flexDirection="column" hover={{ scope }}>
               <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[mermaid: ${title}]`} />
-              {under(scope, '', [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'png', title, png: d })}>⤢ 크게 보기</Button>])}
+              {under(scope, '', fk, [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'png', title, png: d })}>⤢ 크게 보기</Button>])}
             </Box>,
           )
         }
@@ -824,7 +845,7 @@ export const register: Register = (on, options) => {
           picture(
             <Box flexDirection="column" hover={{ scope }}>
               <Image source={{ png: d.png }} columns={d.columns} rows={d.rows} alt={`[chart: ${title}]`} />
-              {under(scope, '', [
+              {under(scope, '', fk, [
                 <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'chart', title, spec })}>⤢ 크게 보기</Button>,
                 <Button key={`${scope}-save`} plain dimColor onPress={() => void savePng($, d.png, title)}>↓ PNG 저장</Button>,
               ])}
@@ -850,7 +871,7 @@ export const register: Register = (on, options) => {
                 return (
                   <Box flexDirection="column" hover={{ scope }}>
                     <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${title}]`} />
-                    {under(scope, title, [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'file', title, img })}>⤢ 크게 보기</Button>])}
+                    {under(scope, title, fk, [<Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'file', title, img })}>⤢ 크게 보기</Button>])}
                   </Box>
                 )
               })}
@@ -874,6 +895,18 @@ export const register: Register = (on, options) => {
     const { Box, Button, Image, Text } = $.ui.resolve(e)
     const grid = gridFor(img.width, img.height, Math.min(100, (e.viewport?.columns ?? 80) - 6), pic.maxRows, pic.cellAspect)
     const title = path.split('/').pop() ?? path
+    const fk = e.requestId // tool_use_id — 같은 파일을 두 번 읽어도 따로 접힌다
+    if (folded.has(fk)) {
+      return (
+        <Box flexDirection="column">
+          {row}
+          <Box paddingLeft={5} flexDirection="row" columnGap={2}>
+            <Text dimColor wrap="truncate-end">▸ {title}</Text>
+            <Button key={`fold-${fk}`} plain dimColor onPress={() => toggleFold($, fk)}>▾ 펼치기</Button>
+          </Box>
+        </Box>
+      )
+    }
     const scope = `deck-r-${img.file.split('/').pop() ?? ''}`.slice(0, 64)
     return (
       <Box flexDirection="column">
@@ -882,8 +915,9 @@ export const register: Register = (on, options) => {
           <Image source={{ file: img.file, format: 'png' }} columns={grid.columns} rows={grid.rows} alt={`[이미지: ${path}]`} />
           <Box flexDirection="row" columnGap={2}>
             <Text dimColor wrap="truncate-end">{title}</Text>
-            <Box display="none" hover={{ display: 'flex', scope }}>
+            <Box display="none" columnGap={2} hover={{ display: 'flex', scope }}>
               <Button key={`${scope}-big`} plain dimColor onPress={() => void openView($, { kind: 'file', title, img })}>⤢ 크게 보기</Button>
+              <Button key={`${scope}-fold`} plain dimColor onPress={() => toggleFold($, fk)}>▴ 접기</Button>
             </Box>
           </Box>
         </Box>

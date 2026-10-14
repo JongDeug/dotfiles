@@ -38,6 +38,33 @@ test('chart · mermaid · 이미지 블록은 처음엔 글, 렌더러가 답하
   expect(calls.filter(c => c.includes('convert.sh')).length).toBe(1)
 })
 
+test('그림 밑 ▴ 접기는 그 그림만 한 줄로 접고 ▾ 펼치기로 되돌린다 — 다른 답의 같은 그림은 그대로', async ($, on) => {
+  world(on)
+  const text = ['앞', '![사진](/tmp/a.png)', '끝'].join('\n')
+  const one = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', requestId: 'm1', props: props(text) })
+  const two = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', requestId: 'm2', props: props(text) })
+  expect((await one.findAll({ type: 'Image' })).length).toBe(1)
+  await one.press({ key: (await one.find({ type: 'Button', text: /접기/ }))!.key! })
+  expect((await one.findAll({ type: 'Image' })).length).toBe(0)
+  expect((await one.find({ type: 'Text', text: /^▸ / }))?.text).toBe('▸ 사진')
+  expect((await one.find({ text: /^끝$/ }))?.text).toBe('끝')
+  expect((await two.findAll({ type: 'Image' })).length).toBe(1)
+  await one.press({ key: (await one.find({ type: 'Button', text: /펼치기/ }))!.key! })
+  expect((await one.findAll({ type: 'Image' })).length).toBe(1)
+})
+
+test('Read 로 읽은 그림도 ▴ 접기 · ▾ 펼치기', async ($, on) => {
+  world(on)
+  const read = { tool_use_id: 't1', tool: 'Read', input: { file_path: '/tmp/a.png' }, isRunning: false, isErrored: false, isInterrupted: false } as never
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'ToolUse', requestId: 't1', props: read })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
+  await ui.press({ key: (await ui.find({ type: 'Button', text: /접기/ }))!.key! })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(0)
+  expect((await ui.find({ type: 'Text', text: /^▸ / }))?.text).toBe('▸ a.png')
+  await ui.press({ key: (await ui.find({ type: 'Button', text: /펼치기/ }))!.key! })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(1)
+})
+
 test('렌더러가 어떤 블록의 결과를 빠뜨려도 다시 부르기를 되풀이하지 않는다 — 못 그림으로 남긴다', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : undefined }))
