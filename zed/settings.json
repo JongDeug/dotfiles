@@ -20,7 +20,7 @@
       ]
     }
   ],
-  "diff_view_style": "split",
+  "diff_view_style": "unified",
   "edit_predictions": {
     "mode": "eager"
   },
@@ -38,15 +38,16 @@
   "agent_servers": {
     "claude-acp": {
       "default_config_options": {
-        "fast": false,
+        "effort": "max",
+        "fast": true,
         "model": "opus[1m]"
       },
       "type": "registry"
     }
   },
   "base_keymap": "Zed",
-  "ui_font_size": 13.0,
-  "buffer_font_size": 12.0,
+  "ui_font_size": 14,
+  "buffer_font_size": 13,
   "theme": {
     "mode": "system",
     "light": "One Dark",
@@ -87,7 +88,7 @@
   "agent_ui_font_family": ".SystemUIFont",
   "agent_ui_font_size": 14,
   "agent_buffer_font_family": "D2CodingLigature Nerd Font Mono",
-  "agent_buffer_font_size": 13,
+  "agent_buffer_font_size": 14,
   "agent": {
     // Collapsed cards keep the thread readable; expand on click.
     "expand_edit_card": false,
