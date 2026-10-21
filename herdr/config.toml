@@ -135,6 +135,7 @@ tab_bar_right = [{ type = "zoom" }, { type = "datetime", format = "%H:%M" }]
 rows = [["state_icon", "$n", "state_text"], ["terminal_title_stripped"]]
 
 [experimental]
+kitty_graphics = true
 # 서버 재시작(herdr update 포함) 후에도 페인 스크롤백을 살려둔다. 기본값 false 는
 # 재시작 한 번에 떠 있던 에이전트 화면이 전부 날아간다.
 pane_history = true

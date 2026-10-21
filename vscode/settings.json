@@ -1,4 +1,5 @@
 {
+    "terminal.integrated.enableImages": true,
     "terminal.integrated.mouseWheelZoom": true,
     "editor.mouseWheelZoom": true,
     "geminicodeassist.project": "effortless-pulsar-mdpsm",
