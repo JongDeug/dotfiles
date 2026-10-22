@@ -163,7 +163,7 @@ async function start($: EngineInterface): Promise<void> {
   await initCache($, 'terminal')
   cwd = await $.session.cwd()
   home = (await $.env.get('HOME')) ?? ''
-  // effort 는 훅 모듈에 바로 오지 않는다 — 설정 파일에서 읽는다.
+  // 첫 요청 전까지 보일 effort — 설정 파일에서 읽는다. 요청이 가면 turn.step 이 실제 값으로 바꾼다.
   const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${home}/.claude`
   effort = (await $.env.get('CLAUDE_EFFORT')) || (await sh($, ['node', '-e', `try{console.log(require(${JSON.stringify(`${dir}/settings.json`)}).effortLevel||'')}catch{}`]))
   await Promise.all([refreshGit($), refreshUsage($)])
@@ -690,7 +690,15 @@ export const register: Register = (on, options) => {
 
 
   on('turn.step', async function* ($, e, next) {
-    if (!e.agentId) cache.lastRequestAt = await $.clock.now()
+    if (!e.agentId) {
+      cache.lastRequestAt = await $.clock.now()
+      // 엔진이 이 요청에 실은 effort — /effort 로 세션에서만 바꾼 값(max)은 설정 파일에 없다.
+      const level = String(e.effort ?? '')
+      if (level !== effort) {
+        effort = level
+        $.ui.invalidate('ui.render')
+      }
+    }
     yield* next(e)
   })
 

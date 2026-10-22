@@ -705,4 +705,18 @@ describe('board band', () => {
     expect((await ui.find({ text: /^ 63% $/ }))?.text).toBe(' 63% ')
     expect((await ui.find({ text: /^⟲ 4h 46m $/ }))?.text).toBe('⟲ 4h 46m ')
   })
+
+  test('effort 는 요청에 실린 값 — /effort 로 세션에서만 바꾼 max 도 설정 파일 값 대신 보인다', async ($, on) => {
+    mock.clock(on, { now: START })
+    world(on, [])
+    shell(on)
+    on('turn.step', async function* ($, e) {
+      return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
+    })
+    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
+    await ui.find({ text: /develop/ })
+    expect(await ui.find({ text: /^ max $/ })).toBe(undefined)
+    await $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'max', messageCount: 1 }).next()
+    expect((await ui.find({ text: /^ max $/ }))?.text).toBe(' max ')
+  })
 })
