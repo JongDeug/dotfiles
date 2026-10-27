@@ -78,20 +78,22 @@ describe('판단 큐', () => {
   const env = { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' }
   const agent = (pane_id: string, agent_status: string, slot: number) => ({ pane_id, agent_status, terminal_title_stripped: pane_id, tokens: slot ? { q: `◆${slot}` } : {} })
 
-  test('herdr 밖이면 칸이 없고, 안이면 올린 수와 이 세션 표시', async ($, on) => {
+  test('칸마다 번호와 상태 기호, 빈 칸은 ·, 이 세션이 들었으면 ○ 없음', async ($, on) => {
     mock.clock(on, { now: START })
     world(on, { env, agents: [agent('w1:p1', 'working', 2), agent('w2:p1', 'done', 1), agent('w3:p1', 'idle', 0)] })
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
-    expect((await ui.find({ text: /^ 2\/3 $/ }))?.text).toBe(' 2/3 ')
-    expect((await ui.find({ text: /◆2 이 세션/ }))?.text).toMatch(/이 세션/)
+    expect((await ui.find({ text: /^ 1 ✓ $/ }))?.text).toBe(' 1 ✓ ')
+    expect((await ui.find({ text: /^ 2 ◐ $/ }))?.text).toBe(' 2 ◐ ')
+    expect((await ui.find({ text: /^ 3 · $/ }))?.text).toBe(' 3 · ')
+    expect(await ui.find({ text: /^ ○ $/ })).toBe(undefined)
   })
 
-  test('큐 밖 세션은 ○ 큐 밖', async ($, on) => {
+  test('큐 밖 세션은 뒤에 ○', async ($, on) => {
     mock.clock(on, { now: START })
-    world(on, { env, agents: [agent('w2:p1', 'done', 1)] })
+    world(on, { env, agents: [agent('w2:p1', 'blocked', 1)] })
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
-    expect((await ui.find({ text: /○ 큐 밖/ }))?.text).toMatch(/큐 밖/)
-    expect(await ui.find({ text: /이 세션/ })).toBe(undefined)
+    expect((await ui.find({ text: /^ 1 ! $/ }))?.text).toBe(' 1 ! ')
+    expect((await ui.find({ text: /^ ○ $/ }))?.text).toBe(' ○ ')
   })
 
   test('/queue 는 꽉 차면 넣지 않고, 들어 있으면 뺀다', async ($, on) => {

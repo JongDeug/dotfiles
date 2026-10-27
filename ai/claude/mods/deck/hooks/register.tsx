@@ -820,27 +820,22 @@ export const register: Register = (on, options) => {
 
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
     const bottom: Item[] = []
-    // 판단 큐: 칸 하나 = /queue 로 올린 에이전트 하나(막힘 빨강 · 결과 나옴 노랑 · 도는 중 파랑 · 쉼 회색).
-    // 이 세션이 들었으면 뒤에 ◆ 이 세션, 아니면 ○ 큐 밖(꽉 찼으면 빨강).
+    // ── 맨 윗줄: 판단 큐 ────────────────────────────────
+    // 칸 하나 = /queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
+    // 이 세션 칸은 보라로 뒤집는다. 빈 칸은 흐린 ·, 이 세션이 큐 밖이면 뒤에 ○ (꽉 찼으면 빨강).
+    const queueLine: Item[] = []
     if (queue) {
-      const tones = queue.map(i => (i.status === 'blocked' ? C.red : i.status === 'done' ? C.yellow : i.status === 'working' ? C.blue : C.sub))
-      const n = Math.max(queueCap, tones.length)
-      const tone = tones.length >= queueCap ? C.yellow : C.green
-      const num = ` ${tones.length}/${queueCap} `
-      bottom.push(item(
-        <Text>
-          {label(tone, '판단')}
-          <Text backgroundColor={C.surface}> </Text>
-          {Array.from({ length: n }, (_, i) => <Text backgroundColor={C.surface} color={tones[i] ? soft(tones[i]) : C.overlay}>{tones[i] ? '▰' : '▱'}</Text>)}
-          <Text backgroundColor={C.surface} color={C.text} bold>{num}</Text>
-        </Text>,
-        ` 판단  ${'▰'.repeat(n)}${num}`, 1,
-      ))
-      const me = queue.find(i => i.pane === pane)
-      if (me) bottom.push(pillItem(C.mauve, C.ink, `◆${me.slot} 이 세션`, 1, { glue: true }))
-      else if (tones.length >= queueCap) bottom.push(pillItem(C.red, C.ink, '○ 큐 밖', 1, { glue: true }))
-      else bottom.push(pillItem(C.surface, C.sub, '○ 큐 밖', 1, { bold: false, glue: true }))
+      const packed = queue.length >= queueCap
+      queueLine.push(pillItem(packed ? C.yellow : C.green, C.ink, '판단', 0))
+      for (let n = 1; n <= Math.max(queueCap, queue.at(-1)?.slot ?? 0); n++) {
+        const q = queue.find(i => i.slot === n)
+        if (!q) { queueLine.push(pillItem(C.surface, C.overlay, `${n} ·`, 0, { bold: false })); continue }
+        const [tone, mark] = q.status === 'blocked' ? [C.red, '!'] : q.status === 'done' ? [C.yellow, '✓'] : q.status === 'working' ? [C.blue, '◐'] : [C.overlay, '○']
+        queueLine.push(pillItem(q.pane === pane ? C.mauve : tone, tone === C.overlay && q.pane !== pane ? C.text : C.ink, `${n} ${mark}`, 0))
+      }
+      if (!queue.some(i => i.pane === pane)) queueLine.push(packed ? pillItem(C.red, C.ink, '○', 1) : pillItem(C.surface, C.sub, '○', 1, { bold: false }))
     }
+
     if (usage) {
       const u = usage
       bottom.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0, C.green))
@@ -868,7 +863,7 @@ export const register: Register = (on, options) => {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
       bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
     }
-    if (top.length + bottom.length + bottomRight.length === 0) return below
+    if (queueLine.length + top.length + bottom.length + bottomRight.length === 0) return below
 
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
     const line = (left: Item[], right: Item[], width = cols) => {
@@ -907,13 +902,14 @@ export const register: Register = (on, options) => {
     ) : null
 
     // 말풍선: 슬라임 바로 왼쪽 위에 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다.
-    // 상자가 계기판 윗줄 오른쪽 끝에 걸치므로 그동안 윗줄 알약 폭을 그만큼 줄인다.
+    // 상자가 계기판 맨 윗줄 오른쪽 끝에 걸치므로 그동안 그 줄 알약 폭을 그만큼 줄인다.
     const bub = showPet && bubble && now < bubble.until ? bubble : null
     const boxW = bub ? cellWidth(bub.text) + 5 : 0 // 테두리 2 · 안쪽 여백 2 · 꼬리 1
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
-        {top.length ? line(top, [], cols - boxW) : null}
+        {queueLine.length ? line(queueLine, [], cols - boxW) : null}
+        {top.length ? line(top, [], queueLine.length ? cols : cols - boxW) : null}
         {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
       </Box>
     )
