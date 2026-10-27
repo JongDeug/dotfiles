@@ -76,29 +76,37 @@ describe('board band', () => {
 describe('판단 큐', () => {
   const band = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
   const env = { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' }
-  const agent = (pane_id: string, agent_status: string, q: boolean) => ({ pane_id, agent_status, terminal_title_stripped: pane_id, tokens: q ? { q: '◆' } : {} })
+  const agent = (pane_id: string, agent_status: string, slot: number) => ({ pane_id, agent_status, terminal_title_stripped: pane_id, tokens: slot ? { q: `◆${slot}` } : {} })
 
   test('herdr 밖이면 칸이 없고, 안이면 올린 수와 이 세션 표시', async ($, on) => {
     mock.clock(on, { now: START })
-    world(on, { env, agents: [agent('w1:p1', 'working', true), agent('w2:p1', 'done', true), agent('w3:p1', 'idle', false)] })
+    world(on, { env, agents: [agent('w1:p1', 'working', 2), agent('w2:p1', 'done', 1), agent('w3:p1', 'idle', 0)] })
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
     expect((await ui.find({ text: /^ 2\/3 $/ }))?.text).toBe(' 2/3 ')
-    expect((await ui.find({ text: /◆ 이 세션/ }))?.text).toMatch(/이 세션/)
+    expect((await ui.find({ text: /◆2 이 세션/ }))?.text).toMatch(/이 세션/)
+  })
+
+  test('큐 밖 세션은 ○ 큐 밖', async ($, on) => {
+    mock.clock(on, { now: START })
+    world(on, { env, agents: [agent('w2:p1', 'done', 1)] })
+    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
+    expect((await ui.find({ text: /○ 큐 밖/ }))?.text).toMatch(/큐 밖/)
+    expect(await ui.find({ text: /이 세션/ })).toBe(undefined)
   })
 
   test('/queue 는 꽉 차면 넣지 않고, 들어 있으면 뺀다', async ($, on) => {
     mock.clock(on, { now: START })
-    const full = world(on, { env, agents: [agent('w2:p1', 'done', true), agent('w3:p1', 'working', true), agent('w4:p1', 'blocked', true)] })
+    const full = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'working', 2), agent('w4:p1', 'blocked', 3)] })
     const r = await $.command.run({ command: 'queue', args: '' } as never)
     expect(String((r as { text?: string }).text)).toMatch(/꽉 찼다 \(3\/3\)/)
     expect(full.runs.some(a => a.includes('report-metadata'))).toBe(false)
   })
 
-  test('/queue 로 넣으면 q 토큰을 단다', async ($, on) => {
+  test('/queue 로 넣으면 비어 있는 가장 작은 칸 번호로 q 토큰을 단다', async ($, on) => {
     mock.clock(on, { now: START })
-    const w = world(on, { env, agents: [agent('w2:p1', 'done', true)] })
+    const w = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'done', 3)] })
     const r = await $.command.run({ command: 'queue', args: '' } as never)
-    expect(String((r as { text?: string }).text)).toMatch(/넣었다 \(2\/3\)/)
-    expect(w.runs.find(a => a.includes('report-metadata'))).toEqual(['herdr', 'pane', 'report-metadata', 'w1:p1', '--source', 'deck.queue', '--token', 'q=◆'])
+    expect(String((r as { text?: string }).text)).toMatch(/2번에 넣었다 \(3\/3\)/)
+    expect(w.runs.find(a => a.includes('report-metadata'))).toEqual(['herdr', 'pane', 'report-metadata', 'w1:p1', '--source', 'deck.queue', '--token', 'q=◆2'])
   })
 })

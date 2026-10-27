@@ -4,13 +4,13 @@ import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed
 
 test('판단 큐는 q 토큰 단 에이전트만', () => {
   const json = JSON.stringify({ result: { agents: [
-    { pane_id: 'w1:p1', agent_status: 'working', terminal_title_stripped: 'chaos', tokens: { q: '◆', n: '1' } },
+    { pane_id: 'w1:p1', agent_status: 'working', terminal_title_stripped: 'chaos', tokens: { q: '◆3', n: '1' } },
     { pane_id: 'w1:p2', agent_status: 'done', tokens: { n: '2' } },
-    { pane_id: 'w2:p1', agent_status: 'blocked', tokens: { q: '◆' } },
+    { pane_id: 'w2:p1', agent_status: 'blocked', tokens: { q: '◆1' } },
   ] } })
   expect(queueOf(json)).toEqual([
-    { pane: 'w1:p1', status: 'working', title: 'chaos' },
-    { pane: 'w2:p1', status: 'blocked', title: 'w2:p1' },
+    { pane: 'w2:p1', status: 'blocked', title: 'w2:p1', slot: 1 },
+    { pane: 'w1:p1', status: 'working', title: 'chaos', slot: 3 },
   ])
   expect(queueOf('')).toBe(null)
   expect(queueOf('{"result":{}}')).toBe(null)

@@ -8,7 +8,7 @@ import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
-import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
@@ -143,13 +143,14 @@ const refreshQueue = ($: EngineInterface) =>
 async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const q = await readQueue($)
   if (!q || !pane) return 'herdr 안의 세션에서만 쓴다'
-  const names = (items: Queued[]) => items.map(i => `- ${i.title} (${i.status})`).join('\n')
+  const names = (items: Queued[]) => items.map(i => `- ctrl+${i.slot} ${i.title} (${i.status})`).join('\n')
   if (args === 'list') return q.length ? `판단 큐 ${q.length}/${queueCap}\n${names(q)}` : `판단 큐 비었다 (0/${queueCap})`
   const mine = q.some(i => i.pane === pane)
-  if (!mine && q.length >= queueCap) return `판단 큐가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
-  await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', 'q=◆'])])
+  const slot = mine ? 0 : freeSlot(q, queueCap)
+  if (!mine && !slot) return `판단 큐가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
+  await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
   await refreshQueue($)
-  return mine ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐에 넣었다 (${q.length + 1}/${queueCap})`
+  return mine ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
 }
 
 const refreshUsage = ($: EngineInterface) =>
@@ -818,7 +819,7 @@ export const register: Register = (on, options) => {
     // ── 아랫줄: 얼마나 남았나 ───────────────────────────
     const bottom: Item[] = []
     // 판단 큐: 칸 하나 = /queue 로 올린 에이전트 하나(막힘 빨강 · 결과 나옴 노랑 · 도는 중 파랑 · 쉼 회색).
-    // 이 세션이 들었으면 뒤에 ◆ 이 세션.
+    // 이 세션이 들었으면 뒤에 ◆ 이 세션, 아니면 ○ 큐 밖(꽉 찼으면 빨강).
     if (queue) {
       const tones = queue.map(i => (i.status === 'blocked' ? C.red : i.status === 'done' ? C.yellow : i.status === 'working' ? C.blue : C.sub))
       const n = Math.max(queueCap, tones.length)
@@ -833,7 +834,10 @@ export const register: Register = (on, options) => {
         </Text>,
         ` 판단  ${'▰'.repeat(n)}${num}`, 1,
       ))
-      if (queue.some(i => i.pane === pane)) bottom.push(pillItem(C.mauve, C.ink, '◆ 이 세션', 1, { glue: true }))
+      const me = queue.find(i => i.pane === pane)
+      if (me) bottom.push(pillItem(C.mauve, C.ink, `◆${me.slot} 이 세션`, 1, { glue: true }))
+      else if (tones.length >= queueCap) bottom.push(pillItem(C.red, C.ink, '○ 큐 밖', 1, { glue: true }))
+      else bottom.push(pillItem(C.surface, C.sub, '○ 큐 밖', 1, { bold: false, glue: true }))
     }
     if (usage) {
       const u = usage

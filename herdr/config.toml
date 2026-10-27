@@ -29,9 +29,9 @@ previous_tab = "alt+left"
 next_tab = "alt+right"
 
 # prefix+1..9 는 탭, prefix+shift+1..9 는 워크스페이스.
-# 에이전트 점프는 prefix 없이 ctrl+1..9 직행 — alt 는 AeroSpace, cmd 는 iTerm 이 먹는다.
+# ctrl+1..3 은 판단 큐(deck /queue) 칸으로 — 아래 keys.command. 패널 순서 점프는 번호가 계속 바뀌어 껐다.
 switch_workspace = "prefix+shift+1..9"
-focus_agent = "ctrl+1..9"
+focus_agent = ""
 
 # 직전 페인으로 토글 (tmux 의 prefix+; ). 탭 토글(tmux prefix+l)은 herdr 에 없다.
 last_pane = "prefix+;"
@@ -109,6 +109,25 @@ type = "plugin_action"
 command = "layouts.cycle"
 description = "cycle pane layouts"
 
+# 판단 큐 칸 N 의 세션으로 (deck /queue 가 단 q=◆N). alt 는 AeroSpace, cmd 는 터미널이 먹어 ctrl.
+[[keys.command]]
+key = "ctrl+1"
+type = "plugin_action"
+command = "dotfiles.agent-numbers.queue-1"
+description = "judgment queue 1"
+
+[[keys.command]]
+key = "ctrl+2"
+type = "plugin_action"
+command = "dotfiles.agent-numbers.queue-2"
+description = "judgment queue 2"
+
+[[keys.command]]
+key = "ctrl+3"
+type = "plugin_action"
+command = "dotfiles.agent-numbers.queue-3"
+description = "judgment queue 3"
+
 [ui.sound]
 enabled = true
 
@@ -132,7 +151,7 @@ tab_bar_right = [{ type = "zoom" }, { type = "datetime", format = "%H:%M" }]
 # 소속을 보여주는 건 이 workspace 토큰뿐이라 반드시 남겨둔다 (herdr 기본 rows 도 같은 이유로 포함).
 # pane 은 `herdr pane rename` 을 해야 채워지고 36칸을 넘겨서 뺐다 — 필요하면 tab 대신 넣는다.
 [ui.sidebar.agents]
-rows = [["state_icon", "$n", "$q", "state_text"], ["terminal_title_stripped"]]
+rows = [["state_icon", { token = "$q", fg = "#d3869b", bold = true }, "state_text"], ["terminal_title_stripped"]]
 
 [experimental]
 kitty_graphics = true

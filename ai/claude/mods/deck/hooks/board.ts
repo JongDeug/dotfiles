@@ -125,18 +125,26 @@ export function fit(items: Fit[], cols: number): boolean[] {
   return keep
 }
 
-// 판단 큐 — /queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q 라 pane 이 닫히면 같이 빠진다.
-export type Queued = { pane: string; status: string; title: string }
+// 판단 큐 — /queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q(◆ + 칸 번호)라 pane 이 닫히면 같이 빠진다.
+// 칸 번호는 넣을 때 비어 있는 가장 작은 수이고 빼도 다른 칸이 당겨지지 않는다 — ctrl+N 이 늘 같은 세션으로 간다.
+export type Queued = { pane: string; status: string; title: string; slot: number }
 export function queueOf(json: string): Queued[] | null {
   try {
     const agents: unknown = JSON.parse(json)?.result?.agents
     if (!Array.isArray(agents)) return null
     return agents
       .filter(a => a?.tokens?.q)
-      .map(a => ({ pane: String(a.pane_id), status: String(a.agent_status), title: String(a.terminal_title_stripped || a.pane_id) }))
+      .map(a => ({ pane: String(a.pane_id), status: String(a.agent_status), title: String(a.terminal_title_stripped || a.pane_id), slot: Number.parseInt(String(a.tokens.q).slice(1), 10) || 0 }))
+      .sort((a, b) => a.slot - b.slot)
   } catch {
     return null
   }
+}
+
+export function freeSlot(queue: Queued[], cap: number): number {
+  const used = new Set(queue.map(i => i.slot))
+  for (let n = 1; n <= cap; n++) if (!used.has(n)) return n
+  return 0
 }
 
 // 글에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session: · 🤖 Generated with)이 들었으면 그 줄을, 아니면 null.

@@ -2,26 +2,25 @@ id = "dotfiles.agent-numbers"
 name = "Agent numbers"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-description = "Sidebar $n for Ctrl+1..9 agent jumps"
+description = "Workspace/tab N: prefixes, ctrl+N jumps to judgment-queue slot N"
 platforms = ["linux", "macos"]
 
+[[actions]]
+id = "queue-1"
+title = "judgment queue: focus slot 1"
+command = ["python3", "queue.py", "1"]
+
+[[actions]]
+id = "queue-2"
+title = "judgment queue: focus slot 2"
+command = ["python3", "queue.py", "2"]
+
+[[actions]]
+id = "queue-3"
+title = "judgment queue: focus slot 3"
+command = ["python3", "queue.py", "3"]
+
 [[startup]]
-command = ["python3", "number.py"]
-
-[[events]]
-on = "pane.agent_detected"
-command = ["python3", "number.py"]
-
-[[events]]
-on = "pane.agent_status_changed"
-command = ["python3", "number.py"]
-
-[[events]]
-on = "pane.closed"
-command = ["python3", "number.py"]
-
-[[events]]
-on = "pane.moved"
 command = ["python3", "number.py"]
 
 [[events]]

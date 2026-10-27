@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Number workspaces, tabs, and agents. Strips stacked 1: 1: prefixes first."""
+"""Number workspaces and tabs. Strips stacked 1: 1: prefixes first."""
 import json
 import re
 import subprocess
 import sys
 
-SOURCE = "dotfiles.agent-numbers"
 PREFIX = re.compile(r"^(\[\d+\]\s*·\s*|\d+\s*[-:.)]\s*)+")
 herdr = __import__("os").environ.get("HERDR_BIN_PATH", "herdr")
 
@@ -34,10 +33,37 @@ def bare(name, default):
     return name or default
 
 
+def sidebar_order(workspaces):
+    """Mirror herdr's sidebar: a repo with both a main checkout and linked worktrees
+    is drawn as one group (parents, then worktrees) at its first member's position.
+    prefix+shift+N follows this order, not creation order."""
+    # TODO: collapsed groups hide their children in the sidebar; we still count them.
+    groups = {}
+    for ws in workspaces:
+        key = (ws.get("worktree") or {}).get("repo_key")
+        if key:
+            groups.setdefault(key, []).append(ws)
+    grouped = {
+        k for k, m in groups.items()
+        if {bool(w["worktree"].get("is_linked_worktree")) for w in m} == {True, False}
+    }
+    out, emitted = [], set()
+    for ws in workspaces:
+        key = (ws.get("worktree") or {}).get("repo_key")
+        if key not in grouped:
+            out.append(ws)
+        elif key not in emitted:
+            emitted.add(key)
+            members = groups[key]
+            out += [w for w in members if not w["worktree"].get("is_linked_worktree")]
+            out += [w for w in members if w["worktree"].get("is_linked_worktree")]
+    return out
+
+
 def main():
     ws_data = load([herdr, "workspace", "list"])
     workspaces = (ws_data or {}).get("result", {}).get("workspaces", [])
-    for i, ws in enumerate(workspaces, start=1):
+    for i, ws in enumerate(sidebar_order(workspaces), start=1):
         ws_id = ws.get("workspace_id") or ws.get("id")
         label = ws.get("label") or ws.get("name") or ""
         new = f"{i}: {bare(label, 'space')}"
@@ -56,43 +82,6 @@ def main():
             new = f"{i}: {bare(label, 'tab')}"
             if tab_id and label != new:
                 run([herdr, "tab", "rename", tab_id, new])
-
-    agents = (load([herdr, "agent", "list"]) or {}).get("result", {}).get("agents", [])
-    numbered = set()
-    for i, agent in enumerate(agents[:9], start=1):
-        pane = agent.get("pane_id")
-        if not pane:
-            continue
-        numbered.add(pane)
-        run(
-            [
-                herdr,
-                "pane",
-                "report-metadata",
-                pane,
-                "--source",
-                SOURCE,
-                "--token",
-                f"n={i}",
-            ]
-        )
-
-    panes = (load([herdr, "pane", "list"]) or {}).get("result", {}).get("panes", [])
-    for pane in panes:
-        pid = pane.get("pane_id")
-        if pid and pid not in numbered:
-            run(
-                [
-                    herdr,
-                    "pane",
-                    "report-metadata",
-                    pid,
-                    "--source",
-                    SOURCE,
-                    "--clear-token",
-                    "n",
-                ]
-            )
 
 
 if __name__ == "__main__":
