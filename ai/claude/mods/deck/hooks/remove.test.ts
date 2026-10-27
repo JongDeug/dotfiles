@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { askText, decorate, disposable, porcelain, readRemoves, tokenize, whyOf } from './remove'
+import { askText, disposable, porcelain, readRemoves, tokenize, whyOf } from './remove'
 
 test('따옴표 속 rm · ; 는 명령이 아니다', () => {
   expect(tokenize(`echo "rm -rf /; x" && rm 'a b'`).map(t => t.text)).toEqual(['echo', 'rm -rf /; x', '\0', 'rm', 'a b'])
@@ -46,10 +46,3 @@ test('질문창 요약과 미리 보기', () => {
   expect(preview).toBe(['$ rm -rf build notes', '위치 ~/chaos', '', '✗ 되살릴 수 없음  1', '  notes/draft.md  (추적 안 함)', '✓ git 으로 되살림  1', '  build/a.js', '· 없는 경로  1', '  gone'].join('\n'))
 })
 
-test('deck 이 띄운 그 질문에만 설명·미리 보기를 단다', () => {
-  const a = { summary: 'S', preview: 'P' }
-  const qs = [{ question: 'Q?', header: '삭제 검수', multiSelect: false, options: [{ label: '삭제 진행' }, { label: '취소' }] }]
-  expect(decorate(qs, 'Q?', a)).toEqual([{ ...qs[0], options: [{ label: '삭제 진행', description: 'S', preview: 'P' }, { label: '취소', description: '명령을 막고 Claude 에게 취소됐다고 알린다', preview: 'P' }] }])
-  expect(decorate(qs, 'other?', a)).toBe(null)
-  expect(decorate([...qs, ...qs], 'Q?', a)).toBe(null)
-})

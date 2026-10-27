@@ -171,7 +171,9 @@ test('rm 은 삭제 검수 창에서 「삭제 진행」을 골라야 실행되�
   on('tool.call', ($, e) => {
     if (e.tool === 'AskUserQuestion') {
       asked += 1
-      return { result: { questions: e.questions, answers: { '이 삭제를 진행할까?': answer } } } as never
+      const q = e.questions[0]!.question
+      if (asked === 1) expect(q).toMatch(/^이 삭제를 진행할까\? {2}파일 2개 · 12KB — 되살릴 수 없는 것 1개\n\n\$ rm -rf notes\n위치 \/w\n[\s\S]*notes\/a\.md {2}\(추적 안 함\)/)
+      return { result: { questions: e.questions, answers: { [q]: answer } } } as never
     }
     ran.push(String((e as { command?: unknown }).command))
     return { result: { stdout: 'ok' } } as never

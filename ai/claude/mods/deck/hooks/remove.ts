@@ -192,10 +192,3 @@ export function askText(o: { command: string; dir: string; home: string; entries
   return { summary, preview: lines.join('\n') }
 }
 
-// 삭제 검수 창(questions 하나, 그 질문)이면 선택지에 설명과 대상 목록을 단 questions, 아니면 null.
-export function decorate(questions: unknown[], ask: string, a: { summary: string; preview: string }): unknown[] | null {
-  const q = questions[0] as { question?: string; options?: { label: string }[] } | undefined
-  if (questions.length !== 1 || q?.question !== ask) return null
-  const options = (q.options ?? []).map(o => ({ ...o, description: o.label === '삭제 진행' ? a.summary : '명령을 막고 Claude 에게 취소됐다고 알린다', preview: a.preview }))
-  return [{ ...q, options }]
-}

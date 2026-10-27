@@ -2,7 +2,7 @@ import type { EngineInterface, RenderElement, Register } from 'claude-code'
 
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { askText, decorate, disposable, porcelain, readRemoves, whyOf, type Entry } from './remove'
+import { askText, disposable, porcelain, readRemoves, whyOf, type Entry } from './remove'
 import { stateOf, type PetState } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
@@ -99,7 +99,6 @@ async function commitCheck($: EngineInterface, command: string): Promise<string 
 // 삭제 검수: 대상을 읽기 전용 명령(test · find · git status · git clean -n · du)으로만 모아 사람에게 묻는다.
 // null 이면 그대로 실행, 글이면 그 글로 막는다. 대상이 전부 임시·산출물 폴더면 묻지 않는다.
 const ASK = '이 삭제를 진행할까?'
-let asking: { summary: string; preview: string } | null = null
 async function removeCheck($: EngineInterface, command: string): Promise<string | null> {
   const dir = await $.session.cwd().catch(() => cwd)
   const plans = readRemoves(command, dir, home)
@@ -145,11 +144,8 @@ async function removeCheck($: EngineInterface, command: string): Promise<string 
   }
   if (!unresolved.length && (roots.every(r => disposable(r, tmp)) || entries.every(e => e.why === 'missing'))) return null
   const { summary, preview } = askText({ command, dir, home, entries, more, unresolved, kb })
-  // $.ui.ask 는 선택지 이름만 받는다 — 설명과 대상 목록(미리 보기)은 그 창을 그릴 때 끼운다(아래 AskUserQuestion 훅).
-  asking = { summary, preview }
-  const answer = await $.ui.ask(ASK, { header: '삭제 검수', options: ['삭제 진행', '취소'] }).finally(() => {
-    asking = null
-  })
+  // $.ui.ask 는 선택지 이름만 받는다 — 요약과 대상 목록은 질문 글에 함께 싣는다.
+  const answer = await $.ui.ask(`${ASK}  ${summary}\n\n${preview}`, { header: '삭제 검수', options: ['삭제 진행', '취소'] })
   if (answer === '삭제 진행') return null
   const note = answer && answer !== '취소' ? ` 사용자 메모: ${answer}` : ''
   return `deck: 사용자가 삭제 검수에서 이 삭제를 허락하지 않았다.${note} 같은 삭제를 다른 방법으로 다시 시도하지 말고, 사용자에게 어떻게 할지 묻는다.`
@@ -594,12 +590,6 @@ export const register: Register = (on, options) => {
     say(await $.clock.now().catch(() => 0), 'rm', '안 지웠어!', C.yellow, 30_000)
     return { deny: why }
   }).catch(($, e, next) => (next.called ? next(e) : { deny: 'deck: 삭제 검수를 끝내지 못해 이 명령을 막았다. 다시 시도하지 말고 사용자에게 알린다.' }))
-
-  // 삭제 검수 창에 선택지 설명과 대상 목록을 단다 — deck 이 띄운 그 질문일 때만.
-  on('ui.render', { component: 'AskUserQuestion' }, ($, e, next) => {
-    const questions = asking ? decorate(e.props.questions, ASK, asking) : null
-    return next(questions ? { ...e, props: { ...e.props, questions } } : e)
-  }).catch(($, e, next) => next(e))
 
   // 커밋·PR 에 Claude 서명을 붙이라는 엔진의 지시를 비운다 — 모델이 처음부터 안 쓰게.
   on('attribution.text', ($, e, next) => (e.kind === 'commit' || e.kind === 'pr' ? { text: '' } : next(e)))

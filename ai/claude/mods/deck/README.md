@@ -83,16 +83,23 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ## 삭제 검수
 
-함부로 지우지 않는다. Claude 가 `rm` · `rmdir` · `unlink` · `git clean -f` 를 실행하기 직전에 멈추고, 엔진의 질문창(AskUserQuestion — auto 모드에서도 사람이 고른다)으로 묻는다. **「삭제 진행」을 골라야만** 실행된다.
+함부로 지우지 않는다. Claude 가 `rm` · `rmdir` · `unlink` · `git clean -f` 를 실행하기 직전에 멈추고, 엔진의 질문창(`$.ui.ask` — auto 모드에서도 사람이 고른다)으로 묻는다. 선택지는 이름만 받으므로 요약과 대상 목록은 질문 글에 싣는다. **「삭제 진행」을 골라야만** 실행된다.
 
 ```
- ☐ 삭제 검수  이 삭제를 진행할까?
- ❯ 1. 삭제 진행   파일 14개 · 3.4MB — 되살릴 수 없는 것 3개     ┌ $ rm -rf build notes .env.local
-   2. 취소       명령을 막고 Claude 에게 취소됐다고 알린다      │ 위치 ~/Documents/chaos
-                                                           │ ✗ 되살릴 수 없음  3
-                                                           │   notes/draft.md  (추적 안 함)
-                                                           │   .env.local      (gitignore)
-                                                           │ ✓ git 으로 되살림  11
+ ☐ 삭제 검수
+ 이 삭제를 진행할까?  파일 14개 · 3.4MB — 되살릴 수 없는 것 3개
+
+ $ rm -rf build notes .env.local
+ 위치 ~/Documents/chaos
+
+ ✗ 되살릴 수 없음  3
+   notes/draft.md  (추적 안 함)
+   .env.local      (gitignore)
+ ✓ git 으로 되살림  11
+   build/index.js  …
+
+ ❯ 1. 삭제 진행
+   2. 취소
 ```
 
 - 대상은 읽기만 하는 명령으로 모은다 — `test` · `find` · `git status --ignored` · `git clean -n` · `du`. 원래 삭제 명령을 미리 돌리지 않는다.
@@ -108,6 +115,6 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 61개
+claude plugin test ai/claude/mods/deck     # 60개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```
