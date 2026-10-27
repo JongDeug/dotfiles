@@ -31,6 +31,7 @@ export const HELP: HelpSection[] = [
     title: '🔒 저절로 하는 일',
     rows: [
       ['커밋 검문', 'git-commit 스킬 규칙(서명 줄 · add -A · 제목 type · 브랜치 · 본문 줄바꿈·표 · 팀 레포 develop)에 걸리면 실행 전에 돌려보낸다'],
+      ['삭제 검수', 'rm · rmdir · git clean -f 는 실행 전에 대상(되살릴 수 없는 것 ✗)을 보여 주고 「삭제 진행」을 골라야 지운다'],
     ],
   },
   {

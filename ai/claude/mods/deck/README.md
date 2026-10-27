@@ -81,12 +81,33 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 | `pet` | `slime` | `off` 면 안 띄움 |
 | `style` | `clean` | `sketch` 면 손그림 — 다이어그램은 rough 선·손글씨체, 차트는 흔들리는 모양을 단색으로 채우고 축·글자도 손그림 |
 
+## 삭제 검수
+
+함부로 지우지 않는다. Claude 가 `rm` · `rmdir` · `unlink` · `git clean -f` 를 실행하기 직전에 멈추고, 엔진의 질문창(AskUserQuestion — auto 모드에서도 사람이 고른다)으로 묻는다. **「삭제 진행」을 골라야만** 실행된다.
+
+```
+ ☐ 삭제 검수  이 삭제를 진행할까?
+ ❯ 1. 삭제 진행   파일 14개 · 3.4MB — 되살릴 수 없는 것 3개     ┌ $ rm -rf build notes .env.local
+   2. 취소       명령을 막고 Claude 에게 취소됐다고 알린다      │ 위치 ~/Documents/chaos
+                                                           │ ✗ 되살릴 수 없음  3
+                                                           │   notes/draft.md  (추적 안 함)
+                                                           │   .env.local      (gitignore)
+                                                           │ ✓ git 으로 되살림  11
+```
+
+- 대상은 읽기만 하는 명령으로 모은다 — `test` · `find` · `git status --ignored` · `git clean -n` · `du`. 원래 삭제 명령을 미리 돌리지 않는다.
+- ✗ 되살릴 수 없음 = git 밖 · 추적 안 함 · gitignore · 고친 채(커밋 전). ✓ = 커밋돼 있고 그대로인 파일.
+- 앞의 `cd x &&`, `-C`, `sudo` · `VAR=값` 은 따라간다. 글롭 · `$변수` · `xargs` 는 미리 펼치지 않고 「대상 확정 못 함 ⚠」으로 묻는다.
+- 묻지 않는 곳: 대상이 **전부** `/tmp` · `$TMPDIR` · `/var/folders` 또는 `node_modules` · `dist` · `build` · `.next` · `.cache` · `__pycache__` · `.turbo` · `coverage` 안일 때, 그리고 대상이 다 없는 경로일 때.
+- 취소 · Other 에 적은 글 · 창을 못 띄움(`-p`) · 검사 중 오류는 모두 **막는다**. Other 에 적은 글은 Claude 에게 메모로 간다.
+- 못 잡는 것: 별칭, 스크립트 · `sh -c` 안의 삭제, `find -delete`, `git reset --hard` 같은 되돌리기. 권한 설정과 함께 쓴다.
+
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기·Decision Queue 읽기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기·Decision Queue 읽기), `commit.ts`(커밋 검문), `remove.ts`(삭제 검수), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 52개
+claude plugin test ai/claude/mods/deck     # 61개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```
