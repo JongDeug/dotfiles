@@ -11,7 +11,7 @@ import { splitAll } from './blocks'
 import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
-// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 판단 큐와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
+// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 Decision Queue와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
@@ -144,10 +144,10 @@ async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const q = await readQueue($)
   if (!q || !pane) return 'herdr 안의 세션에서만 쓴다'
   const names = (items: Queued[]) => items.map(i => `- ctrl+${i.slot} ${i.title} (${i.status})`).join('\n')
-  if (args === 'list') return q.length ? `판단 큐 ${q.length}/${queueCap}\n${names(q)}` : `판단 큐 비었다 (0/${queueCap})`
+  if (args === 'list') return q.length ? `Decision Queue ${q.length}/${queueCap}\n${names(q)}` : `Decision Queue 비었다 (0/${queueCap})`
   const mine = q.some(i => i.pane === pane)
   const slot = mine ? 0 : freeSlot(q, queueCap)
-  if (!mine && !slot) return `판단 큐가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
+  if (!mine && !slot) return `Decision Queue가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
   await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
   // 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 한 곳에서 다시 계산한다.
   await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
@@ -234,7 +234,7 @@ async function registerCommands($: EngineInterface): Promise<void> {
   })
   await $.command.register({
     name: 'queue',
-    description: '판단 큐: 이 세션을 넣고 뺀다(토글). 꽉 차면 안 넣는다. list 는 지금 큐',
+    description: 'Decision Queue: 이 세션을 넣고 뺀다(토글). 꽉 차면 안 넣는다. list 는 지금 큐',
     argumentHint: '[list]',
     immediate: true,
   })
@@ -818,14 +818,14 @@ export const register: Register = (on, options) => {
       top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
 
-    // ── 윗줄: 판단 큐 + 얼마나 남았나 ───────────────────
+    // ── 윗줄: Decision Queue + 얼마나 남았나 ───────────────────
     const bottom: Item[] = []
     // 칸 하나 = /queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
     // 이 세션 칸은 보라로 뒤집는다. 빈 칸은 흐린 ·, 이 세션이 큐 밖이면 뒤에 ○ (꽉 찼으면 빨강).
     const queueLine: Item[] = []
     if (queue) {
       const packed = queue.length >= queueCap
-      queueLine.push(pillItem(packed ? C.yellow : C.green, C.ink, '판단', 0))
+      queueLine.push(pillItem(packed ? C.yellow : C.green, C.ink, 'Decision Queue', 0))
       for (let n = 1; n <= Math.max(queueCap, queue.at(-1)?.slot ?? 0); n++) {
         const q = queue.find(i => i.slot === n)
         if (!q) { queueLine.push(pillItem(C.surface, C.overlay, `${n} ·`, 0, { bold: false })); continue }

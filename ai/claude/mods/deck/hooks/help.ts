@@ -8,12 +8,12 @@ export const HELP: HelpSection[] = [
     title: '📊 계기판 — 입력창 위 두 줄',
     rows: [
       ['위치 줄', '경로 · 브랜치 · 모델 · 바뀐 파일(올리면 목록) · CI'],
-      ['남은 양 줄', '판단 큐 · CTX · 5H · 7D 게이지와 리셋까지 · 작업 중/지난 턴'],
+      ['남은 양 줄', 'Decision Queue · CTX · 5H · 7D 게이지와 리셋까지 · 작업 중/지난 턴'],
       ['좁으면', '덜 중요한 알약부터 뺀다'],
     ],
   },
   {
-    title: '◆ 판단 큐 — herdr 안에서',
+    title: '◆ Decision Queue — herdr 안에서',
     rows: [
       ['/queue', '이 세션을 큐에 넣고 뺀다(토글). 꽉 차면 안 넣는다'],
       ['/queue list', '지금 큐'],

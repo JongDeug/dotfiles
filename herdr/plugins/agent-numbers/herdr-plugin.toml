@@ -2,27 +2,27 @@ id = "dotfiles.agent-numbers"
 name = "Agent numbers"
 version = "0.1.0"
 min_herdr_version = "0.8.0"
-description = "Workspace/tab N: prefixes, ctrl+N jumps to judgment-queue slot N"
+description = "Workspace/tab N: prefixes, ctrl+N jumps to decision-queue slot N"
 platforms = ["linux", "macos"]
 
 [[actions]]
 id = "queue-1"
-title = "judgment queue: focus slot 1"
+title = "decision queue: focus slot 1"
 command = ["python3", "queue.py", "1"]
 
 [[actions]]
 id = "queue-2"
-title = "judgment queue: focus slot 2"
+title = "decision queue: focus slot 2"
 command = ["python3", "queue.py", "2"]
 
 [[actions]]
 id = "queue-3"
-title = "judgment queue: focus slot 3"
+title = "decision queue: focus slot 3"
 command = ["python3", "queue.py", "3"]
 
 [[actions]]
 id = "queue-sync"
-title = "judgment queue: mirror slots onto workspace rows"
+title = "decision queue: mirror slots onto workspace rows"
 command = ["python3", "queue.py", "sync"]
 
 [[startup]]

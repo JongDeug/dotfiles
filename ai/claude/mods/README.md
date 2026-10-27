@@ -4,7 +4,7 @@
 
 | mod | 하는 일 | 상태 |
 |---|---|---|
-| [deck](deck/) | **Flight Deck** — 입력창 위 계기판(statusline 대체)·판단 큐, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane | 사용 |
+| [deck](deck/) | **Flight Deck** — 입력창 위 계기판(statusline 대체)·Decision Queue, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane | 사용 |
 | [web](web/) | pane 안 헤드리스 Chrome | 꺼 둠 — 공식 terminal-browser 플러그인(`/browser`)으로 대체 |
 
 예전의 board · chart · img · mermaid 는 deck 하나로 합쳤다(2026-10-08) — 한 화면이라 테마·크게 보기·설치를 한 번에.

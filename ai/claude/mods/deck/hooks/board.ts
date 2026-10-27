@@ -125,7 +125,7 @@ export function fit(items: Fit[], cols: number): boolean[] {
   return keep
 }
 
-// 판단 큐 — /queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q(◆ + 칸 번호)라 pane 이 닫히면 같이 빠진다.
+// Decision Queue — /queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q(◆ + 칸 번호)라 pane 이 닫히면 같이 빠진다.
 // 칸 번호는 넣을 때 비어 있는 가장 작은 수이고 빼도 다른 칸이 당겨지지 않는다 — ctrl+N 이 늘 같은 세션으로 간다.
 export type Queued = { pane: string; status: string; title: string; slot: number }
 export function queueOf(json: string): Queued[] | null {

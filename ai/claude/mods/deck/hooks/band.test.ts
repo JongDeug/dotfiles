@@ -73,7 +73,7 @@ describe('board band', () => {
   })
 })
 
-describe('판단 큐', () => {
+describe('Decision Queue', () => {
   const band = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
   const env = { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' }
   const agent = (pane_id: string, agent_status: string, slot: number) => ({ pane_id, agent_status, terminal_title_stripped: pane_id, tokens: slot ? { q: `◆${slot}` } : {} })
