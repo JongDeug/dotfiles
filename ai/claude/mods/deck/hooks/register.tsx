@@ -11,7 +11,7 @@ import { splitAll } from './blocks'
 import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
-// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "어디서 무엇을", 아랫줄은 "얼마나 남았나".
+// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 판단 큐와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
@@ -788,7 +788,7 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // ── 윗줄: 어디서 ────────────────────────────────────
+    // ── 아랫줄: 어디서 ──────────────────────────────────
     const top: Item[] = []
     if (cwd) top.push(pillItem(C.yellow, C.ink, `📁 ${shortPath(cwd, home)}`, 1))
     if (git) {
@@ -818,9 +818,8 @@ export const register: Register = (on, options) => {
       top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
 
-    // ── 아랫줄: 얼마나 남았나 ───────────────────────────
+    // ── 윗줄: 판단 큐 + 얼마나 남았나 ───────────────────
     const bottom: Item[] = []
-    // ── 맨 윗줄: 판단 큐 ────────────────────────────────
     // 칸 하나 = /queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
     // 이 세션 칸은 보라로 뒤집는다. 빈 칸은 흐린 ·, 이 세션이 큐 밖이면 뒤에 ○ (꽉 찼으면 빨강).
     const queueLine: Item[] = []
@@ -902,15 +901,14 @@ export const register: Register = (on, options) => {
     ) : null
 
     // 말풍선: 슬라임 바로 왼쪽 위에 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다.
-    // 상자가 계기판 맨 윗줄 오른쪽 끝에 걸치므로 그동안 그 줄 알약 폭을 그만큼 줄인다.
+    // 상자가 계기판 윗줄 오른쪽 끝에 걸치므로 그동안 윗줄 알약 폭을 그만큼 줄인다.
     const bub = showPet && bubble && now < bubble.until ? bubble : null
     const boxW = bub ? cellWidth(bub.text) + 5 : 0 // 테두리 2 · 안쪽 여백 2 · 꼬리 1
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
-        {queueLine.length ? line(queueLine, [], cols - boxW) : null}
-        {top.length ? line(top, [], queueLine.length ? cols : cols - boxW) : null}
-        {bottom.length + bottomRight.length ? line(bottom, bottomRight) : null}
+        {queueLine.length + bottom.length + bottomRight.length ? line([...queueLine, ...bottom], bottomRight, cols - boxW) : null}
+        {top.length ? line(top, []) : null}
       </Box>
     )
     const bubbleEl = bub ? (
