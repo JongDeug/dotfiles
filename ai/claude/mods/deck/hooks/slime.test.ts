@@ -5,7 +5,7 @@ import { SLIME_COLS, slimeRows } from './slime'
 import { C, setTheme } from './theme'
 
 test('슬라임은 4줄, 줄마다 21칸 — 어느 상태·어느 때든', () => {
-  for (const state of ['work', 'idle', 'cold', 'hurt', 'tired'] as const)
+  for (const state of ['work', 'idle', 'hurt', 'tired'] as const)
     for (let now = 0; now < 12_000; now += 250) {
       const rows = slimeRows(state, now)
       expect(rows.length).toBe(4)
@@ -35,11 +35,10 @@ test('테마가 바뀌면 슬라임 색도 그 테마의 노랑으로', () => {
   setTheme('gruvbox')
 })
 
-test('상태: 일하는 중 > 다침 > 지침 > 캐시 식음 > 쉬는 중', () => {
-  const base = { working: false, hurtUntil: 0, now: 100, fiveHour: 10, cold: false }
-  expect(stateOf({ ...base, working: true, hurtUntil: 200, cold: true })).toBe('work')
+test('상태: 일하는 중 > 다침 > 지침 > 쉬는 중', () => {
+  const base = { working: false, hurtUntil: 0, now: 100, fiveHour: 10 }
+  expect(stateOf({ ...base, working: true, hurtUntil: 200 })).toBe('work')
   expect(stateOf({ ...base, hurtUntil: 200, fiveHour: 90 })).toBe('hurt')
-  expect(stateOf({ ...base, fiveHour: 85, cold: true })).toBe('tired')
-  expect(stateOf({ ...base, cold: true })).toBe('cold')
+  expect(stateOf({ ...base, fiveHour: 85 })).toBe('tired')
   expect(stateOf(base)).toBe('idle')
 })

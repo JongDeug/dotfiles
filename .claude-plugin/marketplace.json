@@ -9,7 +9,7 @@
     {
       "name": "deck",
       "source": "./ai/claude/mods/deck",
-      "description": "Flight Deck — 입력창 위 계기판(statusline 대체)·프롬프트 캐시 keepwarm, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane. herdr 테마(gruvbox)."
+      "description": "Flight Deck — 입력창 위 계기판(statusline 대체)·판단 큐, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane. herdr 테마(gruvbox)."
     },
     {
       "name": "web",

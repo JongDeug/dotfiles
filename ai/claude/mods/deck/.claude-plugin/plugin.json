@@ -1,7 +1,7 @@
 {
   "name": "deck",
-  "version": "0.9.1",
-  "description": "Flight Deck — Claude Code 화면 한 벌: 입력창 위 두 줄 계기판(statusline 대체)·프롬프트 캐시 keepwarm·커밋 검문, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane·접기, 오른쪽 끝 펫(노란 슬라임). herdr 테마를 따라 색이 바뀐다(18개).",
+  "version": "0.10.0",
+  "description": "Flight Deck — Claude Code 화면 한 벌: 입력창 위 두 줄 계기판(statusline 대체)·판단 큐(/queue)·커밋 검문, 답 속 mermaid·chart·이미지를 그림으로, 크게 보기 pane·접기, 오른쪽 끝 펫(노란 슬라임). herdr 테마를 따라 색이 바뀐다(18개).",
   "author": {
     "name": "JongDeug",
     "url": "https://github.com/JongDeug"
@@ -52,6 +52,14 @@
         "slime",
         "off"
       ]
+    },
+    "queue_cap": {
+      "type": "number",
+      "title": "판단 큐 칸 수",
+      "description": "/queue 로 동시에 올릴 수 있는 세션 수. 꽉 차면 /queue 가 더 넣지 않는다.",
+      "default": 3,
+      "min": 1,
+      "max": 9
     }
   }
 }

@@ -1,14 +1,13 @@
 // 펫 공용: 지금 상태를 고르고, 픽셀 판을 반 칸 블록 글자로 바꾼다. $ 를 안 쓴다.
 
-// work 일하는 중 · hurt 커밋 검문·도구 오류 뒤 · tired 5H 한도 80% 넘음 · cold 캐시 식음 · idle 쉬는 중
-export type PetState = 'work' | 'idle' | 'cold' | 'hurt' | 'tired'
+// work 일하는 중 · hurt 커밋 검문·도구 오류 뒤 · tired 5H 한도 80% 넘음 · idle 쉬는 중
+export type PetState = 'work' | 'idle' | 'hurt' | 'tired'
 
-// 앞에 있는 것이 이긴다: 일하는 중 > 다침 > 지침 > 캐시 식음 > 쉬는 중.
-export function stateOf(s: { working: boolean; hurtUntil: number; now: number; fiveHour?: number; cold: boolean }): PetState {
+// 앞에 있는 것이 이긴다: 일하는 중 > 다침 > 지침 > 쉬는 중.
+export function stateOf(s: { working: boolean; hurtUntil: number; now: number; fiveHour?: number }): PetState {
   if (s.working) return 'work'
   if (s.hurtUntil > s.now) return 'hurt'
   if ((s.fiveHour ?? 0) >= 80) return 'tired'
-  if (s.cold) return 'cold'
   return 'idle'
 }
 

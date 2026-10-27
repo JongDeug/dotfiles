@@ -109,7 +109,7 @@ test('/deck 은 안내를 글로 찍고, 등록한 명령은 모두 안내에 �
   expect(text).toMatch(/  scale · max_rows +그림 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck', '/keepwarm', '/cache']) expect(keys).toContain(name)
+  for (const name of ['/deck', '/queue']) expect(keys).toContain(name)
 })
 
 test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운다', async ($, on) => {
@@ -123,7 +123,7 @@ test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운
   on('ui.toast', ($, e) => (toasts.push(String(e.text)), { value: undefined }) as never)
   const r = await $.command.run({ command: 'deck', args: 'sync' } as never)
   expect(String((r as { text?: string }).text)).toMatch(/리로드하는 중/)
-  for (let i = 0; i < 5; i++) await Promise.resolve() // 기다리지 않고 돌린 sync 가 끝나게
+  for (let i = 0; i < 50 && !toasts.length; i++) await Promise.resolve() // 기다리지 않고 돌린 sync 가 끝나게
   expect(ran.some(c => c.endsWith('/bin/sync.mjs'))).toBe(true)
   expect(toasts).toContain('deck sync: deck 설치: .claude 0.4.5 — 세션 리로드 2')
 })

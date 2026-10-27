@@ -1,6 +1,20 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, queueOf, shortPath, tokensOf, untilText } from './board'
+
+test('판단 큐는 q 토큰 단 에이전트만', () => {
+  const json = JSON.stringify({ result: { agents: [
+    { pane_id: 'w1:p1', agent_status: 'working', terminal_title_stripped: 'chaos', tokens: { q: '◆', n: '1' } },
+    { pane_id: 'w1:p2', agent_status: 'done', tokens: { n: '2' } },
+    { pane_id: 'w2:p1', agent_status: 'blocked', tokens: { q: '◆' } },
+  ] } })
+  expect(queueOf(json)).toEqual([
+    { pane: 'w1:p1', status: 'working', title: 'chaos' },
+    { pane: 'w2:p1', status: 'blocked', title: 'w2:p1' },
+  ])
+  expect(queueOf('')).toBe(null)
+  expect(queueOf('{"result":{}}')).toBe(null)
+})
 
 test('git 상태와 변경 줄 수', () => {
   const status = [

@@ -3,7 +3,7 @@
 `/deck` — 하는 일과 명령을 한 장으로 대화에 찍는다.
 `/deck sync` — push 한 deck 을 `~/.claude`·`~/.claude-work` 에 깔고, herdr 안의 쉬는 Claude 세션에 `/reload-plugins` 를 보낸다(작업 중·입력 중·부른 세션은 건너뜀). 끝나면 알림으로 요약.
 
-Claude Code 화면 한 벌. 입력창 위 계기판, 답 속 그림, 크게 보기 pane, 프롬프트 캐시 keepwarm 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
+Claude Code 화면 한 벌. 입력창 위 계기판, 판단 큐, 답 속 그림, 크게 보기 pane 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
 
 ```
 /plugin marketplace add JongDeug/dotfiles
@@ -14,22 +14,21 @@ Claude Code 화면 한 벌. 입력창 위 계기판, 답 속 그림, 크게 보�
 
 ```
  📁 ~/…/com.m1ucs/detector   ⎇ develop ↑1   ◆ Opus 5.5  high   ● 1 +0 −0   CI ✓ build · 3분 전
- CTX ▰▰▰▰▰▱▱▱ 63%   5H ▱▱▱▱▱▱▱▱ 6% ⟲ 4h 46m   7D ▰▰▰▱▱▱▱▱ 40% ⟲ 2d 16h   $97.87 🔥 $2.0/h   ☕ 캐시 42m 남음      ⠹ 12s  Bash  도구 3
+ 판단 ▰▰▱ 2/3   CTX ▰▰▰▰▰▱▱▱ 63%   5H ▱▱▱▱▱▱▱▱ 6% ⟲ 4h 46m   7D ▰▰▰▱▱▱▱▱ 40% ⟲ 2d 16h      ⠹ 12s  Bash  도구 3
 ```
 
 - **윗줄 — 어디서**: 경로(노랑), 브랜치(↑↓, 아쿠아), 모델·effort(주황), 바뀐 파일 수와 +/− 줄, CI(GitHub `gh` · GitLab `glab`, 현재 브랜치 마지막 실행). 변경 알약에 포인터를 올리면 파일 목록이 위로 펼쳐진다.
-- **아랫줄 — 얼마나 남았나**: 컨텍스트(늘 초록)·5시간·7일을 같은 ▰▱ 8칸 게이지로(한도는 50%·80% 에서 초록 → 노랑 → 빨강, 초기화까지 남은 시간), 비용과 시간당 소모율, 프롬프트 캐시. 오른쪽 끝은 도는 동안 스피너·경과·지금 도구·도구/편집/에이전트 수, 끝나면 `지난 턴 …`.
-- **좁은 pane** — 한 줄에 안 들어가면 덜 중요한 것부터 뺀다(지난 턴 → 깨끗 표시 → 🔥/h → 초기화 시각 → effort · 캐시 설명 → CI · 비용 → 7D …). 브랜치·경로·CTX 는 끝까지 남는다.
+- **아랫줄 — 얼마나 남았나**: 맨 앞은 **판단 큐**(herdr 안에서만, 아래). 그다음 컨텍스트(늘 초록)·5시간·7일을 같은 ▰▱ 8칸 게이지로(한도는 50%·80% 에서 초록 → 노랑 → 빨강, 초기화까지 남은 시간). 오른쪽 끝은 도는 동안 스피너·경과·지금 도구·도구/편집/에이전트 수, 끝나면 `지난 턴 …`.
+- **좁은 pane** — 한 줄에 안 들어가면 덜 중요한 것부터 뺀다(지난 턴 → 깨끗 표시 → 초기화 시각 → effort → CI → 7D …). 브랜치·경로·CTX 는 끝까지 남는다.
 - 갱신: 도는 동안 0.25초(스피너), 컨텍스트·한도 5초, git 10초(명령·편집이 끝날 때도), CI 1분. 값은 `$.session.usage()`(statusline 과 같은 숫자), `$.session.model()`, git·gh·glab. effort 는 요청마다 엔진이 실어 보낸 값(`turn.step`)이라 `/effort max` 처럼 세션에서만 바꾼 것도 맞게 보인다. 첫 요청 전엔 설정 파일의 `effortLevel`.
 
-## 프롬프트 캐시 — keepwarm · 식은 채 보내기 경고
+## 판단 큐 — `/queue`
 
-[cache-tax](https://github.com/karanb192/claude-code-mods) 2.2.1(Karan Bansal, MIT — `LICENSE-cache-tax`)을 합쳤다. 동작은 원본 그대로이고 그리기는 아랫줄 캐시 알약이 맡는다.
+지금 내 판단이 필요한 일을 직접 올려 두는 칸이다(동시에 판단할 수 있는 일은 몇 개뿐이라는 생각에서 — 기본 3칸, 설정 `queue_cap`).
 
-- `/keepwarm` — 쉬는 동안 캐시를 데워 둔다. 그냥 치면 6시간, `90m` 같은 시간, `always`(세션마다 자동), `off`, `status`. 마지막 요청 뒤 50분 쉬면 짧은 핑을 보낸다(토큰을 쓴다). 핑이 캐시를 다시 쓰면(이미 식었으면) 스스로 멈춘다.
-- **식은 채 보내기 경고** — 컨텍스트가 5만 토큰을 넘는데 캐시가 식었으면 첫 메시지를 한 번 막고 다시 쓰는 값을 보인다. 다시 보내면 들어간다. `/cache guard warn` 이면 막지 않고 값만 보인다.
-- `/cache` — 상태 카드: 식은 비용, keepwarm, 손익분기, 이 세션에 낸 식은 쓰기.
-- 알약: `☕ 캐시 42m 남음 · keepwarm 5h12m · 핑 8m 뒤` → 식으면 `🧊 캐시 식음 · 다음 요청이 371k 다시 씀 ≈$3.71`, 멈추면 `⏸ keepwarm 멈춤 · 이유`.
+- `/queue` — 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않고 지금 큐를 보인다. `/queue list` 는 지금 큐.
+- 계기판: `판단 ▰▰▱ 2/3`, 칸 색은 그 일의 상태(막힘 빨강 · 결과 나옴 노랑 · 도는 중 파랑 · 쉼 회색). 이 세션이 들었으면 뒤에 `◆ 이 세션`.
+- 표시는 herdr pane 메타데이터 토큰 `q`(source `deck.queue`)다. pane 이 닫히면 같이 빠지고, herdr 사이드바 에이전트 줄의 `$q` 가 같은 표시를 그린다. 모든 세션이 5초마다 `herdr agent list` 로 읽는다.
 
 ## 답 속 그림
 
@@ -63,8 +62,8 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 계기판 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
 
 - 슬라임(21칸 × 4줄): 바닥에 앉은 반타원 젤리를 너비·높이·기울기·위치로 그때그때 계산해 찍는다(`slime.ts`). 일하는 동안엔 깜빡이다 왼쪽을 힐끔 보고, 왼쪽으로 사르륵 녹아 흘러가 사라졌다가(바닥 자국이 말라 간다) 오른쪽 위에서 뚝 떨어져 뿅 하고 다시 선다.
-- 사건이 있으면 슬라임 왼쪽에 말풍선 상자가 3초 뜬다: 커밋 성공(냠! 커밋 깔끔 ✓) · 검문에 걸림 · 도구 오류 · 1분 넘은 턴 끝 · 캐시가 식는 순간 · keepwarm 핑 · 5H 80% 넘는 순간 · CI 실패 · 세션 시작. 같은 말은 10분에 한 번, 띠 높이는 그대로다.
-- 기다리는 동안엔 천천히 숨만 쉬고(가끔 깜빡), 캐시가 식으면 웅덩이로 꾸벅, 커밋 검문·도구 오류 뒤 20초는 시무룩, 5H 한도 80% 넘으면 지쳐서 납작.
+- 사건이 있으면 슬라임 왼쪽에 말풍선 상자가 3초 뜬다: 커밋 성공(냠! 커밋 깔끔 ✓) · 검문에 걸림 · 도구 오류 · 1분 넘은 턴 끝 · 5H 80% 넘는 순간 · CI 실패 · 세션 시작. 같은 말은 10분에 한 번, 띠 높이는 그대로다.
+- 기다리는 동안엔 천천히 숨만 쉬고(가끔 깜빡), 커밋 검문·도구 오류 뒤 20초는 시무룩, 5H 한도 80% 넘으면 지쳐서 납작.
 - `/pet off` 는 이 세션에서만 숨기고 `/pet` 은 다시 띄운다.
 
 ## 테마
@@ -83,10 +82,10 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·핑·저장·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `cache.ts`·`cacheview.ts`(keepwarm 문구·캐시 알약), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기·판단 큐 읽기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck
-claude plugin test ai/claude/mods/deck     # 88개
+claude plugin test ai/claude/mods/deck     # 52개
 node ai/claude/mods/deck/bin/check.mjs     # mermaid 글꼴 점검 (npm ci 뒤)
 ```

@@ -113,10 +113,9 @@ function build() {
     { ms: 150, px: draw({ cx: HOME, a: 6.4, b: 6.3, eyes: 'closed' }) },
   ]
   const BREATH_MS = BREATH.reduce((n, step) => n + step.ms, 0)
-  const PUDDLE = (z: boolean) => draw({ cx: HOME, a: 7.5, b: 3, eyes: 'closed' }, [], z ? [[HOME + 6, 2, K.z], [HOME + 7, 1, K.z]] : [[HOME + 6, 3, K.z]])
   const SAD = draw({ cx: HOME, a: 6.5, b: 6, eyes: 'sad' })
   const TIRED = draw({ cx: HOME, a: 8, b: 4, eyes: 'closed' })
-  return { GLIDE, GLIDE_MS, BREATH, BREATH_MS, PUDDLE: [PUDDLE(false), PUDDLE(true)], SAD, TIRED }
+  return { GLIDE, GLIDE_MS, BREATH, BREATH_MS, SAD, TIRED }
 }
 
 // 테마가 바뀌면 색을 다시 받아 프레임을 새로 만든다.
@@ -131,7 +130,6 @@ function frames() {
 
 export function slimeRows(state: PetState, now: number): Run[][] {
   const f = frames()
-  if (state === 'cold') return runsOf(f.PUDDLE[Math.floor(now / 1000) % 2]!)
   if (state === 'hurt') return runsOf(f.SAD)
   if (state === 'tired') return runsOf(f.TIRED)
   const [steps, total] = state === 'idle' ? [f.BREATH, f.BREATH_MS] : [f.GLIDE, f.GLIDE_MS]

@@ -125,6 +125,20 @@ export function fit(items: Fit[], cols: number): boolean[] {
   return keep
 }
 
+// 판단 큐 — /queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q 라 pane 이 닫히면 같이 빠진다.
+export type Queued = { pane: string; status: string; title: string }
+export function queueOf(json: string): Queued[] | null {
+  try {
+    const agents: unknown = JSON.parse(json)?.result?.agents
+    if (!Array.isArray(agents)) return null
+    return agents
+      .filter(a => a?.tokens?.q)
+      .map(a => ({ pane: String(a.pane_id), status: String(a.agent_status), title: String(a.terminal_title_stripped || a.pane_id) }))
+  } catch {
+    return null
+  }
+}
+
 // 글에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session: · 🤖 Generated with)이 들었으면 그 줄을, 아니면 null.
 // 이 사용자는 커밋에 트레일러를 넣지 않는다 — 들어간 채 커밋되기 전에 막으려고. git commit 인지는 commit.ts 가 가린다.
 const CLAUDE_TRAILER = /Co-Authored-By:\s*Claude\b[^\n"']*|Claude-Session:[^\n"']*|(?:🤖\s*)?Generated with \[?Claude Code\]?[^\n"']*/i
