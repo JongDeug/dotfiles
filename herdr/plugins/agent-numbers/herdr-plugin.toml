@@ -20,8 +20,25 @@ id = "queue-3"
 title = "judgment queue: focus slot 3"
 command = ["python3", "queue.py", "3"]
 
+[[actions]]
+id = "queue-sync"
+title = "judgment queue: mirror slots onto workspace rows"
+command = ["python3", "queue.py", "sync"]
+
 [[startup]]
 command = ["python3", "number.py"]
+
+[[startup]]
+command = ["python3", "queue.py", "sync"]
+
+# A closed or moved pane drops or carries its q token — re-mirror the workspace rows.
+[[events]]
+on = "pane.closed"
+command = ["python3", "queue.py", "sync"]
+
+[[events]]
+on = "pane.moved"
+command = ["python3", "queue.py", "sync"]
 
 [[events]]
 on = "workspace.focused"

@@ -149,6 +149,8 @@ async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const slot = mine ? 0 : freeSlot(q, queueCap)
   if (!mine && !slot) return `판단 큐가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
   await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
+  // 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 한 곳에서 다시 계산한다.
+  await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
   await refreshQueue($)
   return mine ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
 }

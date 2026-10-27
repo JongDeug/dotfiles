@@ -29,7 +29,7 @@ Claude Code 화면 한 벌. 입력창 위 계기판, 판단 큐, 답 속 그림,
 - `/queue` — 이 세션을 넣고 뺀다(토글). 넣으면 비어 있는 가장 작은 칸 번호(1~3)를 받고, 빼도 다른 칸이 당겨지지 않는다. 꽉 찼으면 넣지 않고 지금 큐를 보인다. `/queue list` 는 지금 큐.
 - **ctrl+1~3** — 그 칸의 세션으로 간다. herdr 플러그인 `dotfiles.agent-numbers` 의 queue-N 액션(`herdr/plugins/agent-numbers/queue.py`)이고 키는 `herdr/config.toml` 에 묶었다.
 - 계기판: `판단 ▰▰▱ 2/3`, 칸 색은 그 일의 상태(막힘 빨강 · 결과 나옴 노랑 · 도는 중 파랑 · 쉼 회색). 이 세션이 들었으면 뒤에 `◆2 이 세션`(칸 번호), 아니면 `○ 큐 밖`(꽉 찼으면 빨강).
-- 표시는 herdr pane 메타데이터 토큰 `q=◆N`(source `deck.queue`)다. pane 이 닫히면 같이 빠지고, herdr 사이드바 에이전트 줄의 `$q` 가 같은 표시를 그린다. 모든 세션이 5초마다 `herdr agent list` 로 읽는다.
+- 표시는 herdr pane 메타데이터 토큰 `q=◆N`(source `deck.queue`)다. pane 이 닫히면 같이 빠지고, herdr 사이드바 에이전트 줄의 `$q` 가 같은 표시를 그린다. 워크스페이스 줄에도 그 안에 든 칸이 `◆1◆3` 으로 붙는다 — `/queue` 뒤 deck 이 부르는 agent-numbers 의 `queue-sync` 액션과 pane 닫힘·이동 이벤트가 다시 계산한다. 모든 세션이 5초마다 `herdr agent list` 로 읽는다.
 
 ## 답 속 그림
 

@@ -150,6 +150,10 @@ tab_bar_right = [{ type = "zoom" }, { type = "datetime", format = "%H:%M" }]
 # agent_panel_sort = "spaces" 는 그룹 헤더를 그리지 않고 space 순으로만 정렬한다.
 # 소속을 보여주는 건 이 workspace 토큰뿐이라 반드시 남겨둔다 (herdr 기본 rows 도 같은 이유로 포함).
 # pane 은 `herdr pane rename` 을 해야 채워지고 36칸을 넘겨서 뺐다 — 필요하면 tab 대신 넣는다.
+[ui.sidebar.spaces]
+# $q = 이 워크스페이스에 든 판단 큐 칸(◆1◆3) — agent-numbers 의 queue.py sync 가 단다.
+rows = [["state_icon", "workspace", { token = "$q", fg = "#d3869b", bold = true }], ["branch", "git_status"]]
+
 [ui.sidebar.agents]
 rows = [["state_icon", { token = "$q", fg = "#d3869b", bold = true }, "state_text"], ["terminal_title_stripped"]]
 

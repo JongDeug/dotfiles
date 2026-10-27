@@ -108,5 +108,6 @@ describe('판단 큐', () => {
     const r = await $.command.run({ command: 'queue', args: '' } as never)
     expect(String((r as { text?: string }).text)).toMatch(/2번에 넣었다 \(3\/3\)/)
     expect(w.runs.find(a => a.includes('report-metadata'))).toEqual(['herdr', 'pane', 'report-metadata', 'w1:p1', '--source', 'deck.queue', '--token', 'q=◆2'])
+    expect(w.runs.some(a => a.join(' ') === 'herdr plugin action invoke queue-sync --plugin dotfiles.agent-numbers')).toBe(true)
   })
 })
