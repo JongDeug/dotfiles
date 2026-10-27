@@ -183,11 +183,11 @@ export function askText(o: { command: string; dir: string; home: string; entries
   const width = Math.max(0, ...lost.slice(0, 8).map(e => cellWidth(short(e.path))))
   const lines = [`$ ${o.command.length > 200 ? `${o.command.slice(0, 200)}…` : o.command}`, `위치 ${o.dir ? short(o.dir) || o.dir : '(모름)'}`, '']
   if (o.unresolved.length) lines.push(`⚠ 대상 확정 못 함 (글롭·변수) — ${o.unresolved.join(' ')}`, '')
-  lines.push(`✗ 되살릴 수 없음  ${lost.length}${o.more ? '+' : ''}`)
+  // 0개인 칸은 줄째 뺀다.
+  if (lost.length) lines.push(`✗ 되살릴 수 없음  ${lost.length}${o.more ? '+' : ''}`)
   for (const e of lost.slice(0, 8)) lines.push(`  ${short(e.path)}${' '.repeat(width - cellWidth(short(e.path)) + 2)}(${MARK[e.why]})`)
   if (lost.length > 8) lines.push(`  … 외 ${lost.length - 8}개`)
-  lines.push(`✓ git 으로 되살림  ${safe.length}`)
-  if (safe.length) lines.push(`  ${safe.slice(0, 4).map(e => short(e.path)).join('  ')}${safe.length > 4 ? `  … 외 ${safe.length - 4}개` : ''}`)
+  if (safe.length) lines.push(`✓ git 으로 되살림  ${safe.length}`, `  ${safe.slice(0, 4).map(e => short(e.path)).join('  ')}${safe.length > 4 ? `  … 외 ${safe.length - 4}개` : ''}`)
   if (missing.length) lines.push(`· 없는 경로  ${missing.length}`, `  ${missing.slice(0, 4).map(e => short(e.path)).join('  ')}`)
   return { summary, preview: lines.join('\n') }
 }

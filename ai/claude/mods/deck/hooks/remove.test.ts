@@ -46,3 +46,7 @@ test('질문창 요약과 미리 보기', () => {
   expect(preview).toBe(['$ rm -rf build notes', '위치 ~/chaos', '', '✗ 되살릴 수 없음  1', '  notes/draft.md  (추적 안 함)', '✓ git 으로 되살림  1', '  build/a.js', '· 없는 경로  1', '  gone'].join('\n'))
 })
 
+test('0개인 칸은 줄째 뺀다', () => {
+  const { preview } = askText({ command: 'rm a', dir: '/w', home: '/h', more: false, unresolved: [], kb: 4, entries: [{ path: '/w/a', why: 'untracked' }] })
+  expect(preview).toBe(['$ rm a', '위치 /w', '', '✗ 되살릴 수 없음  1', '  a  (추적 안 함)'].join('\n'))
+})
