@@ -156,15 +156,16 @@ test('두 번 다 빈 출력이면 못 그림 — Unexpected EOF 대신 무엇�
   expect(runs).toBe(2)
 })
 
-test('rm 은 삭제 검수 창에서 「삭제 진행」을 골라야 실행되고, 취소·임시 폴더는 그 갈래대로', async ($, on) => {
+test('rm 은 삭제 검수 창에서 「삭제 진행」을 골라야 실행되고, 취소·임시 폴더·되살릴 수 있는 것은 그 갈래대로', async ($, on) => {
   const ran: string[] = []
   let asked = 0
   let answer = '취소'
+  let status = '?? notes/a.md\0'
   on('session.cwd', () => ({ value: '/w' }))
   on('env.get', ($, e) => ({ value: e.name === 'HOME' ? '/h' : e.name === 'TMPDIR' ? '/var/folders/x/' : undefined }))
   on('process.run', ($, e) => {
     const a = (e.argv as string[]).join(' ')
-    const stdout = a.startsWith('find') ? '/w/notes/a.md\n/w/notes/b.md\n' : a.includes('rev-parse') ? '/w\n' : a.includes('status') ? '?? notes/a.md\0' : a.startsWith('du') ? '12\t/w/notes\n' : ''
+    const stdout = a.startsWith('find') ? '/w/notes/a.md\n/w/notes/b.md\n' : a.includes('rev-parse') ? '/w\n' : a.includes('status') ? status : a.startsWith('du') ? '12\t/w/notes\n' : ''
     const exitCode = a === 'test -L /w/notes' ? 1 : 0
     return { value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -187,4 +188,7 @@ test('rm 은 삭제 검수 창에서 「삭제 진행」을 골라야 실행되�
   await $.tool.call({ tool: 'Bash', command: 'rm -rf /var/folders/x/tmp.1 node_modules' })
   await $.tool.call({ tool: 'Bash', command: 'ls notes' })
   expect([asked, ran]).toEqual([2, ['rm -rf notes', 'rm -rf /var/folders/x/tmp.1 node_modules', 'ls notes']])
+  status = ''
+  await $.tool.call({ tool: 'Bash', command: 'rm -rf notes' })
+  expect([asked, ran.at(-1)]).toEqual([2, 'rm -rf notes'])
 })

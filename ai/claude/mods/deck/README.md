@@ -105,7 +105,7 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 - 대상은 읽기만 하는 명령으로 모은다 — `test` · `find` · `git status --ignored` · `git clean -n` · `du`. 원래 삭제 명령을 미리 돌리지 않는다.
 - ✗ 되살릴 수 없음 = git 밖 · 추적 안 함 · gitignore · 고친 채(커밋 전). ✓ = 커밋돼 있고 그대로인 파일.
 - 앞의 `cd x &&`, `-C`, `sudo` · `VAR=값` 은 따라간다. 글롭 · `$변수` · `xargs` 는 미리 펼치지 않고 「대상 확정 못 함 ⚠」으로 묻는다.
-- 묻지 않는 곳: 대상이 **전부** `/tmp` · `$TMPDIR` · `/var/folders` 또는 `node_modules` · `dist` · `build` · `.next` · `.cache` · `__pycache__` · `.turbo` · `coverage` 안일 때, 그리고 대상이 다 없는 경로일 때.
+- 묻지 않는 곳: 대상이 **전부 git 으로 되살릴 수 있을 때**(커밋된 그대로 · 없는 경로, 목록이 잘리지 않았을 때), 대상이 **전부** `/tmp` · `$TMPDIR` · `/var/folders` 또는 `node_modules` · `dist` · `build` · `.next` · `.cache` · `__pycache__` · `.turbo` · `coverage` 안일 때.
 - 취소 · Other 에 적은 글 · 창을 못 띄움(`-p`) · 검사 중 오류는 모두 **막는다**. Other 에 적은 글은 Claude 에게 메모로 간다.
 - 못 잡는 것: 별칭, 스크립트 · `sh -c` 안의 삭제, `find -delete`, `git reset --hard` 같은 되돌리기. 권한 설정과 함께 쓴다.
 

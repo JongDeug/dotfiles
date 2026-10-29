@@ -97,7 +97,7 @@ async function commitCheck($: EngineInterface, command: string): Promise<string 
 }
 
 // 삭제 검수: 대상을 읽기 전용 명령(test · find · git status · git clean -n · du)으로만 모아 사람에게 묻는다.
-// null 이면 그대로 실행, 글이면 그 글로 막는다. 대상이 전부 임시·산출물 폴더면 묻지 않는다.
+// null 이면 그대로 실행, 글이면 그 글로 막는다. 대상이 전부 임시·산출물 폴더이거나 git 으로 되살릴 수 있으면 묻지 않는다.
 const ASK = '이 삭제를 진행할까?'
 async function removeCheck($: EngineInterface, command: string): Promise<string | null> {
   const dir = await $.session.cwd().catch(() => cwd)
@@ -142,7 +142,9 @@ async function removeCheck($: EngineInterface, command: string): Promise<string 
       kb += Number.parseInt((await run(['du', '-sk', t])).stdout, 10) || 0
     }
   }
-  if (!unresolved.length && (roots.every(r => disposable(r, tmp)) || entries.every(e => e.why === 'missing'))) return null
+  // 전부 git 으로 되살릴 수 있으면(커밋된 그대로·없는 경로) 묻지 않는다. 목록이 잘렸으면 못 본 파일이 있으니 묻는다.
+  const recoverable = !more && entries.every(e => e.why === 'clean' || e.why === 'missing')
+  if (!unresolved.length && (roots.every(r => disposable(r, tmp)) || recoverable)) return null
   const { summary, preview } = askText({ command, dir, home, entries, more, unresolved, kb })
   // $.ui.ask 는 선택지 이름만 받는다 — 요약과 대상 목록은 질문 글에 함께 싣는다.
   const answer = await $.ui.ask(`${ASK}  ${summary}\n\n${preview}`, { header: '삭제 검수', options: ['삭제 진행', '취소'] })
