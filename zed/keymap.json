@@ -65,7 +65,7 @@
   // so the next prefix+key still matches the panel context and never reopens it.
   {
     "context": "ProjectPanel",
-    "bindings": { "ctrl-space e": "workspace::ToggleLeftDock" }
+    "bindings": { "ctrl-space e": "workspace::ToggleRightDock" }
   },
   {
     // neo-tree style file ops.
@@ -84,21 +84,21 @@
       "shift-o": "project_panel::RevealInFileManager",
       "s": "project_panel::OpenSplitVertical",
       "shift-s": "project_panel::OpenSplitHorizontal",
-      "q": "workspace::ToggleLeftDock"
+      "q": "workspace::ToggleRightDock"
     }
   },
   {
     // ctrl-space alone is StageAll here; free it for the prefix.
     "context": "GitPanel",
-    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::ToggleLeftDock" }
+    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::ToggleRightDock" }
   },
   {
     "context": "AgentPanel",
-    "bindings": { "ctrl-space v": "workspace::ToggleRightDock" }
+    "bindings": { "ctrl-space v": "workspace::ToggleLeftDock" }
   },
   {
     "context": "OutlinePanel",
-    "bindings": { "ctrl-space o": "workspace::ToggleLeftDock" }
+    "bindings": { "ctrl-space o": "workspace::ToggleRightDock" }
   },
   {
     "context": "DebugPanel",

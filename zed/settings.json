@@ -7,6 +7,9 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "tab_bar": {
+    "show_pinned_tabs_in_separate_row": false
+  },
   "ssh_connections": [
     {
       "host": "m1-jdiu",
@@ -38,9 +41,9 @@
   "agent_servers": {
     "claude-acp": {
       "default_config_options": {
-        "effort": "max",
+        "effort": "high",
         "fast": true,
-        "model": "opus[1m]"
+        "model": "opus"
       },
       "type": "registry"
     }
@@ -50,8 +53,8 @@
   "buffer_font_size": 13,
   "theme": {
     "mode": "system",
-    "light": "One Dark",
-    "dark": "Catppuccin Macchiato"
+    "light": "Catppuccin Macchiato",
+    "dark": "Fleet Dark Purple"
   },
   // Popup of next keys after ctrl-space.
   "which_key": {
@@ -82,6 +85,8 @@
     "file_icons": true,
     "show_diagnostics": "errors"
   },
+  // Line numbers in the editor gutter.
+  "gutter": { "line_numbers": true },
   "colorize_brackets": true,
   "sticky_scroll": { "enabled": true },
   // Agent panel: system font for answers (Korean renders well), D2Coding for input/code.
@@ -98,14 +103,14 @@
     "play_sound_when_agent_done": "when_hidden",
     // Terminal threads start the real Claude Code CLI with the work config.
     "terminal_init_command": "CLAUDE_CONFIG_DIR=$HOME/.claude-work claude",
-    // VS Code layout: chat on the right, threads list with it.
-    "dock": "right",
-    "threads_sidebar": { "position": "right" }
+    // VS Code layout: chat on the left, threads list with it.
+    "dock": "left",
+    "threads_sidebar": { "position": "left" }
   },
-  // VS Code layout: explorer, source control, outline share the left sidebar.
-  "project_panel": { "dock": "left" },
-  "git_panel": { "dock": "left" },
-  "outline_panel": { "dock": "left" },
+  // VS Code layout: explorer, source control, outline share the right sidebar.
+  "project_panel": { "dock": "right" },
+  "git_panel": { "dock": "right" },
+  "outline_panel": { "dock": "right" },
   // No padding setting for the terminal; taller lines are the closest.
   "terminal": { "line_height": "comfortable", "dock": "bottom" },
   "telemetry": {
