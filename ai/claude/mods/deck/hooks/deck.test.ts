@@ -156,39 +156,3 @@ test('두 번 다 빈 출력이면 못 그림 — Unexpected EOF 대신 무엇�
   expect(runs).toBe(2)
 })
 
-test('rm 은 삭제 검수 창에서 「삭제 진행」을 골라야 실행되고, 취소·임시 폴더·되살릴 수 있는 것은 그 갈래대로', async ($, on) => {
-  const ran: string[] = []
-  let asked = 0
-  let answer = '취소'
-  let status = '?? notes/a.md\0'
-  on('session.cwd', () => ({ value: '/w' }))
-  on('env.get', ($, e) => ({ value: e.name === 'HOME' ? '/h' : e.name === 'TMPDIR' ? '/var/folders/x/' : undefined }))
-  on('process.run', ($, e) => {
-    const a = (e.argv as string[]).join(' ')
-    const stdout = a.startsWith('find') ? '/w/notes/a.md\n/w/notes/b.md\n' : a.includes('rev-parse') ? '/w\n' : a.includes('status') ? status : a.startsWith('du') ? '12\t/w/notes\n' : ''
-    const exitCode = a === 'test -L /w/notes' ? 1 : 0
-    return { value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
-  })
-  on('tool.call', ($, e) => {
-    if (e.tool === 'AskUserQuestion') {
-      asked += 1
-      const q = e.questions[0]!.question
-      if (asked === 1) expect(q).toMatch(/^이 삭제를 진행할까\? {2}파일 2개 · 12KB — 되살릴 수 없는 것 1개\n\n\$ rm -rf notes\n위치 \/w\n[\s\S]*notes\/a\.md {2}\(추적 안 함\)/)
-      return { result: { questions: e.questions, answers: { [q]: answer } } } as never
-    }
-    ran.push(String((e as { command?: unknown }).command))
-    return { result: { stdout: 'ok' } } as never
-  })
-  const no = await $.tool.call({ tool: 'Bash', command: 'rm -rf notes' })
-  expect(String(no.deny)).toMatch(/허락하지 않았다/)
-  expect(ran).toEqual([])
-  answer = '삭제 진행'
-  await $.tool.call({ tool: 'Bash', command: 'rm -rf notes' })
-  expect(ran).toEqual(['rm -rf notes'])
-  await $.tool.call({ tool: 'Bash', command: 'rm -rf /var/folders/x/tmp.1 node_modules' })
-  await $.tool.call({ tool: 'Bash', command: 'ls notes' })
-  expect([asked, ran]).toEqual([2, ['rm -rf notes', 'rm -rf /var/folders/x/tmp.1 node_modules', 'ls notes']])
-  status = ''
-  await $.tool.call({ tool: 'Bash', command: 'rm -rf notes' })
-  expect([asked, ran.at(-1)]).toEqual([2, 'rm -rf notes'])
-})

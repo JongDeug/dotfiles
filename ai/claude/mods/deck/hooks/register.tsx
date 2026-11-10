@@ -2,7 +2,6 @@ import type { EngineInterface, RenderElement, Register } from 'claude-code'
 
 import { helpText } from './help'
 import { commitProblems, readCommit, type Repo } from './commit'
-import { askText, disposable, porcelain, readRemoves, whyOf, type Entry } from './remove'
 import { stateOf, type PetState } from './pet'
 import { SLIME_COLS, slimeRows } from './slime'
 import { gridFor, isImagePath } from './images'
@@ -94,63 +93,6 @@ async function commitCheck($: EngineInterface, command: string): Promise<string 
   const problems = commitProblems(plan, repo)
   if (!problems.length) return null
   return `deck: 커밋을 막았다 — git-commit 스킬 규칙에 걸린다. 아래를 고쳐 다시 한다.\n${problems.map(p => `- ${p}`).join('\n')}`
-}
-
-// 삭제 검수: 대상을 읽기 전용 명령(test · find · git status · git clean -n · du)으로만 모아 사람에게 묻는다.
-// null 이면 그대로 실행, 글이면 그 글로 막는다. 대상이 전부 임시·산출물 폴더이거나 git 으로 되살릴 수 있으면 묻지 않는다.
-const ASK = '이 삭제를 진행할까?'
-async function removeCheck($: EngineInterface, command: string): Promise<string | null> {
-  const dir = await $.session.cwd().catch(() => cwd)
-  const plans = readRemoves(command, dir, home)
-  if (!plans.length) return null
-  const run = (argv: string[]) => $.process.run(argv, { timeoutMs: 5_000 })
-  const tmp = ['/tmp', '/private/tmp', '/var/folders', '/private/var/folders', (await $.env.get('TMPDIR')) ?? '']
-  const entries: Entry[] = []
-  const unresolved: string[] = []
-  const roots: string[] = []
-  let more = false
-  let kb = 0
-  for (const p of plans) {
-    unresolved.push(...p.unresolved)
-    if (p.kind === 'clean') {
-      if (!p.dir) continue
-      const r = await run(['git', '-C', p.dir, 'clean', ...p.cleanArgs])
-      for (const line of r.stdout.split('\n')) {
-        const m = /^Would remove (.+)$/.exec(line)
-        if (!m) continue
-        const path = `${p.dir}/${m[1]!.replace(/\/$/, '')}`
-        entries.push({ path, why: 'untracked' })
-        roots.push(path)
-      }
-      continue
-    }
-    for (const t of p.targets) {
-      roots.push(t)
-      if ((await run(['test', '-e', t])).exitCode !== 0 && (await run(['test', '-L', t])).exitCode !== 0) {
-        entries.push({ path: t, why: 'missing' })
-        continue
-      }
-      const isDir = (await run(['test', '-d', t])).exitCode === 0 && (await run(['test', '-L', t])).exitCode !== 0
-      const found = isDir ? await run(['find', t, '!', '-type', 'd']) : null
-      const files = found ? found.stdout.split('\n').filter(Boolean) : [t]
-      if (found?.isStdoutTruncated) more = true
-      const at = isDir ? t : t.slice(0, t.lastIndexOf('/')) || '/'
-      const top = await run(['git', '-C', at, 'rev-parse', '--show-toplevel'])
-      const repo = top.exitCode === 0 ? top.stdout.trim() : ''
-      const codes = repo ? porcelain((await run(['git', '-C', repo, 'status', '--porcelain', '-z', '--ignored', '-uall', '--', t])).stdout) : new Map<string, string>()
-      for (const f of files) entries.push({ path: f, why: whyOf(repo ? codes.get(f.slice(repo.length + 1)) : undefined, Boolean(repo)) })
-      kb += Number.parseInt((await run(['du', '-sk', t])).stdout, 10) || 0
-    }
-  }
-  // 전부 git 으로 되살릴 수 있으면(커밋된 그대로·없는 경로) 묻지 않는다. 목록이 잘렸으면 못 본 파일이 있으니 묻는다.
-  const recoverable = !more && entries.every(e => e.why === 'clean' || e.why === 'missing')
-  if (!unresolved.length && (roots.every(r => disposable(r, tmp)) || recoverable)) return null
-  const { summary, preview } = askText({ command, dir, home, entries, more, unresolved, kb })
-  // $.ui.ask 는 선택지 이름만 받는다 — 요약과 대상 목록은 질문 글에 함께 싣는다.
-  const answer = await $.ui.ask(`${ASK}  ${summary}\n\n${preview}`, { header: '삭제 검수', options: ['삭제 진행', '취소'] })
-  if (answer === '삭제 진행') return null
-  const note = answer && answer !== '취소' ? ` 사용자 메모: ${answer}` : ''
-  return `deck: 사용자가 삭제 검수에서 이 삭제를 허락하지 않았다.${note} 같은 삭제를 다른 방법으로 다시 시도하지 말고, 사용자에게 어떻게 할지 묻는다.`
 }
 
 async function guarded($: EngineInterface, key: keyof typeof busy, work: () => Promise<void>): Promise<void> {
@@ -584,14 +526,6 @@ export const register: Register = (on, options) => {
       if (e.tool === 'Bash' || EDITS.has(e.tool)) void refreshGit($)
     }
   }).catch(($, e, next) => next(e))
-
-  // 삭제 검수 — 함부로 지우지 않는다. 검사가 실패해도(시간 초과·예외·질문창을 못 띄움) 막는다.
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const why = await removeCheck($, e.command)
-    if (!why) return next(e)
-    say(await $.clock.now().catch(() => 0), 'rm', '안 지웠어!', C.yellow, 30_000)
-    return { deny: why }
-  }).catch(($, e, next) => (next.called ? next(e) : { deny: 'deck: 삭제 검수를 끝내지 못해 이 명령을 막았다. 다시 시도하지 말고 사용자에게 알린다.' }))
 
   // 커밋·PR 에 Claude 서명을 붙이라는 엔진의 지시를 비운다 — 모델이 처음부터 안 쓰게.
   on('attribution.text', ($, e, next) => (e.kind === 'commit' || e.kind === 'pr' ? { text: '' } : next(e)))
