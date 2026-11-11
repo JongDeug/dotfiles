@@ -100,16 +100,16 @@ test('Claude 서명 줄이 든 git commit 은 실행 전에 막고, 깨끗한 �
   expect(ran).toEqual(['git commit -m "feat: 깨끗"'])
 })
 
-test('/deck 은 안내를 글로 찍고, 등록한 명령은 모두 안내에 있다', async ($, on) => {
+test('/deck:help 는 안내를 글로 찍고, 등록한 명령은 모두 안내에 있다', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   const opened: string[] = []
   on('ui.open', ($, e) => (opened.push(e.id), { value: undefined }) as never)
-  const r = await $.command.run({ command: 'deck', args: '' } as never)
+  const r = await $.command.run({ command: 'deck:help', args: '' } as never)
   const text = String((r as { text?: string }).text)
   expect(text).toMatch(/  scale · max_rows +그림 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:sync']) expect(keys).toContain(name)
+  for (const name of ['/deck:help', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:sync']) expect(keys).toContain(name)
 })
 
 test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane 에 띄우고, /deck:pin off 로 내린다', async ($, on) => {

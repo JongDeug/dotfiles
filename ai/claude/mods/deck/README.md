@@ -1,6 +1,6 @@
 # Flight Deck (`deck`)
 
-`/deck` — 하는 일과 명령을 한 장으로 대화에 찍는다.
+`/deck:help` — 하는 일과 명령을 한 장으로 대화에 찍는다.
 `/deck:sync` — push 한 deck 을 `~/.claude`·`~/.claude-work` 에 깔고, herdr 안의 쉬는 Claude 세션에 `/reload-plugins` 를 보낸다(작업 중·입력 중·부른 세션은 건너뜀). 끝나면 알림으로 요약.
 
 Claude Code 화면 한 벌. 입력창 위 계기판, Decision Queue, 답 속 그림, 크게 보기 pane 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
@@ -91,7 +91,7 @@ herdr 테마를 따른다. `~/.config/herdr/config.toml` 의 `[theme] name`(herd
 
 ## 구조
 
-훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기·Decision Queue 읽기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck 안내), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck:sync`.
+훅 모듈은 플러그인마다 하나이고 `$` 는 import 한 함수로 넘길 수 없어서, 타이머·그리기·훅은 모두 `hooks/register.tsx` 에 있다. `$` 를 안 쓰는 것만 나눴다 — `theme.ts`(herdr 테마 18개 팔레트·설정 읽기), `blocks.ts`(답을 블록으로), `board.ts`(git·시간·칸 맞추기·서명 줄 찾기·Decision Queue 읽기), `commit.ts`(커밋 검문), `pet.ts`(펫 상태·반 칸 블록), `slime.ts`(슬라임 모션), `help.ts`(/deck:help 안내), `images.ts`·`fences.ts`·`parse.ts`(이미지 줄·차트·mermaid 찾기). 렌더러는 `bin/` 의 node·sh 다(훅 모듈엔 Node 가 없다). 그린 그림은 `~/.cache/claude-deck/pictures/` 에 남겨(`diskcache.mjs`, 렌더러 소스까지 해시) 리로드·재시작해도 다시 그리지 않는다. `sync.mjs` 는 `/deck:sync`.
 
 ```
 claude plugin validate ai/claude/mods/deck

@@ -1,4 +1,4 @@
-// /deck — deck 이 하는 일과 명령을 한 장으로. 줄마다 [무엇, 설명].
+// /deck:help — deck 이 하는 일과 명령을 한 장으로. 줄마다 [무엇, 설명].
 import { cellWidth } from './board'
 
 export type HelpSection = { title: string; rows: [string, string][] }
@@ -57,7 +57,7 @@ export const HELP: HelpSection[] = [
       ['style', 'clean | sketch (손그림)'],
       ['pet', 'slime | off'],
       ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
-      ['/deck', '이 안내'],
+      ['/deck:help', '이 안내'],
       ['/deck:sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
     ],
   },

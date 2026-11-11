@@ -187,7 +187,6 @@ async function refreshTheme($: EngineInterface): Promise<void> {
 async function start($: EngineInterface): Promise<void> {
   if (started) return
   started = true
-  await registerCommands($)
   cwd = await $.session.cwd()
   home = (await $.env.get('HOME')) ?? ''
   // 첫 요청 전까지 보일 effort — 설정 파일에서 읽는다. 요청이 가면 turn.step 이 실제 값으로 바꾼다.
@@ -216,18 +215,7 @@ async function start($: EngineInterface): Promise<void> {
   })
 }
 
-// 명령 등록. /reload-plugins 뒤엔 session.start 가 다시 오지 않으니 계기판이 처음 그려질 때도 부른다 — 한 번만.
-let commandsReady = false
-async function registerCommands($: EngineInterface): Promise<void> {
-  if (commandsReady) return
-  commandsReady = true
-  await $.command.register({
-    name: 'deck',
-    description: 'deck 이 하는 일과 명령 한 장',
-    immediate: true,
-  })
-  // /deck:pin · /deck:queue · /deck:pet · /deck:sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
-}
+// 명령: /deck:help · pin · queue · pet · sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
 
 // ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
 // 그리기는 node(bin/*.mjs)·sh(bin/convert.sh)가 하고, 여기선 쌓아 두었다가 한 번에 넘긴다.
@@ -454,13 +442,7 @@ export const register: Register = (on, options) => {
   if (typeof options.queue_cap === 'number') queueCap = options.queue_cap
 
 
-  on('session.start', async ($, e, next) => {
-    const r = await next(e)
-    await registerCommands($)
-    return r
-  })
-
-  on('command.run', { command: 'deck' }, async () => ({ text: helpText() }))
+  on('command.run', { command: 'deck:help' }, async () => ({ text: helpText() }))
 
   on('command.run', { command: 'deck:sync' }, async $ => {
     // 설치·리로드는 30초 넘게 걸려 기다리지 않는다 — 끝나면 알림으로 요약을 띄운다.
