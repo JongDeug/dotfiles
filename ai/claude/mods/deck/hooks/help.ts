@@ -58,7 +58,7 @@ export const HELP: HelpSection[] = [
       ['pet', 'slime | off'],
       ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
       ['/deck', '이 안내'],
-      ['/deck sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
+      ['/deck:sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
     ],
   },
 ]

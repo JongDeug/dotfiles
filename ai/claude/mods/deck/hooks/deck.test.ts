@@ -109,7 +109,7 @@ test('/deck 은 안내를 글로 찍고, 등록한 명령은 모두 안내에 �
   expect(text).toMatch(/  scale · max_rows +그림 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck', '/deck:queue', '/deck:pin', '/deck:pet']) expect(keys).toContain(name)
+  for (const name of ['/deck', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:sync']) expect(keys).toContain(name)
 })
 
 test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane 에 띄우고, /deck:pin off 로 내린다', async ($, on) => {
@@ -129,7 +129,7 @@ test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane �
   expect(closed).toEqual(['deck-pin'])
 })
 
-test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운다', async ($, on) => {
+test('/deck:sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운다', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   const ran: string[] = []
   const toasts: string[] = []
@@ -138,7 +138,7 @@ test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운
     return { value: { exitCode: 0, stdout: '.claude: ok\ndeck 설치: .claude 0.4.5 — 세션 리로드 2', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('ui.toast', ($, e) => (toasts.push(String(e.text)), { value: undefined }) as never)
-  const r = await $.command.run({ command: 'deck', args: 'sync' } as never)
+  const r = await $.command.run({ command: 'deck:sync', args: '' } as never)
   expect(String((r as { text?: string }).text)).toMatch(/리로드하는 중/)
   for (let i = 0; i < 50 && !toasts.length; i++) await Promise.resolve() // 기다리지 않고 돌린 sync 가 끝나게
   expect(ran.some(c => c.endsWith('/bin/sync.mjs'))).toBe(true)

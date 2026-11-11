@@ -1,4 +1,4 @@
-// /deck sync — push 한 deck 을 이 맥의 Claude 들에 깐다: 설정 폴더(~/.claude · ~/.claude-work)마다 마켓플레이스를 받고
+// /deck:sync — push 한 deck 을 이 맥의 Claude 들에 깐다: 설정 폴더(~/.claude · ~/.claude-work)마다 마켓플레이스를 받고
 // 플러그인을 올린 뒤, herdr 안이면 쉬는(idle·done) Claude 세션에 /reload-plugins 를 보낸다. 작업 중이거나 입력하다 만
 // 세션, 이 명령을 부른 세션은 건드리지 않는다. 한 줄씩 결과를 찍고, 마지막 줄이 요약이다.
 import { spawnSync } from 'node:child_process'

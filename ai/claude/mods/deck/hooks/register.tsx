@@ -223,11 +223,10 @@ async function registerCommands($: EngineInterface): Promise<void> {
   commandsReady = true
   await $.command.register({
     name: 'deck',
-    description: 'deck 이 하는 일과 명령 한 장. sync: push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션을 리로드',
-    argumentHint: '[sync]',
+    description: 'deck 이 하는 일과 명령 한 장',
     immediate: true,
   })
-  // /deck:pin · /deck:queue · /deck:pet 은 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
+  // /deck:pin · /deck:queue · /deck:pet · /deck:sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
 }
 
 // ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
@@ -461,8 +460,9 @@ export const register: Register = (on, options) => {
     return r
   })
 
-  on('command.run', { command: 'deck' }, async ($, e) => {
-    if (String(e.args ?? '').trim() !== 'sync') return { text: helpText() }
+  on('command.run', { command: 'deck' }, async () => ({ text: helpText() }))
+
+  on('command.run', { command: 'deck:sync' }, async $ => {
     // 설치·리로드는 30초 넘게 걸려 기다리지 않는다 — 끝나면 알림으로 요약을 띄운다.
     void $.process
       .run(['node', `${$.plugin.root}/bin/sync.mjs`], { timeoutMs: 300_000 })
