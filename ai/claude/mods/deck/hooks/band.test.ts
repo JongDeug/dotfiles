@@ -35,7 +35,7 @@ describe('board band', () => {
     const w = world(on)
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
     await ui.find({ text: /develop/ })
-    expect(w.registered).toEqual(['deck', 'pet', 'queue'])
+    expect(w.registered).toEqual(['deck', 'pet', 'pin', 'queue'])
   })
 
   for (const [cols, wide] of [[200, true], [26, false]] as const) {

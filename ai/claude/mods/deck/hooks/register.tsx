@@ -8,6 +8,7 @@ import { gridFor, isImagePath } from './images'
 import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
+import { pickPin, type Pin } from './pin'
 import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
@@ -233,6 +234,12 @@ async function registerCommands($: EngineInterface): Promise<void> {
     immediate: true,
   })
   await $.command.register({
+    name: 'pin',
+    description: '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정한다. off 면 내린다',
+    argumentHint: '[off]',
+    immediate: true,
+  })
+  await $.command.register({
     name: 'queue',
     description: 'Decision Queue: 이 세션을 넣고 뺀다(토글). 꽉 차면 안 넣는다. list 는 지금 큐',
     argumentHint: '[list]',
@@ -433,6 +440,25 @@ function toggleFold($: EngineInterface, key: string): void {
   $.ui.invalidate('ui.render')
 }
 
+// 고정 pane 하나 — /pin 이 직전 답의 표(없으면 답 전체)를 띄운다. Esc 로 닫히지 않고 /pin off · ✕ 로 내린다.
+// 모듈 변수라 리로드하면 비고, pane 은 남아 「다시 /pin」 을 보인다.
+const PIN = 'deck-pin'
+let pinned: Pin | null = null
+
+async function pinCommand($: EngineInterface, args: string): Promise<string> {
+  if (args === 'off') {
+    await $.ui.close({ id: PIN })
+    return '고정을 내렸다'
+  }
+  const reply = (await $.session.messages()).findLast(m => m.role === 'assistant' && m.text.trim())
+  const pin = reply ? pickPin(reply.text) : null
+  if (!pin) return '고정할 답이 없다'
+  pinned = pin
+  const opened = await $.ui.open({ id: PIN, title: `📌 ${pin.title}`, rows: Math.min(pin.text.split('\n').length + 4, 20) })
+  $.ui.invalidate('ui.render')
+  return opened.isPlaced ? `고정했다: ${pin.title} (/pin off 로 내림)` : `고정했지만 아직 못 띄웠다: ${opened.reason}`
+}
+
 const level = (percent: number) => (percent >= 80 ? C.red : percent >= 50 ? C.yellow : C.green)
 
 
@@ -461,6 +487,8 @@ export const register: Register = (on, options) => {
       .catch(error => $.ui.toast(`deck sync 실패: ${String(error)}`))
     return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
+
+  on('command.run', { command: 'pin' }, async ($, e) => ({ text: await pinCommand($, String(e.args ?? '').trim()) }))
 
   on('command.run', { command: 'queue' }, async ($, e) => ({ text: await queueCommand($, String(e.args ?? '').trim()) }))
 
@@ -747,6 +775,26 @@ export const register: Register = (on, options) => {
 
   on('ui.close', { id: VIEW }, async ($, e, next) => {
     viewing = null
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: PIN }, async ($, e, next) => {
+    const { Box, Button, Markdown, Text } = $.ui.resolve(e)
+    if (!pinned) return <Text dimColor>고정한 것이 없다 — 다시 /pin</Text>
+    return (
+      <Box flexDirection="column">
+        <Box flexDirection="row" columnGap={2}>
+          <Text bold color={C.yellow}>📌 {pinned.title}</Text>
+          <Box flexGrow={1} />
+          <Button key="unpin" plain dimColor onPress={() => void $.ui.close({ id: PIN })}>✕ 내리기</Button>
+        </Box>
+        <Markdown text={pinned.text} />
+      </Box>
+    )
+  })
+
+  on('ui.close', { id: PIN }, async ($, e, next) => {
+    pinned = null
     return next(e)
   }).catch(($, e, next) => next(e))
 

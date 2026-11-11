@@ -109,7 +109,24 @@ test('/deck 은 안내를 글로 찍고, 등록한 명령은 모두 안내에 �
   expect(text).toMatch(/  scale · max_rows +그림 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck', '/queue']) expect(keys).toContain(name)
+  for (const name of ['/deck', '/queue', '/pin']) expect(keys).toContain(name)
+})
+
+test('/pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane 에 띄우고, /pin off 로 내린다', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  const opened: Record<string, unknown>[] = []
+  const closed: string[] = []
+  on('session.messages', () => ({ value: [
+    { role: 'user', text: '표 줘', toolUses: [] },
+    { role: 'assistant', text: '**비교:**\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n끝', toolUses: [] },
+  ] }) as never)
+  on('ui.open', ($, e) => (opened.push({ ...e }), { value: { isPlaced: true } }) as never)
+  on('ui.close', ($, e) => (closed.push(e.id), { value: undefined }) as never)
+  const r = await $.command.run({ command: 'pin', args: '' } as never)
+  expect(String((r as { text?: string }).text)).toMatch(/고정했다: 비교/)
+  expect(opened).toEqual([{ id: 'deck-pin', title: '📌 비교', rows: 7 }])
+  await $.command.run({ command: 'pin', args: 'off' } as never)
+  expect(closed).toEqual(['deck-pin'])
 })
 
 test('/deck sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운다', async ($, on) => {

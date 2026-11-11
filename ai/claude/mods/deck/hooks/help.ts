@@ -17,6 +17,8 @@ export const HELP: HelpSection[] = [
     rows: [
       ['/queue', '이 세션을 큐에 넣고 뺀다(토글). 꽉 차면 안 넣는다'],
       ['/queue list', '지금 큐'],
+      ['/pin', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다'],
+      ['/pin off', '고정을 내린다(✕ 내리기 도 같다)'],
     ],
   },
   {
