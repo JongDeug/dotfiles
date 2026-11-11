@@ -106,7 +106,7 @@ test('/deck:help 는 안내를 글로 찍고, 등록한 명령은 모두 안내�
   on('ui.open', ($, e) => (opened.push(e.id), { value: undefined }) as never)
   const r = await $.command.run({ command: 'deck:help', args: '' } as never)
   const text = String((r as { text?: string }).text)
-  expect(text).toMatch(/  scale +다이어그램 크기/)
+  expect(text).toMatch(/  scale +0\.5~2 — 다이어그램 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
   for (const name of ['/deck:help', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:config', '/deck:sync']) expect(keys.some(k => k.split(' ')[0] === name)).toBe(true)

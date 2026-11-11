@@ -5,57 +5,34 @@ export type HelpSection = { title: string; rows: [string, string][] }
 
 export const HELP: HelpSection[] = [
   {
-    title: '⌨️  명령',
+    title: '명령',
     rows: [
+      ['/deck:pin [off]', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 · off 로 내림'],
+      ['/deck:queue [list]', 'Decision Queue 에 이 세션 넣기·빼기 (herdr) · list 로 보기'],
+      ['/deck:pet [off]', '펫을 이 세션에서 띄우기 · off 로 숨기기'],
+      ['/deck:config', '설정 보기 · /deck:config <이름> <값> 으로 바꾸기'],
+      ['/deck:sync', 'push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션 리로드'],
       ['/deck:help', '이 안내'],
-      ['/deck:pin [off]', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다 · off(✕ 내리기)로 내림'],
-      ['/deck:queue [list]', 'Decision Queue(herdr 안에서)에 이 세션을 넣고 뺀다 · 꽉 차면 안 넣는다 · list 는 지금 큐'],
-      ['/deck:pet [off]', '펫을 이 세션에서 띄운다 · off 로 숨긴다'],
-      ['/deck:config', '설정 보기 · /deck:config <이름> <값> 으로 바꾸기 (아래 🔧)'],
-      ['/deck:sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
     ],
   },
   {
-    title: '📊 계기판 — 입력창 위 두 줄',
+    title: '설정 — /deck:config <이름> <값>',
     rows: [
-      ['위치 줄', '경로 · 브랜치 · 모델 · 바뀐 파일(올리면 목록) · CI'],
-      ['남은 양 줄', 'Decision Queue · CTX · 5H · 7D 게이지와 리셋까지 · 작업 중/지난 턴'],
-      ['좁으면', '덜 중요한 알약부터 뺀다'],
+      ['style', 'clean | sketch — 그림을 반듯하게 · 손그림으로'],
+      ['pet', 'slime | off — 펫을 아예 끄려면 off'],
+      ['scale', '0.5~2 — 다이어그램 크기'],
+      ['max_rows', '5~120 — 그림 하나의 최대 줄 수'],
+      ['cell_aspect', '1~4 — 칸 높이÷너비, 그림이 늘어나 보이면 줄인다'],
+      ['queue_cap', '1~9 — Decision Queue 칸 수'],
     ],
   },
   {
-    title: '🎨 답 속 그림 — 포인터를 올리면 ⤢ 크게 보기 · ▴ 접기 · ↓ PNG 저장',
+    title: '저절로',
     rows: [
-      ['```mermaid', '흐름 · 시퀀스 · 상태 · ER 다이어그램'],
-      ['```chart', 'Vega-Lite 차트 (막대 · 선 · 원)'],
-      ['![설명](/경로)', '이미지 · 영상(장면 여섯 장) · 한 줄에 여러 개면 나란히'],
-    ],
-  },
-  {
-    title: '🔒 커밋 검문 — 저절로',
-    rows: [
-      ['git commit', 'git-commit 스킬 규칙(서명 줄 · add -A · 제목 type · 브랜치 · 본문 줄바꿈·표 · 팀 레포 develop)에 걸리면 실행 전에 돌려보낸다'],
-    ],
-  },
-  {
-    title: '🟡 펫 — 계기판 오른쪽 끝 슬라임 말랑이 (100칸 넘을 때)',
-    rows: [
-      ['일하는 중', '왼쪽으로 사르륵 녹아 흘러갔다가 위에서 뚝 떨어져 돌아온다'],
-      ['기다리는 중', '천천히 숨만 쉰다'],
-      ['캐시 식음 · 검문·오류', '웅덩이로 꾸벅 · 20초 시무룩'],
-      ['5H 80% 넘음', '지쳐서 납작'],
-      ['말풍선', '커밋 · 검문 · 오류 · 긴 턴 끝 · 캐시 식음·데움 · 5H · CI 실패 때 3초 (같은 말은 10분에 한 번)'],
-    ],
-  },
-  {
-    title: '🔧 설정 — /deck:config <이름> <값> (/plugin → deck → configure 와 같은 곳)',
-    rows: [
-      ['style', 'clean | sketch (손그림)'],
-      ['pet', 'slime | off (아예 끄기)'],
-      ['scale', '다이어그램 크기 0.5~2'],
-      ['max_rows', '그림 최대 줄 수 5~120'],
-      ['cell_aspect', '칸 높이÷너비 1~4 — 그림이 늘어나 보이면 줄인다'],
-      ['queue_cap', 'Decision Queue 칸 수 1~9'],
+      ['계기판', '입력창 위 두 줄 — 경로·브랜치·모델·CI / 큐·CTX·5H·7D'],
+      ['그림', '답 속 ```mermaid · ```chart · ![](경로) 를 그림으로 — ⤢ 크게 · ▴ 접기 · ↓ PNG'],
+      ['커밋 검문', '서명 줄·add -A·제목 type 같은 커밋 규칙에 걸리면 실행 전에 돌려보낸다'],
+      ['펫', '계기판 오른쪽 슬라임 — 일하면 흐르고, 쉬면 숨 쉬고, 오류엔 시무룩'],
     ],
   },
 ]
