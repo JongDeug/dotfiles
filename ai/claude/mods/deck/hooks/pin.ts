@@ -1,4 +1,4 @@
-// /pin 이 고정할 것: 답의 마지막 표, 표가 없으면 답 전체. 제목은 표 바로 위 글 줄(없으면 '고정').
+// /deck:pin 이 고정할 것: 답의 마지막 표, 표가 없으면 답 전체. 제목은 표 바로 위 글 줄(없으면 '고정').
 export type Pin = { title: string; text: string }
 
 export function pickPin(reply: string): Pin | null {

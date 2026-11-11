@@ -33,7 +33,7 @@ const busy = { git: false, ci: false, usage: false, queue: false }
 
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
-// 펫(슬라임): 설정에서 껐나(pet: off), 이 세션에서 /pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
+// 펫(슬라임): 설정에서 껐나(pet: off), 이 세션에서 /deck:pet off 로 숨겼나, 다친 때(거절·도구 오류)까지.
 const pet = { kind: 'slime' as 'slime' | 'off', hidden: false, hurtUntil: 0 }
 // 말풍선: 사건 때 3초. 같은 말(key)은 gap 안에 다시 안 한다(기본 10분). 계속되는 상태(캐시 식음·5H)는 바뀌는 순간에만.
 let bubble: { text: string; color: string; until: number } | null = null
@@ -128,7 +128,7 @@ const refreshCi = ($: EngineInterface) =>
     if (ci?.state === 'fail' && was && was !== 'fail') say(await $.clock.now(), 'ci', 'CI 깨졌어!', C.red, 0)
   })
 
-// herdr 안에서만 — 모든 space 에서 /queue 로 올린 에이전트를 읽는다.
+// herdr 안에서만 — 모든 space 에서 /deck:queue 로 올린 에이전트를 읽는다.
 const herdr = async ($: EngineInterface, args: string[]) => sh($, [(await $.env.get('HERDR_BIN_PATH')) || 'herdr', ...args])
 const readQueue = async ($: EngineInterface) => {
   if ((await $.env.get('HERDR_ENV')) !== '1') return null
@@ -140,7 +140,7 @@ const refreshQueue = ($: EngineInterface) =>
     queue = await readQueue($)
   })
 
-// /queue: 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않는다. list 는 지금 큐.
+// /deck:queue: 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않는다. list 는 지금 큐.
 async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const q = await readQueue($)
   if (!q || !pane) return 'herdr 안의 세션에서만 쓴다'
@@ -227,24 +227,7 @@ async function registerCommands($: EngineInterface): Promise<void> {
     argumentHint: '[sync]',
     immediate: true,
   })
-  await $.command.register({
-    name: 'pet',
-    description: '계기판 오른쪽 펫을 이 세션에서 띄운다. off 면 숨긴다',
-    argumentHint: '[off]',
-    immediate: true,
-  })
-  await $.command.register({
-    name: 'pin',
-    description: '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정한다. off 면 내린다',
-    argumentHint: '[off]',
-    immediate: true,
-  })
-  await $.command.register({
-    name: 'queue',
-    description: 'Decision Queue: 이 세션을 넣고 뺀다(토글). 꽉 차면 안 넣는다. list 는 지금 큐',
-    argumentHint: '[list]',
-    immediate: true,
-  })
+  // /deck:pin · /deck:queue · /deck:pet 은 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
 }
 
 // ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
@@ -440,8 +423,8 @@ function toggleFold($: EngineInterface, key: string): void {
   $.ui.invalidate('ui.render')
 }
 
-// 고정 pane 하나 — /pin 이 직전 답의 표(없으면 답 전체)를 띄운다. Esc 로 닫히지 않고 /pin off · ✕ 로 내린다.
-// 모듈 변수라 리로드하면 비고, pane 은 남아 「다시 /pin」 을 보인다.
+// 고정 pane 하나 — /deck:pin 이 직전 답의 표(없으면 답 전체)를 띄운다. Esc 로 닫히지 않고 /deck:pin off · ✕ 로 내린다.
+// 모듈 변수라 리로드하면 비고, pane 은 남아 「다시 /deck:pin」 을 보인다.
 const PIN = 'deck-pin'
 let pinned: Pin | null = null
 
@@ -456,7 +439,7 @@ async function pinCommand($: EngineInterface, args: string): Promise<string> {
   pinned = pin
   const opened = await $.ui.open({ id: PIN, title: `📌 ${pin.title}`, rows: Math.min(pin.text.split('\n').length + 4, 20) })
   $.ui.invalidate('ui.render')
-  return opened.isPlaced ? `고정했다: ${pin.title} (/pin off 로 내림)` : `고정했지만 아직 못 띄웠다: ${opened.reason}`
+  return opened.isPlaced ? `고정했다: ${pin.title} (/deck:pin off 로 내림)` : `고정했지만 아직 못 띄웠다: ${opened.reason}`
 }
 
 const level = (percent: number) => (percent >= 80 ? C.red : percent >= 50 ? C.yellow : C.green)
@@ -488,16 +471,16 @@ export const register: Register = (on, options) => {
     return { text: 'deck sync: 두 설정 폴더에 깔고 쉬는 세션을 리로드하는 중 — 끝나면 알림으로 알린다' }
   })
 
-  on('command.run', { command: 'pin' }, async ($, e) => ({ text: await pinCommand($, String(e.args ?? '').trim()) }))
+  on('command.run', { command: 'deck:pin' }, async ($, e) => ({ text: await pinCommand($, String(e.args ?? '').trim()) }))
 
-  on('command.run', { command: 'queue' }, async ($, e) => ({ text: await queueCommand($, String(e.args ?? '').trim()) }))
+  on('command.run', { command: 'deck:queue' }, async ($, e) => ({ text: await queueCommand($, String(e.args ?? '').trim()) }))
 
-  // /pet: 이 세션에서 숨기기·띄우기만. 아예 끄기는 설정 pet: off.
-  on('command.run', { command: 'pet' }, async ($, e) => {
+  // /deck:pet: 이 세션에서 숨기기·띄우기만. 아예 끄기는 설정 pet: off.
+  on('command.run', { command: 'deck:pet' }, async ($, e) => {
     const off = String(e.args ?? '').trim() === 'off'
     pet.hidden = off
     $.ui.invalidate('ui.render')
-    return { text: off ? '펫을 이 세션에서 숨겼다 (/pet 으로 다시)' : '펫을 띄웠다 (/pet off 로 숨김 · 아예 끄기는 /plugin → deck → configure 의 pet)' }
+    return { text: off ? '펫을 이 세션에서 숨겼다 (/deck:pet 으로 다시)' : '펫을 띄웠다 (/deck:pet off 로 숨김 · 아예 끄기는 /plugin → deck → configure 의 pet)' }
   })
 
   on('turn.step', async function* ($, e, next) {
@@ -780,7 +763,7 @@ export const register: Register = (on, options) => {
 
   on('ui.render', { component: 'Pane', requestId: PIN }, async ($, e, next) => {
     const { Box, Button, Markdown, Text } = $.ui.resolve(e)
-    if (!pinned) return <Text dimColor>고정한 것이 없다 — 다시 /pin</Text>
+    if (!pinned) return <Text dimColor>고정한 것이 없다 — 다시 /deck:pin</Text>
     return (
       <Box flexDirection="column">
         <Box flexDirection="row" columnGap={2}>
@@ -868,7 +851,7 @@ export const register: Register = (on, options) => {
 
     // ── 윗줄: Decision Queue + 얼마나 남았나 ───────────────────
     const bottom: Item[] = []
-    // 칸 하나 = /queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
+    // 칸 하나 = /deck:queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
     // 이 세션 칸은 보라로 뒤집는다. 빈 칸은 흐린 ·, 이 세션이 큐 밖이면 뒤에 ○ (꽉 찼으면 빨강).
     const queueLine: Item[] = []
     if (queue) {

@@ -15,10 +15,15 @@ export const HELP: HelpSection[] = [
   {
     title: '◆ Decision Queue — herdr 안에서',
     rows: [
-      ['/queue', '이 세션을 큐에 넣고 뺀다(토글). 꽉 차면 안 넣는다'],
-      ['/queue list', '지금 큐'],
-      ['/pin', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다'],
-      ['/pin off', '고정을 내린다(✕ 내리기 도 같다)'],
+      ['/deck:queue', '이 세션을 큐에 넣고 뺀다(토글). 꽉 차면 안 넣는다'],
+      ['/deck:queue list', '지금 큐'],
+    ],
+  },
+  {
+    title: '📌 고정 — 옆 pane 에 남겨 두기',
+    rows: [
+      ['/deck:pin', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다'],
+      ['/deck:pin off', '고정을 내린다(✕ 내리기 도 같다)'],
     ],
   },
   {
@@ -43,7 +48,7 @@ export const HELP: HelpSection[] = [
       ['캐시 식음 · 검문·오류', '웅덩이로 꾸벅 · 20초 시무룩'],
       ['5H 80% 넘음', '지쳐서 납작'],
       ['말풍선', '커밋 · 검문 · 오류 · 긴 턴 끝 · 캐시 식음·데움 · 5H · CI 실패 때 3초 (같은 말은 10분에 한 번)'],
-      ['/pet', '이 세션에서 띄우기 · /pet off 숨기기'],
+      ['/deck:pet', '이 세션에서 띄우기 · /deck:pet off 숨기기'],
     ],
   },
   {

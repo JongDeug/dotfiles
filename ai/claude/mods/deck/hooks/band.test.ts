@@ -35,7 +35,7 @@ describe('board band', () => {
     const w = world(on)
     const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
     await ui.find({ text: /develop/ })
-    expect(w.registered).toEqual(['deck', 'pet', 'pin', 'queue'])
+    expect(w.registered).toEqual(['deck'])
   })
 
   for (const [cols, wide] of [[200, true], [26, false]] as const) {
@@ -96,18 +96,18 @@ describe('Decision Queue', () => {
     expect((await ui.find({ text: /^ ○ $/ }))?.text).toBe(' ○ ')
   })
 
-  test('/queue 는 꽉 차면 넣지 않고, 들어 있으면 뺀다', async ($, on) => {
+  test('/deck:queue 는 꽉 차면 넣지 않고, 들어 있으면 뺀다', async ($, on) => {
     mock.clock(on, { now: START })
     const full = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'working', 2), agent('w4:p1', 'blocked', 3)] })
-    const r = await $.command.run({ command: 'queue', args: '' } as never)
+    const r = await $.command.run({ command: 'deck:queue', args: '' } as never)
     expect(String((r as { text?: string }).text)).toMatch(/꽉 찼다 \(3\/3\)/)
     expect(full.runs.some(a => a.includes('report-metadata'))).toBe(false)
   })
 
-  test('/queue 로 넣으면 비어 있는 가장 작은 칸 번호로 q 토큰을 단다', async ($, on) => {
+  test('/deck:queue 로 넣으면 비어 있는 가장 작은 칸 번호로 q 토큰을 단다', async ($, on) => {
     mock.clock(on, { now: START })
     const w = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'done', 3)] })
-    const r = await $.command.run({ command: 'queue', args: '' } as never)
+    const r = await $.command.run({ command: 'deck:queue', args: '' } as never)
     expect(String((r as { text?: string }).text)).toMatch(/2번에 넣었다 \(3\/3\)/)
     expect(w.runs.find(a => a.includes('report-metadata'))).toEqual(['herdr', 'pane', 'report-metadata', 'w1:p1', '--source', 'deck.queue', '--token', 'q=◆2'])
     expect(w.runs.some(a => a.join(' ') === 'herdr plugin action invoke queue-sync --plugin dotfiles.agent-numbers')).toBe(true)

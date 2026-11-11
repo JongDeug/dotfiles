@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Judgment queue (deck's /queue tags a pane q=◆N).
+"""Judgment queue (deck's /deck:queue tags a pane q=◆N).
 queue.py N    — ctrl+N: focus the agent in slot N.
 queue.py sync — mirror slots onto each workspace row as $q (◆1◆3)."""
 import json
