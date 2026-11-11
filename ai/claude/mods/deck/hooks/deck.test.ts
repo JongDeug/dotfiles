@@ -106,10 +106,10 @@ test('/deck:help 는 안내를 글로 찍고, 등록한 명령은 모두 안내�
   on('ui.open', ($, e) => (opened.push(e.id), { value: undefined }) as never)
   const r = await $.command.run({ command: 'deck:help', args: '' } as never)
   const text = String((r as { text?: string }).text)
-  expect(text).toMatch(/  scale · max_rows +그림 크기/)
+  expect(text).toMatch(/  scale +다이어그램 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck:help', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:sync']) expect(keys).toContain(name)
+  for (const name of ['/deck:help', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:config', '/deck:sync']) expect(keys.some(k => k.split(' ')[0] === name)).toBe(true)
 })
 
 test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane 에 띄우고, /deck:pin off 로 내린다', async ($, on) => {
@@ -127,6 +127,27 @@ test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane �
   expect(opened).toEqual([{ id: 'deck-pin', title: '📌 비교', rows: 7 }])
   await $.command.run({ command: 'deck:pin', args: 'off' } as never)
   expect(closed).toEqual(['deck-pin'])
+})
+
+test('/deck:config 는 deck 설정만 보여 주고, <이름> <값> 으로 바꾼다 — 숫자 칸은 숫자로', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  const mine = { plugin: 'deck', tier: 'user' }
+  on('config.list', () => ({ value: [
+    { key: 'theme', label: '테마', kind: 'choice', value: 'dark', provider: { plugin: 'engine', tier: 'core' }, isLocked: false },
+    { key: 'deck.style', label: '그림 스타일', kind: 'choice', value: 'clean', options: ['clean', 'sketch'], provider: mine, isLocked: false },
+    { key: 'deck.scale', label: '다이어그램 크기', kind: 'number', value: 1, provider: mine, isLocked: false },
+  ] }) as never)
+  const sets: unknown[] = []
+  on('config.set', ($, e) => (sets.push({ key: e.key, value: e.value }), { value: e.value }) as never)
+  const run = async (args: string) => String(((await $.command.run({ command: 'deck:config', args } as never)) as { text?: string }).text)
+  const all = await run('')
+  expect(all).toMatch(/style = clean  \(clean \| sketch\)/)
+  expect(all).not.toMatch(/theme/)
+  expect(await run('scale 1.5')).toBe('scale = 1.5')
+  expect(await run('style sketch')).toBe('style = sketch')
+  expect(sets).toEqual([{ key: 'deck.scale', value: 1.5 }, { key: 'deck.style', value: 'sketch' }])
+  expect(await run('scale 크게')).toMatch(/숫자/)
+  expect(await run('size 2')).toMatch(/그런 설정은 없다/)
 })
 
 test('/deck:sync 는 sync.mjs 를 돌리고 마지막 줄을 알림으로 띄운다', async ($, on) => {

@@ -215,7 +215,7 @@ async function start($: EngineInterface): Promise<void> {
   })
 }
 
-// 명령: /deck:help · pin · queue · pet · sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
+// 명령: /deck:help · pin · queue · pet · config · sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
 
 // ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
 // 그리기는 node(bin/*.mjs)·sh(bin/convert.sh)가 하고, 여기선 쌓아 두었다가 한 번에 넘긴다.
@@ -415,6 +415,21 @@ function toggleFold($: EngineInterface, key: string): void {
 const PIN = 'deck-pin'
 let pinned: Pin | null = null
 
+// /deck:config: 인자 없으면 deck 설정 전부, `<이름> <값>` 이면 바꾼다 — /plugin → configure 와 같은 곳에 저장, 바꾸면 모듈이 다시 읽힌다.
+async function configCommand($: EngineInterface, args: string): Promise<string> {
+  const rows = (await $.config.list()).filter(r => r.provider.plugin === $.plugin.name)
+  const field = (key: string) => key.slice(key.indexOf('.') + 1)
+  const [name, raw] = args.split(/\s+/).filter(Boolean)
+  if (!name) return ['deck 설정 — /deck:config <이름> <값>', ...rows.map(r => `  ${field(r.key)} = ${r.value}${r.options ? `  (${r.options.join(' | ')})` : ''}`)].join('\n')
+  const row = rows.find(r => field(r.key) === name)
+  if (!row) return `그런 설정은 없다: ${name} (있는 것: ${rows.map(r => field(r.key)).join(' · ')})`
+  if (raw === undefined) return `${name} = ${row.value}`
+  const value = row.kind === 'number' ? Number(raw) : raw
+  if (Number.isNaN(value)) return `${name} 은 숫자다: ${raw}`
+  const r = await $.config.set({ key: row.key, value })
+  return r.deny ? `못 바꿨다: ${r.deny}` : `${name} = ${r.value}`
+}
+
 async function pinCommand($: EngineInterface, args: string): Promise<string> {
   if (args === 'off') {
     await $.ui.close({ id: PIN })
@@ -443,6 +458,8 @@ export const register: Register = (on, options) => {
 
 
   on('command.run', { command: 'deck:help' }, async () => ({ text: helpText() }))
+
+  on('command.run', { command: 'deck:config' }, async ($, e) => ({ text: await configCommand($, String(e.args ?? '').trim()) }))
 
   on('command.run', { command: 'deck:sync' }, async $ => {
     // 설치·리로드는 30초 넘게 걸려 기다리지 않는다 — 끝나면 알림으로 요약을 띄운다.

@@ -1,6 +1,7 @@
 # Flight Deck (`deck`)
 
 `/deck:help` — 하는 일과 명령을 한 장으로 대화에 찍는다.
+`/deck:config` — 설정(style · pet · scale · max_rows · cell_aspect · queue_cap)을 보여 주고, `/deck:config <이름> <값>` 으로 바꾼다. `/plugin → deck → configure` 와 같은 곳에 저장된다.
 `/deck:sync` — push 한 deck 을 `~/.claude`·`~/.claude-work` 에 깔고, herdr 안의 쉬는 Claude 세션에 `/reload-plugins` 를 보낸다(작업 중·입력 중·부른 세션은 건너뜀). 끝나면 알림으로 요약.
 
 Claude Code 화면 한 벌. 입력창 위 계기판, Decision Queue, 답 속 그림, 크게 보기 pane 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.

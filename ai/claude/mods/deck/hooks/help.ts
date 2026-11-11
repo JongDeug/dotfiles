@@ -5,25 +5,22 @@ export type HelpSection = { title: string; rows: [string, string][] }
 
 export const HELP: HelpSection[] = [
   {
+    title: '⌨️  명령',
+    rows: [
+      ['/deck:help', '이 안내'],
+      ['/deck:pin [off]', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다 · off(✕ 내리기)로 내림'],
+      ['/deck:queue [list]', 'Decision Queue(herdr 안에서)에 이 세션을 넣고 뺀다 · 꽉 차면 안 넣는다 · list 는 지금 큐'],
+      ['/deck:pet [off]', '펫을 이 세션에서 띄운다 · off 로 숨긴다'],
+      ['/deck:config', '설정 보기 · /deck:config <이름> <값> 으로 바꾸기 (아래 🔧)'],
+      ['/deck:sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
+    ],
+  },
+  {
     title: '📊 계기판 — 입력창 위 두 줄',
     rows: [
       ['위치 줄', '경로 · 브랜치 · 모델 · 바뀐 파일(올리면 목록) · CI'],
       ['남은 양 줄', 'Decision Queue · CTX · 5H · 7D 게이지와 리셋까지 · 작업 중/지난 턴'],
       ['좁으면', '덜 중요한 알약부터 뺀다'],
-    ],
-  },
-  {
-    title: '◆ Decision Queue — herdr 안에서',
-    rows: [
-      ['/deck:queue', '이 세션을 큐에 넣고 뺀다(토글). 꽉 차면 안 넣는다'],
-      ['/deck:queue list', '지금 큐'],
-    ],
-  },
-  {
-    title: '📌 고정 — 옆 pane 에 남겨 두기',
-    rows: [
-      ['/deck:pin', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 — Esc 로 안 닫힌다'],
-      ['/deck:pin off', '고정을 내린다(✕ 내리기 도 같다)'],
     ],
   },
   {
@@ -35,9 +32,9 @@ export const HELP: HelpSection[] = [
     ],
   },
   {
-    title: '🔒 저절로 하는 일',
+    title: '🔒 커밋 검문 — 저절로',
     rows: [
-      ['커밋 검문', 'git-commit 스킬 규칙(서명 줄 · add -A · 제목 type · 브랜치 · 본문 줄바꿈·표 · 팀 레포 develop)에 걸리면 실행 전에 돌려보낸다'],
+      ['git commit', 'git-commit 스킬 규칙(서명 줄 · add -A · 제목 type · 브랜치 · 본문 줄바꿈·표 · 팀 레포 develop)에 걸리면 실행 전에 돌려보낸다'],
     ],
   },
   {
@@ -48,17 +45,17 @@ export const HELP: HelpSection[] = [
       ['캐시 식음 · 검문·오류', '웅덩이로 꾸벅 · 20초 시무룩'],
       ['5H 80% 넘음', '지쳐서 납작'],
       ['말풍선', '커밋 · 검문 · 오류 · 긴 턴 끝 · 캐시 식음·데움 · 5H · CI 실패 때 3초 (같은 말은 10분에 한 번)'],
-      ['/deck:pet', '이 세션에서 띄우기 · /deck:pet off 숨기기'],
     ],
   },
   {
-    title: '🔧 설정 — /plugin → deck → configure',
+    title: '🔧 설정 — /deck:config <이름> <값> (/plugin → deck → configure 와 같은 곳)',
     rows: [
       ['style', 'clean | sketch (손그림)'],
-      ['pet', 'slime | off'],
-      ['scale · max_rows', '그림 크기 · 그림 최대 줄 수'],
-      ['/deck:help', '이 안내'],
-      ['/deck:sync', 'push 한 deck 을 ~/.claude · ~/.claude-work 에 깔고, 쉬는 herdr 세션을 리로드'],
+      ['pet', 'slime | off (아예 끄기)'],
+      ['scale', '다이어그램 크기 0.5~2'],
+      ['max_rows', '그림 최대 줄 수 5~120'],
+      ['cell_aspect', '칸 높이÷너비 1~4 — 그림이 늘어나 보이면 줄인다'],
+      ['queue_cap', 'Decision Queue 칸 수 1~9'],
     ],
   },
 ]
