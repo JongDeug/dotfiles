@@ -55,6 +55,9 @@ remove_worktree = "prefix+shift+o"
 # 두 액션이 걸려 어느 쪽이 뜨는지 알 수 없다 — worktree 열기 쪽을 쓴다.
 open_notification_target = ""
 
+# prefix+g 는 herdr 기본 goto 다. 레포 골라 새 페인(아래 keys.command)에 쓴다.
+goto = ""
+
 # herdr-nvim. prefix+e 는 edit_scrollback, prefix+o 는 open_worktree 그대로 둔다.
 # 페인 이동은 herdr 기본 prefix+h/j/k/l (Ctrl+Space 다음 h/j/k/l).
 [[keys.command]]
@@ -63,14 +66,15 @@ type = "plugin_action"
 command = "chmarax.herdr-nvim.toggle"
 description = "nvim sidebar"
 
-# fzf 로 레포를 골라 Zed + GitKraken 으로 연다(.zshrc 의 c). 페인 자리 바꾸기는 기본 prefix+shift+h/j/k/l.
+# fzf 로 레포를 골라 그 폴더에 새 페인을 연다(.zshrc 의 _pane_at). 커스텀 커맨드는 별도 프로세스라
+# 살아 있는 페인의 cwd 를 못 바꾼다 — 그래서 cd 가 아니라 split 이다. 데스크톱 앱 prefix g 와 같다.
 # shell 타입은 detached 라 TTY 가 없어 fzf 가 죽는다. popup 이어야 한다.
 # -i 는 .zshrc 를 읽으려고 (함수라 비대화형 셸엔 없다).
 [[keys.command]]
-key = "prefix+shift+c"
+key = "prefix+g"
 type = "popup"
-command = 'exec "${SHELL:-sh}" -ic c'
-description = "pick repo -> Zed"
+command = 'exec "${SHELL:-sh}" -ic _pane_at'
+description = "pick repo -> new pane"
 width = "70%"
 height = "60%"
 

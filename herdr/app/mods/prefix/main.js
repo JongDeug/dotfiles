@@ -27,7 +27,7 @@ function cycle(f, step) {
 }
 
 // A picker in a floating terminal (fzf needs one); the window closes when the terminal ends.
-// The pickers are .zshrc functions (c), so zsh -i. Close this prefix popup first: closing it after
+// The picker is a .zshrc function (_pick_dir), so zsh -i. Close this prefix popup first: closing it after
 // would hand the keyboard back to the pane underneath. (The dialog's terminal then has the keyboard.)
 async function popup(script, self) {
   const r = await exec("hc", ["run", "--bg", "--rm", "--json", "--cwd", home(), "--", "zsh", "-ic", script]);
@@ -49,7 +49,9 @@ const BINDS = [
   ["shift-k", "swap ↑", () => run("pane.swap", { direction: "up" })],
   ["shift-l", "swap →", () => run("pane.swap", { direction: "right" })],
   ["shift-j", "swap ↓", () => run("pane.swap", { direction: "down" })],
-  ["shift-c", "repo → Zed+GK", (_f, self) => popup("c", self), true],
+  // TUI prefix+g. herdr-app do: the picker's terminal can't split the pane itself; the new pane opens
+  // right of the pane under the picker.
+  ["g", "repo → pane", (_f, self) => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null', self), true],
   ["|", "split →", () => run("pane.split", { direction: "right" })],
   ["-", "split ↓", () => run("pane.split", { direction: "down" })],
   ["z", "zoom", () => run("pane.zoom")],
