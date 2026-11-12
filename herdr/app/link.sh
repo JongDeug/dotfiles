@@ -15,4 +15,5 @@ link() { # $1 source, $2 destination: refuse to clobber a real file/folder
 for m in "$SRC"/mods/*/; do m=${m%/}; link "$m" "$APP/mods/$(basename "$m")"; done
 link "$SRC/layouts" "$APP/layouts"
 link "$SRC/keys.json" "$APP/keys.json"
-echo "linked: $(ls "$SRC/mods" | tr '\n' ' ')layouts keys.json"
+link "$SRC/programs.json" "$APP/programs.json"
+echo "linked: $(ls "$SRC/mods" | tr '\n' ' ')layouts keys.json programs.json"

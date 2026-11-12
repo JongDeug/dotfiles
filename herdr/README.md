@@ -34,6 +34,7 @@ sh "$REPO/herdr/app/link.sh"   # 링크 걸기. 고친 뒤에도 다시 돌린�
 - prefix `ctrl-space` 는 `mods/prefix` 팝업이 다음 키 하나를 받는다 — TUI 와 같은 배치(`, . /` 이름 변경, `⇧1-9` 워크스페이스).
 - `ctrl-1~3` Decision Queue(`mods/queue`, `/deck:queue` 가 단 `deck.q` 라벨) · `ctrl-4~9` 워크스페이스.
 - 워크스페이스·탭 번호는 `spaces-num` · `tabs-num`, 페인 이름(`prefix+/`)은 터미널 라벨 `pane.name` 을 `pane-named` 머리줄이 그린다.
+- Hermes 를 Agents 목록에: Hermes 는 턴을 터미널 없는 gateway 에서 돌려 스스로 OSC 7501 을 못 보낸다. gateway 플러그인 `hermes/hc-agent-state`(→ `~/.hermes/plugins/`, `config.yaml` `plugins.enabled`)가 상태를 `state/hc-agent-state.json` 에 적고, `hermes/hermes-hc`(→ `~/.local/bin/`)가 그걸 터미널로 보낸다. 앱의 Start an agent → Hermes 는 `programs.json` 으로 `hermes-hc` 를 띄운다. 플러그인을 새로 켜면 gateway 를 다시 띄워야 읽는다.
 - 꼬이면 `ctrl-alt-shift-escape` — `keys.json`·레이아웃을 옆으로 치우고 기본으로. 그 뒤 `link.sh` 로 되돌린다.
 
 ## 마켓플레이스에서 쓰는 플러그인

@@ -1,0 +1,2 @@
+{ "programs": {
+    "hermes": { "run": ["hermes-hc"], "match": ["hermes-hc"] } } }

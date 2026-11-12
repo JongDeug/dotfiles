@@ -1,0 +1,4 @@
+name: hc-agent-state
+version: 0.2.0
+description: "대화창(CLI) 턴의 상태(working·blocked·idle)를 state/hc-agent-state.json 에 적는다. hermes-hc 가 이걸 OSC 7501 로 바꿔 herdr Agents 목록에 띄운다."
+author: jongdeug

@@ -1,0 +1,22 @@
+#!/bin/sh
+# hermes, plus its turn state for herdr: hc-agent-state (gateway plugin) writes the state to a file,
+# this relays changes to the terminal as OSC 7501 so herdr lists it as an agent.
+# TODO: one state file per profile, so two CLIs at once show the same state.
+F=${HERMES_HOME:-$HOME/.hermes}/state/hc-agent-state.json
+
+say() { printf '\033]7501;state=%s:app=hermes\007' "$1" > /dev/tty 2>/dev/null; }
+now() { sed -n 's/.*"state": *"\([a-z]*\)".*/\1/p' "$F" 2>/dev/null; }
+
+(
+  last=$(now) # what an earlier session left is not ours
+  say idle    # listed as an agent from the start
+  while :; do
+    s=$(now)
+    if [ -n "$s" ] && [ "$s" != "$last" ]; then say "$s"; last=$s; fi
+    sleep 0.5
+  done
+) &
+relay=$!
+trap 'kill $relay 2>/dev/null' EXIT INT TERM HUP
+
+hermes "$@"
