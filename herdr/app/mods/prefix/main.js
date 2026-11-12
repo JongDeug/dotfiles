@@ -27,10 +27,13 @@ function cycle(f, step) {
 }
 
 // A picker in a floating terminal (fzf needs one); the window closes when the terminal ends.
-// The pickers are .zshrc functions (_pick_dir, c), so zsh -i.
-async function popup(script) {
+// The pickers are .zshrc functions (c), so zsh -i. Close this prefix popup first: closing it after
+// would hand the keyboard back to the pane underneath. (The dialog's terminal then has the keyboard.)
+async function popup(script, self) {
   const r = await exec("hc", ["run", "--bg", "--rm", "--json", "--cwd", home(), "--", "zsh", "-ic", script]);
-  openOverlay({ kind: "dialog", width: 0.6, height: 0.6, layout: { type: "block", content: { terminal: JSON.parse(r.stdout).address } } });
+  const terminal = JSON.parse(r.stdout).address;
+  closeOverlay(self);
+  openOverlay({ kind: "dialog", width: 0.6, height: 0.6, layout: { type: "block", content: { terminal } } });
 }
 
 // [key, label, action(focusedAtOpen), async: keep this popup until the action resolves]
@@ -45,9 +48,8 @@ const BINDS = [
   ["shift-h", "swap ←", () => run("pane.swap", { direction: "left" })],
   ["shift-k", "swap ↑", () => run("pane.swap", { direction: "up" })],
   ["shift-l", "swap →", () => run("pane.swap", { direction: "right" })],
-  // prefix+shift+j / shift+c as in the TUI. herdr-app do: the picker's terminal can't split the pane itself.
-  ["shift-j", "repo → pane", () => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null'), true],
-  ["shift-c", "repo → Zed", () => popup("c"), true],
+  ["shift-j", "swap ↓", () => run("pane.swap", { direction: "down" })],
+  ["shift-c", "repo → Zed", (_f, self) => popup("c", self), true],
   ["|", "split →", () => run("pane.split", { direction: "right" })],
   ["-", "split ↓", () => run("pane.split", { direction: "down" })],
   ["z", "zoom", () => run("pane.zoom")],
@@ -117,7 +119,7 @@ export default class Prefix extends View {
         const f = this.f;
         const id = props().overlay;
         if (b?.[3]) {
-          cx.spawn(async () => { try { await b[2](f); } finally { closeOverlay(id); } });
+          cx.spawn(async () => { try { await b[2](f, id); } finally { closeOverlay(id); } });
           return;
         }
         closeOverlay(id);
