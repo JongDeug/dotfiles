@@ -1,0 +1,6 @@
+# herdr-app writes these into every mod folder on start
+mods/*/jsconfig.json
+mods/*/*.d.ts
+# layouts/ is linked whole (the app replaces files atomically); only mine is tracked
+layouts/*
+!layouts/main-num.json

@@ -1,0 +1,1 @@
+{ "place": "none", "title": "Decision Queue", "overlay": { "kind": "window", "key": "queue", "keep": true, "frame": "none", "width": 460, "height": 26 } }
