@@ -1,0 +1,4 @@
+#!/bin/sh
+# Hermes on vision (container hermes-jongdeug), from this mac. hermes-hc inside the container relays
+# the turn state; OSC 7501 passes through podman and ssh to this terminal, so herdr lists it as an agent.
+exec ssh -t vision podman exec -it hermes-jongdeug sh /opt/shared/plugins/hc-agent-state/hermes-hc "$@"

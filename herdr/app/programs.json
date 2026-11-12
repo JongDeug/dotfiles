@@ -1,2 +1,2 @@
 { "programs": {
-    "hermes": { "run": ["hermes-hc"], "match": ["hermes-hc"] } } }
+    "hermes": { "run": ["hermes-jongdeug"], "match": ["hermes-hc", "hermes-jongdeug"] } } }
