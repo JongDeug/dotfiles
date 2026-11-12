@@ -3,7 +3,7 @@
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, props, closeOverlay, openOverlay, focused, panes, terminals, theme, shared, setShared } from "herdr";
+import { run, props, closeOverlay, openOverlay, focused, panes, terminals, theme, shared, setShared, exec, home } from "herdr";
 
 // 2-beolsik jamo -> key, so the prefix works with the Korean IME on.
 const JAMO = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p",
@@ -26,7 +26,14 @@ function cycle(f, step) {
   if (ps.length > 1) run("pane.focus", { pane: ps[(i + step + ps.length) % ps.length].pane });
 }
 
-// [key, label, action(focusedAtOpen)]
+// A picker in a floating terminal (fzf needs one); the window closes when the terminal ends.
+// The pickers are .zshrc functions (_pick_dir, c), so zsh -i.
+async function popup(script) {
+  const r = await exec("hc", ["run", "--bg", "--rm", "--json", "--cwd", home(), "--", "zsh", "-ic", script]);
+  openOverlay({ kind: "dialog", width: 0.6, height: 0.6, layout: { type: "block", content: { terminal: JSON.parse(r.stdout).address } } });
+}
+
+// [key, label, action(focusedAtOpen), async: keep this popup until the action resolves]
 const BINDS = [
   ["h", "←", () => run("pane.go", { direction: "left" })],
   ["j", "↓", () => run("pane.go", { direction: "down" })],
@@ -35,6 +42,12 @@ const BINDS = [
   [";", "last pane", () => { const p = shared("prefix.last"); if (p) run("pane.focus", { pane: p }); }],
   ["tab", "next pane", (f) => cycle(f, 1)],
   ["shift-tab", "prev pane", (f) => cycle(f, -1)],
+  ["shift-h", "swap ←", () => run("pane.swap", { direction: "left" })],
+  ["shift-k", "swap ↑", () => run("pane.swap", { direction: "up" })],
+  ["shift-l", "swap →", () => run("pane.swap", { direction: "right" })],
+  // prefix+shift+j / shift+c as in the TUI. herdr-app do: the picker's terminal can't split the pane itself.
+  ["shift-j", "repo → pane", () => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null'), true],
+  ["shift-c", "repo → Zed", () => popup("c"), true],
   ["|", "split →", () => run("pane.split", { direction: "right" })],
   ["-", "split ↓", () => run("pane.split", { direction: "down" })],
   ["z", "zoom", () => run("pane.zoom")],
@@ -71,6 +84,7 @@ function resolve(e) {
     if (!k) continue;
     const n = ALIAS[k] ?? k;
     if (BY_KEY.has(n)) return BY_KEY.get(n);
+    if (e.modifiers?.shift && BY_KEY.has(`shift-${n}`)) return BY_KEY.get(`shift-${n}`); // Korean IME: ⇧ㅗ is still ㅗ
   }
   return null;
 }
@@ -101,7 +115,12 @@ export default class Prefix extends View {
         if (/^(shift|ctrl|alt|cmd)$/.test(e.key)) return; // a lone modifier: keep waiting
         const b = resolve(e);
         const f = this.f;
-        closeOverlay(props().overlay);
+        const id = props().overlay;
+        if (b?.[3]) {
+          cx.spawn(async () => { try { await b[2](f); } finally { closeOverlay(id); } });
+          return;
+        }
+        closeOverlay(id);
         if (b) b[2](f);
       })
       .size_full().p(10).gap(8).bg(t.popover).text_size(11)
