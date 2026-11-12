@@ -63,7 +63,7 @@ type = "plugin_action"
 command = "chmarax.herdr-nvim.toggle"
 description = "nvim sidebar"
 
-# fzf 로 레포를 골라 Zed 를 띄운다(.zshrc 의 c). 페인 자리 바꾸기는 기본 prefix+shift+h/j/k/l.
+# fzf 로 레포를 골라 Zed + GitKraken 으로 연다(.zshrc 의 c). 페인 자리 바꾸기는 기본 prefix+shift+h/j/k/l.
 # shell 타입은 detached 라 TTY 가 없어 fzf 가 죽는다. popup 이어야 한다.
 # -i 는 .zshrc 를 읽으려고 (함수라 비대화형 셸엔 없다).
 [[keys.command]]
