@@ -9,7 +9,7 @@ import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
 import { pickPin, type Pin } from './pin'
-import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, queueOfHc, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 Decision Queue와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
@@ -129,11 +129,21 @@ const refreshCi = ($: EngineInterface) =>
   })
 
 // herdr 안에서만 — 모든 space 에서 /deck:queue 로 올린 에이전트를 읽는다.
+// herdr TUI 는 pane 토큰 q=◆N, herdr 앱(herdr-core 터미널, HC_TERMINAL_ID)은 터미널 라벨 deck.q=N.
 const herdr = async ($: EngineInterface, args: string[]) => sh($, [(await $.env.get('HERDR_BIN_PATH')) || 'herdr', ...args])
+let viaHc = false
 const readQueue = async ($: EngineInterface) => {
-  if ((await $.env.get('HERDR_ENV')) !== '1') return null
-  pane = (await $.env.get('HERDR_PANE_ID')) ?? ''
-  return queueOf(await herdr($, ['agent', 'list']))
+  if ((await $.env.get('HERDR_ENV')) === '1') {
+    viaHc = false
+    pane = (await $.env.get('HERDR_PANE_ID')) ?? ''
+    return queueOf(await herdr($, ['agent', 'list']))
+  }
+  const t = await $.env.get('HC_TERMINAL_ID')
+  if (!t) return null
+  viaHc = true
+  pane = t
+  const slots = Array.from({ length: queueCap }, (_, i) => sh($, ['hc', 'ls', '--json', '--label', `deck.q=${i + 1}`]))
+  return queueOfHc(await Promise.all(slots))
 }
 const refreshQueue = ($: EngineInterface) =>
   guarded($, 'queue', async () => {
@@ -149,9 +159,14 @@ async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const mine = q.some(i => i.pane === pane)
   const slot = mine ? 0 : freeSlot(q, queueCap)
   if (!mine && !slot) return `Decision Queue가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
-  await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
-  // 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 한 곳에서 다시 계산한다.
-  await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
+  if (viaHc) {
+    // 앱 쪽 표시·ctrl+N 은 herdr-app mod(queue)가 라벨을 읽어 한다.
+    await sh($, ['hc', 'label', pane, `deck.q=${mine ? '' : slot}`])
+  } else {
+    await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
+    // 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 한 곳에서 다시 계산한다.
+    await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
+  }
   await refreshQueue($)
   return mine ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
 }

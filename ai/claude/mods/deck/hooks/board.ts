@@ -141,6 +141,16 @@ export function queueOf(json: string): Queued[] | null {
   }
 }
 
+// herdr 앱(herdr-core): 칸 N 마다 `hc ls --json --label deck.q=N` 한 번. outs[i] 가 칸 i+1. 하나라도 못 읽으면 null.
+export function queueOfHc(outs: string[]): Queued[] | null {
+  try {
+    return outs.flatMap((out, i) => (JSON.parse(out).terminals as { address: string; status?: string; where?: string }[])
+      .map(t => ({ pane: t.address, status: t.status ?? 'idle', title: t.where || t.address, slot: i + 1 })))
+  } catch {
+    return null
+  }
+}
+
 export function freeSlot(queue: Queued[], cap: number): number {
   const used = new Set(queue.map(i => i.slot))
   for (let n = 1; n <= cap; n++) if (!used.has(n)) return n

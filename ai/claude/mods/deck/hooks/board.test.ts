@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, queueOf, shortPath, tokensOf, untilText } from './board'
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, queueOf, queueOfHc, shortPath, tokensOf, untilText } from './board'
 
 test('Decision Queue는 q 토큰 단 에이전트만', () => {
   const json = JSON.stringify({ result: { agents: [
@@ -76,4 +76,15 @@ test('claudeTrailer: Claude 서명 줄만 잡는다', () => {
   expect(claudeTrailer('git -C repo commit --trailer "Co-authored-by: claude"')).toBe('Co-authored-by: claude')
   expect(claudeTrailer('git commit -m "feat: 깨끗"')).toBeNull()
   expect(claudeTrailer('git commit -m "x" -m "Co-Authored-By: Kim <k@x.com>"')).toBeNull()
+})
+
+test('herdr 앱 Decision Queue는 칸마다 deck.q 라벨로 거른 hc ls', () => {
+  const one = JSON.stringify({ terminals: [{ address: 't3', status: 'working', where: 'Root / main' }] })
+  const none = JSON.stringify({ terminals: [] })
+  const three = JSON.stringify({ terminals: [{ address: 'vision/t1' }] })
+  expect(queueOfHc([one, none, three])).toEqual([
+    { pane: 't3', status: 'working', title: 'Root / main', slot: 1 },
+    { pane: 'vision/t1', status: 'idle', title: 'vision/t1', slot: 3 },
+  ])
+  expect(queueOfHc([one, ''])).toBe(null)
 })
