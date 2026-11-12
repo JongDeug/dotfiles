@@ -10,9 +10,9 @@ shell_mode = "login"
 # Prefix: C-b → C-Space. tmux 와 같은 키. 중첩이면 tmux 쪽 send-prefix.
 prefix = "ctrl+space"
 
-# 이름 변경: , = 탭, . = 워크스페이스, / = 페인
-rename_tab = "prefix+,"
-rename_workspace = "prefix+."
+# 이름 변경: , = 워크스페이스, . = 탭, / = 페인 (데스크톱 앱 prefix 와 같다)
+rename_tab = "prefix+."
+rename_workspace = "prefix+,"
 rename_pane = "prefix+/"
 
 # 다이렉트 키라 꾹 누르면 OS 키반복으로 연속 리사이즈 (tmux repeat 느낌).
