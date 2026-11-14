@@ -54,6 +54,8 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 그림 요소(kitty 그래픽)가 되는 터미널이 필요하다 — herdr 안이면 settings 의 env 에 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`. 못 그리면 코드 그대로 두고 아래에 이유를 흐리게 단다.
 
+herdr 데스크톱 앱 터미널(`HC_TERMINAL_ID` 가 있으면)은 아직 kitty 그래픽을 못 그린다(herdr-app #533·#302) — 그 안에선 그림 대신 `🖼 제목` 한 줄과 `Pictures 패널에서 보기` 를 두고, 그림은 `bin/panel.mjs` 가 `~/.config/herdr-app/pictures/` 에 복사해 앱의 Pictures 패널(dotfiles `herdr/app/mods/pictures`)이 보인다. 새 그림이 오면 패널이 열린다. 앱이 그림을 그리게 되면 이 길을 지운다.
+
 ## 커밋 검문
 
 git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전에 기계로 가를 수 있는 규칙만 한 번 더 본다. 걸리면 `git commit`·`git add` 를 실행하지 않고 고칠 곳(몇째 줄이 왜)을 짚어 돌려보낸다 — 모델이 고쳐 다시 한다.

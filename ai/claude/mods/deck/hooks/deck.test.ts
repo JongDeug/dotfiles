@@ -6,9 +6,9 @@ import { HELP } from './help'
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 const props = (text: string) => ({ text, isFirstOfReply: true }) as never
 
-function world(on: On) {
+function world(on: On, env: Record<string, string> = {}) {
   mock.clock(on, { now: 1_000_000 })
-  on('env.get', ($, e) => ({ value: e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : e.name === 'HOME' ? '/home/me' : undefined }))
+  on('env.get', ($, e) => ({ value: env[e.name] ?? (e.name === 'CLAUDE_CODE_FORCE_TERMINAL_IMAGES' ? '1' : e.name === 'HOME' ? '/home/me' : undefined) }))
   const calls: string[] = []
   on('process.run', ($, e) => {
     const argv = e.argv as string[]
@@ -36,6 +36,17 @@ test('chart · mermaid · 이미지 블록은 처음엔 글, 렌더러가 답하
   expect(calls.filter(c => c.includes('mermaid.mjs')).length).toBe(1)
   expect(calls.filter(c => c.includes('chart.mjs')).length).toBe(1)
   expect(calls.filter(c => c.includes('convert.sh')).length).toBe(1)
+})
+
+test('herdr 앱 터미널(HC_TERMINAL_ID)에선 그림 대신 한 줄 — 그림은 panel.mjs 로 한 번만 보내고, 버튼은 다시 띄운다', async ($, on) => {
+  const calls = world(on, { HC_TERMINAL_ID: 't1' })
+  const text = ['앞', '![사진](/tmp/a.png)', '끝'].join('\n')
+  const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AssistantMessage', props: props(text) })
+  await ui.find({ text: /🖼/ })
+  expect((await ui.findAll({ type: 'Image' })).length).toBe(0)
+  expect(calls.filter(c => c.endsWith('/bin/panel.mjs')).length).toBe(1)
+  await ui.press({ key: (await ui.find({ type: 'Button', text: /Pictures 패널/ }))!.key! })
+  expect(calls.filter(c => c.endsWith('/bin/panel.mjs')).length).toBe(2)
 })
 
 test('그림 밑 ▴ 접기는 그 그림만 한 줄로 접고 ▾ 펼치기로 되돌린다 — 다른 답의 같은 그림은 그대로', async ($, on) => {

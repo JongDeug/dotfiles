@@ -395,6 +395,26 @@ const chartTitle = (spec: string): string => {
   }
 }
 
+// herdr 데스크톱 앱 터미널(HC_TERMINAL_ID)은 Kitty 그림을 아직 못 그린다(herdr-app #533·#302) — 그림은 앱의
+// Pictures 패널로 보내고(bin/panel.mjs) 터미널엔 한 줄만. TODO: 앱이 그림을 그리게 되면(#793) 이 길을 지운다.
+type PanelSrc = { png: string } | { file: string }
+const sentToPanel = new Set<string>()
+const inHerdrApp = async ($: EngineInterface) => Boolean(await $.env.get('HC_TERMINAL_ID'))
+function toPanel($: EngineInterface, title: string, src: PanelSrc, show: 'new' | 'always'): void {
+  void $.process.run(['node', `${$.plugin.root}/bin/panel.mjs`], { stdin: JSON.stringify({ title, ...src, show }), timeoutMs: 15_000 }).catch(() => {})
+}
+// 처음 그릴 때 한 번 보내고(새 그림이면 패널이 열린다), 버튼은 그 그림을 다시 띄운다.
+function panelLine($: EngineInterface, ui: { Box: any; Button: any; Text: any }, id: string, title: string, src: PanelSrc): RenderElement {
+  if (!sentToPanel.has(id)) { sentToPanel.add(id); toPanel($, title, src, 'new') }
+  const { Box, Button, Text } = ui
+  return (
+    <Box flexDirection="row" columnGap={2}>
+      <Text dimColor wrap="truncate-end">🖼 {title}</Text>
+      <Button key={`panel-${id}`.slice(0, 64)} plain dimColor onPress={() => toPanel($, title, src, 'always')}>Pictures 패널에서 보기</Button>
+    </Box>
+  )
+}
+
 // 크게 보기 pane 하나 — 무엇을 띄웠느냐에 따라 그린다.
 const VIEW = 'deck-view'
 type Viewing = { kind: 'png'; title: string; png: Png } | { kind: 'chart'; title: string; spec: string } | { kind: 'file'; title: string; img: ImageFile }
@@ -580,6 +600,7 @@ export const register: Register = (on, options) => {
     const blocks = splitAll(e.props.text)
     if (!blocks.some(b => b.kind !== 'text')) return next(e)
     const mode = await modeOf($)
+    const panel = await inHerdrApp($)
     const { Box, Button, Image, Text } = $.ui.resolve(e)
     // 왼쪽 2칸 거터(⏺)와 마지막 빈 칸을 뺀 폭.
     const width = Math.max(20, (e.viewport?.columns ?? 80) - 3)
@@ -626,6 +647,7 @@ export const register: Register = (on, options) => {
           await asText(b.raw)
           if (d) failed('다이어그램을', d.error)
         } else if ('text' in d) picture(<Text wrap="truncate-end">{d.text}</Text>)
+        else if (panel) picture(panelLine($, { Box, Button, Text }, `${d.png.length}:${d.png.slice(-24)}`, `다이어그램 · ${b.source.trim().split('\n')[0] ?? 'mermaid'}`, { png: d.png }))
         else {
           const title = b.source.trim().split('\n')[0] ?? 'mermaid'
           const scope = `deck-m-${n}-${d.png.length}`.slice(0, 64)
@@ -641,7 +663,8 @@ export const register: Register = (on, options) => {
         if (!d || 'error' in d) {
           await asText(b.raw)
           if (d) failed('차트를', d.error)
-        } else {
+        } else if (panel) picture(panelLine($, { Box, Button, Text }, `${d.png.length}:${d.png.slice(-24)}`, `차트 · ${chartTitle(b.spec)}`, { png: d.png }))
+        else {
           const title = chartTitle(b.spec)
           const spec = b.spec
           const scope = `deck-c-${n}-${spec.length}`.slice(0, 64)
@@ -659,7 +682,9 @@ export const register: Register = (on, options) => {
         // 한 줄의 그림이 다 준비돼야 그린다 — 그 전엔 원래 글(이미지 문법)로 둔다.
         const imgs = b.pictures.map(p => imageOf($, p.path))
         if (!imgs.every(i => i && !('error' in i))) await asText(b.raw)
-        else {
+        else if (panel) {
+          b.pictures.forEach((p, i) => picture(panelLine($, { Box, Button, Text }, (imgs[i] as ImageFile).file, p.alt || (p.path.split('/').pop() ?? p.path), { file: (imgs[i] as ImageFile).file })))
+        } else {
           // 여러 장이면 폭을 나눠 나란히. 각 그림 밑에 설명.
           const gap = 2
           const each = Math.floor((Math.min(100, width) - gap * (b.pictures.length - 1)) / b.pictures.length)
@@ -698,6 +723,7 @@ export const register: Register = (on, options) => {
     const { Box, Button, Image, Text } = $.ui.resolve(e)
     const grid = gridFor(img.width, img.height, Math.min(100, (e.viewport?.columns ?? 80) - 6), pic.maxRows, pic.cellAspect)
     const title = path.split('/').pop() ?? path
+    if (await inHerdrApp($)) return <Box flexDirection="column">{row}<Box paddingLeft={5}>{panelLine($, { Box, Button, Text }, img.file, title, { file: img.file })}</Box></Box>
     const fk = e.requestId // tool_use_id — 같은 파일을 두 번 읽어도 따로 접힌다
     if (folded.has(fk)) {
       return (
