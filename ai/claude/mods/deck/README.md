@@ -54,7 +54,7 @@ Claude 에게 "이 터미널은 그림을 그린다"는 안내를 붙여, 그림
 
 그림 요소(kitty 그래픽)가 되는 터미널이 필요하다 — herdr 안이면 settings 의 env 에 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`. 못 그리면 코드 그대로 두고 아래에 이유를 흐리게 단다.
 
-herdr 데스크톱 앱 터미널(`HC_TERMINAL_ID` 가 있으면)은 아직 kitty 그래픽을 못 그린다(herdr-app #533·#302) — 그 안에선 그림 대신 `🖼 제목` 한 줄과 `Pictures 패널에서 보기` 를 두고, 그림은 `bin/panel.mjs` 가 `~/.config/herdr-app/pictures/` 에 복사해 앱의 Pictures 패널(dotfiles `herdr/app/mods/pictures`)이 보인다. 새 그림이 오면 패널이 열린다. 앱이 그림을 그리게 되면 이 길을 지운다.
+herdr 데스크톱 앱 터미널(`HC_TERMINAL_ID` 가 있으면)은 아직 kitty 그래픽을 못 그린다(herdr-app #533·#302) — 그 안에선 그림 대신 `🖼 제목` 한 줄과 `Pictures 패널에서 보기` 를 두고, 그림은 `bin/panel.mjs` 가 `~/.config/herdr-app/pictures/` 에 복사해 앱의 Pictures 패널(dotfiles `herdr/app/mods/pictures`)이 보인다. 패널은 그 버튼을 눌러야 열린다(새 그림은 목록에만 쌓인다). 앱이 그림을 그리게 되면 이 길을 지운다.
 
 ## 커밋 검문
 
