@@ -1,5 +1,5 @@
 // /deck:sync — push 한 deck 을 이 맥의 Claude 들에 깐다: 설정 폴더(~/.claude · ~/.claude-work)마다 마켓플레이스를 받고
-// 플러그인을 올린 뒤, herdr 안이면 쉬는(idle·done) Claude 세션에 /reload-plugins 를 보낸다. 작업 중이거나 입력하다 만
+// 플러그인을 올린 뒤, herdr(TUI·데스크톱 앱) 안이면 쉬는(idle·done) Claude 세션에 /reload-plugins 를 보낸다. 작업 중이거나 입력하다 만
 // 세션, 이 명령을 부른 세션은 건드리지 않는다. 한 줄씩 결과를 찍고, 마지막 줄이 요약이다.
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -29,26 +29,35 @@ for (const dir of ['.claude', '.claude-work'].map(d => path.join(os.homedir(), d
   console.log(`${path.basename(dir)}: ${r.out.split('\n').pop()}`)
 }
 
+// 다른 Claude 세션을 찾고 읽고 보내는 길: herdr TUI 는 herdr CLI, 데스크톱 앱(HC_TERMINAL_ID)은 hc.
+const json = r => (r.ok ? JSON.parse(r.out) : null)
+const host = process.env.HERDR_ENV === '1' ? {
+  me: process.env.HERDR_PANE_ID,
+  list: () => (json(run('herdr', ['agent', 'list']))?.result.agents ?? []).filter(a => a.agent === 'claude').map(a => ({ id: a.pane_id, status: a.agent_status })),
+  read: id => run('herdr', ['agent', 'read', id, '--source', 'visible', '--lines', '60']).out,
+  send: id => run('herdr', ['agent', 'prompt', id, '/reload-plugins', '--wait', '--timeout', '30000']).ok,
+} : process.env.HC_TERMINAL_ID ? {
+  me: process.env.HC_TERMINAL_ID,
+  list: () => (json(run('hc', ['ls', '--json']))?.terminals ?? []).filter(t => t.agent === 'claude-code').map(t => ({ id: t.address, status: t.status })),
+  read: id => run('hc', ['read', id]).out,
+  send: id => run('hc', ['send', id, '/reload-plugins']).ok,
+} : null
+
 const reloaded = []
 const skipped = []
-if (process.env.HERDR_ENV === '1') {
-  const list = run('herdr', ['agent', 'list'])
-  const agents = list.ok ? JSON.parse(list.out).result.agents : []
-  for (const a of agents) {
-    if (a.agent !== 'claude' || a.pane_id === process.env.HERDR_PANE_ID) continue
-    if (!['idle', 'done'].includes(a.agent_status)) {
-      skipped.push(`${a.pane_id}(작업 중)`)
-      continue
-    }
-    // 입력창(❯)에 쓰다 만 글이 있으면 건너뛴다 — 보내면 그 글 뒤에 붙는다.
-    const screen = run('herdr', ['agent', 'read', a.pane_id, '--source', 'visible', '--lines', '60']).out
-    if (/❯\s*\S/.test(screen.split('\n').filter(l => l.includes('❯')).pop() ?? '')) {
-      skipped.push(`${a.pane_id}(입력 중)`)
-      continue
-    }
-    const r = run('herdr', ['agent', 'prompt', a.pane_id, '/reload-plugins', '--wait', '--timeout', '30000'])
-    ;(r.ok ? reloaded : skipped).push(r.ok ? a.pane_id : `${a.pane_id}(실패)`)
+for (const a of host?.list() ?? []) {
+  if (a.id === host.me) continue
+  if (!['idle', 'done'].includes(a.status)) {
+    skipped.push(`${a.id}(작업 중)`)
+    continue
   }
+  // 입력창(❯)에 쓰다 만 글이 있으면 건너뛴다 — 보내면 그 글 뒤에 붙는다(hc send 는 그 글이 끝나길 기다린다).
+  if (/❯\s*\S/.test(host.read(a.id).split('\n').filter(l => l.includes('❯')).pop() ?? '')) {
+    skipped.push(`${a.id}(입력 중)`)
+    continue
+  }
+  if (host.send(a.id)) reloaded.push(a.id)
+  else skipped.push(`${a.id}(실패)`)
 }
 
 console.log(`${plugin} 설치: ${installed.join(' · ')} — 세션 리로드 ${reloaded.length}${skipped.length ? `, 건너뜀 ${skipped.join(' ')}` : ''}. 이 세션은 /reload-plugins`)
