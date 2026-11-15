@@ -40,7 +40,8 @@ const host = process.env.HERDR_ENV === '1' ? {
   me: process.env.HC_TERMINAL_ID,
   list: () => (json(run('hc', ['ls', '--json']))?.terminals ?? []).filter(t => t.agent === 'claude-code').map(t => ({ id: t.address, status: t.status })),
   read: id => run('hc', ['read', id]).out,
-  send: id => run('hc', ['send', id, '/reload-plugins']).ok,
+  // hc send 는 글을 <hc from=…> 태그로 감싸 명령이 아닌 메시지가 된다 — 키를 한 자씩 누른다.
+  send: id => run('hc', ['keys', id, ...'/reload-plugins', 'enter']).ok,
 } : null
 
 const reloaded = []
