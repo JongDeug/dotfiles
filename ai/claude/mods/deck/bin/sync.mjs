@@ -30,6 +30,8 @@ for (const dir of ['.claude', '.claude-work'].map(d => path.join(os.homedir(), d
 }
 
 // 다른 Claude 세션을 찾고 읽고 보내는 길: herdr TUI 는 herdr CLI, 데스크톱 앱(HC_TERMINAL_ID)은 hc.
+const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+const inputLine = screen => screen.split('\n').filter(l => l.includes('❯')).pop() ?? ''
 const json = r => (r.ok ? JSON.parse(r.out) : null)
 const host = process.env.HERDR_ENV === '1' ? {
   me: process.env.HERDR_PANE_ID,
@@ -41,7 +43,17 @@ const host = process.env.HERDR_ENV === '1' ? {
   list: () => (json(run('hc', ['ls', '--json']))?.terminals ?? []).filter(t => t.agent === 'claude-code').map(t => ({ id: t.address, status: t.status })),
   read: id => run('hc', ['read', id]).out,
   // hc send 는 글을 <hc from=…> 태그로 감싸 명령이 아닌 메시지가 된다 — 키를 한 자씩 누른다.
-  send: id => run('hc', ['keys', id, ...'/reload-plugins', 'enter']).ok,
+  // 글자와 Enter 를 한꺼번에 누르면 Enter 가 막 뜬 자동완성에 먹혀 입력창에 남는다: 쉬고 Enter, 남았으면 한 번 더.
+  send: id => {
+    if (!run('hc', ['keys', id, ...'/reload-plugins']).ok) return false
+    for (let i = 0; i < 2; i++) {
+      sleep(500)
+      run('hc', ['keys', id, 'enter'])
+      sleep(700)
+      if (!inputLine(run('hc', ['read', id]).out).includes('/reload-plugins')) return true
+    }
+    return false
+  },
 } : null
 
 const reloaded = []
@@ -53,7 +65,7 @@ for (const a of host?.list() ?? []) {
     continue
   }
   // 입력창(❯)에 쓰다 만 글이 있으면 건너뛴다 — 보내면 그 글 뒤에 붙는다(hc send 는 그 글이 끝나길 기다린다).
-  if (/❯\s*\S/.test(host.read(a.id).split('\n').filter(l => l.includes('❯')).pop() ?? '')) {
+  if (/❯\s*\S/.test(inputLine(host.read(a.id)))) {
     skipped.push(`${a.id}(입력 중)`)
     continue
   }
