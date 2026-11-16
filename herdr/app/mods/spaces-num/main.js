@@ -16,8 +16,12 @@ function find(node, id) {
   return null;
 }
 
-// The sidebar's rail goes by its width, not a flag: dragging its edge narrows it too.
-const narrow = () => (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160;
+// The sidebar goes by its width, not a flag: dragging its edge narrows it too. Under 80 px it's the rail
+// (numbers), under 200 slim (number and name, no git tail). In step with chrome-slim and agents-slim.
+const width = () => find(layout(), "sidebar")?.size?.px ?? Infinity;
+const narrow = () => width() < 80;
+const folded = () => width() < 200;
+const narrowRow = folded; // folded rows drop the + buttons and the open-group chevron
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 // `ps`: panes(), read once by the caller (each read copies every pane).
@@ -37,6 +41,11 @@ const FALLBACK = 60000;
 // What a stored color name looks like on an avatar (the same in every mod
 // that draws space avatars): one strong color per hue, light and dark alike.
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
+const fillOf = (id, t) => {
+  const c = (shared("space.colors") ?? {})[id] ?? "ansi6";
+  return c.startsWith("#") ? c : (MARK[c] ?? t[c]);
+};
+const initial = (name) => ([...String(name ?? "").trim()][0] ?? "?").toUpperCase();
 
 // A space speaks up only when something in it needs you.
 export function glyph(status) {
@@ -341,10 +350,10 @@ export default class Spaces extends View {
               .tooltip(repair?.error || "This machine was rebuilt or replaced. Click to connect to the new one.")
               .on_click((_e, cx) => { cx.stop_propagation(); this.reconnect(machine, cx); })
               .child(repair?.busy ? "Connecting…" : "Connect"))))
-          .when(connected, el => el.child(div().id(`machine-add-${m ?? "local"}`).flex_none().px(4).rounded(4).hover(s => s.bg(t.hover).text_color(t.foreground))
+          .when(connected && !narrowRow(), el => el.child(div().id(`machine-add-${m ?? "local"}`).flex_none().px(4).rounded(4).hover(s => s.bg(t.hover).text_color(t.foreground))
             .on_click((_e, cx) => { cx.stop_propagation(); run("space.new", { machine: m ?? "" }); }).child("+")))
           .child(div().size(6).rounded(3).flex_none().bg(connected ? t.ansi2 : t.dim))
-          .child(svg(`mods/workspace-chrome/chevron-${folded ? "right" : "down"}.svg`).size(11).flex_none()));
+          .when(folded || !narrowRow(), el => el.child(svg(`mods/workspace-chrome/chevron-${folded ? "right" : "down"}.svg`).size(11).flex_none())));
       const empty = h_flex().id(`machine-new-${m ?? "local"}`).h(28).flex_none().px(collapsed ? 0 : 8).gap(7).items_center().rounded(7)
         .text_size(12).text_color(t.dim).hover(s => s.bg(t.hover).text_color(t.foreground))
         .on_click(() => run("space.new", { machine: m ?? "" }))
@@ -391,13 +400,11 @@ export default class Spaces extends View {
   row({ w, i, g, tree }, t) {
     const on = w.active;
     const fromIndex = this.pressed === null ? -1 : spaces().findIndex(s => s.id === this.pressed);
-    const colors = shared("space.colors") ?? {};
-    const color = colors[w.id] ?? "ansi6";
-    const fill = color.startsWith("#") ? color : (MARK[color] ?? t[color]);
+    const fill = fillOf(w.id, t);
     return v_flex()
       .relative()
       .id(`space-${w.id}`)
-      .px(8)
+      .px(folded() ? 6 : 8)
       .h(rowHeight({ tree }))
       .flex_none()
       .justify_center()
@@ -436,29 +443,38 @@ export default class Spaces extends View {
       .on_mouse_down("right", () => this.menu(w))
       .child(
         h_flex()
-          .gap(9)
+          .gap(folded() ? 6 : 9)
           .items_center()
           .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).text_color(t.dim)).child(div().text_size(10.5).text_color(t.dim).child(String(this.num?.get(w.id) ?? ""))))
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child(String(this.num?.get(w.id) ?? "?"))))
-          .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
-          .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1()),
+          .when(folded(), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(w.name)))
+          .when(!folded(), el => el.child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
+            .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1())),
       );
   }
 
+  // The rail: the space's avatar with its initial (M, C, B) and its number on the corner; hover tells its name.
   compact({ w, i }, t) {
-    return railCell(h_flex()
+    const n = this.num?.get(w.id) ?? i + 1;
+    return h_flex().flex_none().h(34).justify_center().items_center().child(h_flex()
       .id(`space-${w.id}`)
       .relative()
-      .w(RAIL_CELL)
-      .h(26)
-      .rounded(6)
+      .size(30)
+      .rounded(8)
       .justify_center()
       .items_center()
       .when(w.active, (el) => el.bg(t.selected))
       .when(!w.active, (el) => el.hover((s) => s.bg(t.hover)))
+      .tooltip(`${n} · ${w.name}`)
       .on_click(() => run("space.select", { id: w.id }))
-      .child(div().text_color(w.active ? t.foreground : t.muted).child(String(this.num?.get(w.id) ?? i + 1)))
-      .child(div().absolute().right(5).text_color(tone(t, w.status)).child(glyph(w.status))));
+      .child(h_flex().size(22).rounded(6).bg(fillOf(w.id, t)).items_center().justify_center()
+        .text_size(12).font_bold().text_color("#ffffff").child(initial(w.name)))
+      // The number prefix ⇧N picks, as a small badge on the corner.
+      .child(h_flex().absolute().bottom(1).right(1).min_w(12).h(12).px(2).rounded(4).bg(t.chrome).items_center().justify_center()
+        .text_size(9).font_bold().text_color(w.active ? t.foreground : t.muted).child(String(n)))
+      // Status as a real dot on the avatar's corner (ringed in the background color), only when there is one to see.
+      .when(["blocked", "done", "working"].includes(w.status), (el) => el.child(div().absolute().top(0).right(0).size(10).rounded_full()
+        .border(2).border_color(w.active ? t.selected : t.chrome).bg(tone(t, w.status)))));
   }
 
   render() {
@@ -477,12 +493,13 @@ export default class Spaces extends View {
     }
     if (changed) setShared("space.colors", kept);
     return v_flex().size_full().min_h(0).bg(t.chrome).text_size(13)
-      .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
+      .when(collapsed, el => el.pt(8))
+      .when(!collapsed, el => el.child(h_flex().h(31).pl(folded() ? 10 : 16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
         .when(collapsed, el => el.pl(0).pr(0).justify_center())
         .when(!collapsed, el => el.child("Spaces"))
-        .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
-          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14))))
-      .child(v_flex().flex_1().min_h(0).px(collapsed ? 0 : 8).pb(14).overflow_y_scrollbar().mode("always")
+        .when(!folded(), el => el.child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
+          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14))))))
+      .child(v_flex().flex_1().min_h(0).px(collapsed ? 0 : folded() ? 4 : 8).pb(14).overflow_y_scrollbar().mode("always")
         .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
   }
