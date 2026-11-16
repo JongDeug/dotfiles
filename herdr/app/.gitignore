@@ -4,3 +4,9 @@ mods/*/*.d.ts
 # layouts/ is linked whole (the app replaces files atomically); only mine is tracked
 layouts/*
 !layouts/main-num.json
+!layouts/jongdeug.json
+!layouts/jongdeug-ide.json
+# Zed git panel mods from dantech99/herdr-zed-layout: no license upstream, so they stay local (not in this public repo)
+mods/zed-changes/
+mods/zed-diff/
+mods/zed-file/

@@ -1,6 +1,20 @@
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
-import { spaces, panes, run, openOverlay, theme, window, shared, layout, settings } from "herdr";
+import { exec, props, spaces, panes, run, openOverlay, theme, window, shared, layout, settings, nextCommand, closeOverlay } from "herdr";
+import { openInZed } from "./zed.js";
+
+// aerospace.toml sends Zed's windows to their own workspace, so after opening Zed go there too.
+// Waits up to ~3 s for a first Zed window; without AeroSpace it does nothing. (The app's PATH can be bare.)
+const AEROSPACE = "/opt/homebrew/bin/aerospace";
+async function followZed(cx) {
+  for (let i = 0; i < 10; i++) {
+    const r = await exec(AEROSPACE, ["list-windows", "--monitor", "all", "--app-bundle-id", "dev.zed.Zed", "--format", "%{workspace}"]).catch(() => null);
+    if (r?.code !== 0) return;
+    const ws = r.stdout.trim().split("\n")[0];
+    if (ws) return void (await exec(AEROSPACE, ["workspace", ws]).catch(() => {}));
+    await cx.sleep(300);
+  }
+}
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -11,11 +25,30 @@ function find(node, id) {
   return null;
 }
 
+// Side panel (layout "panel" > stack "panel-body"): show that child, or hide when it's already shown.
+function togglePanel(id) {
+  const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
+  if (!find(root, id)) return; // this layout has no such panel
+  if (panel && !panel.hidden && body?.active === id) run("layout.hide", { id: "panel" });
+  else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
+}
+
 export default class Tabs extends View {
-  init() {
+  init(_props, cx) {
+    // props.zed (jongdeug-ide): herdr-zed's look, a flat bar with no bottom border and a Zed button.
+    this.zed = Boolean(props()?.zed);
     this.pressed = null;
     this.scroll = ScrollHandle.new();
     this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}");
+    // deck's picture button (bin/panel.mjs) sends "tabs-num.pictures": open the Pictures viewer over the terminals,
+    // replacing one still open (it reads the picture to show from its index.json).
+    cx.spawn(async () => {
+      for (;;) {
+        if ((await nextCommand()) !== "pictures") continue;
+        if (this.viewer) try { closeOverlay(this.viewer); } catch { /* already closed */ }
+        this.viewer = openOverlay({ mod: "pictures", kind: "dialog", width: 0.8, height: 0.85 });
+      }
+    });
   }
 
   // The side panel is remembered per space: switching shows that space's choice
@@ -89,19 +122,16 @@ export default class Tabs extends View {
       ? Math.max(10, (root.traffic_lights[0] + 64) / settings().zoom - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0))
       : 10;
     const panel = find(root, "panel"), body = find(root, "panel-body");
-    const enabled = shared("workspace.panels") ?? ["files", "changes"];
+    const enabled = [...(shared("workspace.panels") ?? ["files", "changes"])];
     this.syncPanel(space, panel, body, enabled);
     const panelButton = (id, label, icon) => {
       const on = panel && !panel.hidden && body?.active === id;
       return h_flex().id(`panel-${id}`).h(26).px(8).gap(5).flex_none().items_center().rounded(6)
         .text_size(12).bg(on ? t.selected : t.chrome).text_color(on ? t.foreground : t.muted)
         .hover(s => s.bg(t.hover)).on_mouse_down("left", stop)
-        .on_click(() => {
-          if (on) run("layout.hide", { id: "panel" });
-          else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
-        }).child(svg(icon).size(14)).child(label);
+        .on_click(() => togglePanel(id)).child(svg(icon).size(14)).child(label);
     };
-    return h_flex().size_full().min_w(0).px(10).pl(lightsPadding).gap(3).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+    return h_flex().size_full().min_w(0).px(10).pl(lightsPadding).gap(3).items_center().bg(t.chrome).when(!this.zed, el => el.border_b(1).border_color(t.border))
       .on_mouse_up("left", () => { this.pressed = null; })
       .on_scroll_wheel(e => { if (Math.abs(e.delta.y) >= 1) run(e.delta.y > 0 ? "tab.prev" : "tab.next"); })
       .child(h_flex().id("tab-scroll").flex_1().min_w(0).h_full().items_center().gap(3).overflow_x_scrollbar().track_scroll(this.scroll)
@@ -110,6 +140,17 @@ export default class Tabs extends View {
       .child(button("tab-new", "+", () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))
       .when(enabled.includes("files"), el => el.child(panelButton("files", "Files", "mods/files/file.svg")))
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes", "mods/changes/changes.svg")))
+      // Opens the space's repo in Zed itself (zed.js; a remote machine opens over ssh).
+      .when(this.zed, el => el.child(h_flex().id("open-zed").h(26).px(8).gap(5).flex_none().items_center().rounded(6)
+        .text_size(12).bg(t.chrome).text_color(this.zedOpening ? t.dim : t.muted)
+        .hover(s => s.bg(t.hover)).on_mouse_down("left", stop)
+        .on_click((_e, cx) => {
+          if (this.zedOpening || !space) return;
+          this.zedOpening = true;
+          cx.notify();
+          cx.spawn(async cx => { await openInZed(space); await followZed(cx); this.zedOpening = false; cx.notify(); });
+        })
+        .child(svg("mods/tabs-num/zed.svg").size(14)).child(this.zedOpening ? "Opening…" : "Zed")))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/tabs-num/win-min.svg").size(16) : "−", () => run("window.minimize")))
         .child(button("maximize", w.platform === "windows" ? svg(`mods/tabs-num/${w.maximized ? "win-restore" : "win-max"}.svg`).size(16) : "□", () => run("window.maximize")))
         .child(button("close-window", w.platform === "windows" ? svg("mods/tabs-num/win-close.svg").size(16) : svg("mods/pane/close.svg").size(13), () => run("window.close"))));
