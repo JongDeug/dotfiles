@@ -9,7 +9,7 @@ import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
 import { pickPin, type Pin } from './pin'
-import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, queueOf, queueOfHc, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, placeAt, queueOf, queueOfHc, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
 // git 변경·CI·지금 도는 작업을 더한다. 윗줄은 Decision Queue와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
@@ -150,25 +150,39 @@ const refreshQueue = ($: EngineInterface) =>
     queue = await readQueue($)
   })
 
-// /deck:queue: 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않는다. list 는 지금 큐.
+// 칸 번호를 단다(0 은 뺀다). 앱 쪽 표시·ctrl+N 은 herdr-app mod(queue)가 터미널 라벨을 읽어 하고,
+// TUI 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 queue-sync 에서 한 곳에서 다시 계산한다.
+async function markSlots($: EngineInterface, slots: Map<string, number>) {
+  for (const [p, slot] of slots) {
+    if (viaHc) await sh($, ['hc', 'label', p, `deck.q=${slot || ''}`])
+    else await herdr($, ['pane', 'report-metadata', p, '--source', 'deck.queue', ...(slot ? ['--token', `q=◆${slot}`] : ['--clear-token', 'q'])])
+  }
+  if (!viaHc) await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
+  await refreshQueue($)
+}
+
+// /deck:queue: 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않는다. N 은 그 번호(우선순위)에 꽂는다. list 는 지금 큐.
 async function queueCommand($: EngineInterface, args: string): Promise<string> {
   const q = await readQueue($)
   if (!q || !pane) return 'herdr 안의 세션에서만 쓴다'
   const names = (items: Queued[]) => items.map(i => `- ctrl+${i.slot} ${i.title} (${i.status})`).join('\n')
+  const full = `Decision Queue가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
   if (args === 'list') return q.length ? `Decision Queue ${q.length}/${queueCap}\n${names(q)}` : `Decision Queue 비었다 (0/${queueCap})`
-  const mine = q.some(i => i.pane === pane)
-  const slot = mine ? 0 : freeSlot(q, queueCap)
-  if (!mine && !slot) return `Decision Queue가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
-  if (viaHc) {
-    // 앱 쪽 표시·ctrl+N 은 herdr-app mod(queue)가 라벨을 읽어 한다.
-    await sh($, ['hc', 'label', pane, `deck.q=${mine ? '' : slot}`])
-  } else {
-    await herdr($, ['pane', 'report-metadata', pane, '--source', 'deck.queue', ...(mine ? ['--clear-token', 'q'] : ['--token', `q=◆${slot}`])])
-    // 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 한 곳에서 다시 계산한다.
-    await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
+  const me = q.find(i => i.pane === pane)
+  if (args) {
+    const n = /^\d+$/.test(args) ? Number(args) : 0
+    if (n < 1 || n > queueCap) return `/deck:queue [1~${queueCap}|list] — 번호는 우선순위(ctrl+번호)다`
+    if (me?.slot === n) return `이미 ${n}번이다`
+    const moved = placeAt(q, queueCap, pane, n)
+    if (!moved) return full
+    await markSlots($, moved)
+    const pushed = [...moved].filter(([p]) => p !== pane).map(([p, s]) => `${q.find(i => i.pane === p)?.title ?? p} → ${s}`)
+    return `큐 ${n}번에 ${me ? '옮겼다' : `넣었다 (${q.length + 1}/${queueCap})`} — ctrl+${n} 로 온다${pushed.length ? `\n밀림: ${pushed.join(' · ')}` : ''}`
   }
-  await refreshQueue($)
-  return mine ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
+  const slot = me ? 0 : freeSlot(q, queueCap)
+  if (!me && !slot) return full
+  await markSlots($, new Map([[pane, slot]]))
+  return me ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
 }
 
 const refreshUsage = ($: EngineInterface) =>

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, queueOf, queueOfHc, shortPath, tokensOf, untilText } from './board'
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, placeAt, queueOf, queueOfHc, shortPath, tokensOf, untilText } from './board'
 
 test('Decision Queue는 q 토큰 단 에이전트만', () => {
   const json = JSON.stringify({ result: { agents: [
@@ -14,6 +14,21 @@ test('Decision Queue는 q 토큰 단 에이전트만', () => {
   ])
   expect(queueOf('')).toBe(null)
   expect(queueOf('{"result":{}}')).toBe(null)
+})
+
+test('Decision Queue N번에 꽂으면 가까운 빈 칸 쪽으로 민다', () => {
+  const q = (...ps: [string, number][]) => ps.map(([pane, slot]) => ({ pane, slot, status: 'idle', title: pane }))
+  const at = (queue: ReturnType<typeof q>, pane: string, n: number) => {
+    const m = placeAt(queue, 3, pane, n)
+    return m && Object.fromEntries(m)
+  }
+  expect(at(q(), 'p', 2)).toEqual({ p: 2 })
+  expect(at(q(['a', 1], ['b', 2]), 'p', 1)).toEqual({ p: 1, a: 2, b: 3 })
+  expect(at(q(['a', 1], ['c', 3]), 'p', 1)).toEqual({ p: 1, a: 2 })
+  expect(at(q(['a', 2], ['b', 3]), 'p', 3)).toEqual({ a: 1, b: 2, p: 3 })
+  expect(at(q(['p', 1], ['a', 2], ['b', 3]), 'p', 3)).toEqual({ a: 1, b: 2, p: 3 })
+  expect(at(q(['a', 1], ['b', 2], ['p', 3]), 'p', 1)).toEqual({ p: 1, a: 2, b: 3 })
+  expect(at(q(['a', 1], ['b', 2], ['c', 3]), 'p', 2)).toBe(null)
 })
 
 test('git 상태와 변경 줄 수', () => {

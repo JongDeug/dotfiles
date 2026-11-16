@@ -8,7 +8,7 @@ export const HELP: HelpSection[] = [
     title: '명령',
     rows: [
       ['/deck:pin [off]', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 · off 로 내림'],
-      ['/deck:queue [list]', 'Decision Queue 에 이 세션 넣기·빼기 (herdr) · list 로 보기'],
+      ['/deck:queue [N|list]', 'Decision Queue 에 이 세션 넣기·빼기 (herdr) · N 번(우선순위)에 꽂기 · list 로 보기'],
       ['/deck:pet [off]', '펫을 이 세션에서 띄우기 · off 로 숨기기'],
       ['/deck:config', '설정 보기 · /deck:config <이름> <값> 으로 바꾸기'],
       ['/deck:sync', 'push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션 리로드'],

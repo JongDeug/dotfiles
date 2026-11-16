@@ -156,6 +156,25 @@ export function freeSlot(queue: Queued[], cap: number): number {
   for (let n = 1; n <= cap; n++) if (!used.has(n)) return n
   return 0
 }
+// /deck:queue N — pane 을 N번(우선순위)에 꽂는다. N 에 있던 것부터 가장 가까운 빈 칸 쪽으로 한 칸씩 민다(뒤쪽 빈 칸 먼저).
+// 번호가 바뀌는 pane → 새 번호만 돌려준다. 빈 칸이 없으면(꽉 찼고 pane 이 큐 밖) null.
+export function placeAt(queue: Queued[], cap: number, pane: string, n: number): Map<string, number> | null {
+  const row: (string | null)[] = Array(cap).fill(null)
+  for (const i of queue) if (i.pane !== pane && i.slot >= 1 && i.slot <= cap) row[i.slot - 1] = i.pane
+  const at = n - 1
+  let gap = row.indexOf(null, at)
+  if (gap >= 0) for (let k = gap; k > at; k--) row[k] = row[k - 1]
+  else {
+    gap = row.lastIndexOf(null, at)
+    if (gap < 0) return null
+    for (let k = gap; k < at; k++) row[k] = row[k + 1]
+  }
+  row[at] = pane
+  const was = new Map(queue.map(i => [i.pane, i.slot]))
+  const moved = new Map<string, number>()
+  row.forEach((p, k) => { if (p && was.get(p) !== k + 1) moved.set(p, k + 1) })
+  return moved
+}
 
 // 글에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session: · 🤖 Generated with)이 들었으면 그 줄을, 아니면 null.
 // 이 사용자는 커밋에 트레일러를 넣지 않는다 — 들어간 채 커밋되기 전에 막으려고. git commit 인지는 commit.ts 가 가린다.

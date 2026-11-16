@@ -28,6 +28,7 @@ Claude Code 화면 한 벌. 입력창 위 계기판, Decision Queue, 답 속 그
 지금 내 판단이 필요한 일을 직접 올려 두는 칸이다(동시에 판단할 수 있는 일은 몇 개뿐이라는 생각에서 — 기본 3칸, 설정 `queue_cap`).
 
 - `/deck:queue` — 이 세션을 넣고 뺀다(토글). 넣으면 비어 있는 가장 작은 칸 번호(1~3)를 받고, 빼도 다른 칸이 당겨지지 않는다. 꽉 찼으면 넣지 않고 지금 큐를 보인다. `/deck:queue list` 는 지금 큐.
+- `/deck:queue N` — 이 세션을 N번(우선순위, 1이 먼저)에 꽂는다. 큐 밖이면 넣고, 안이면 옮긴다. N번에 있던 세션부터 가장 가까운 빈 칸 쪽으로 한 칸씩 밀린다(뒤쪽 빈 칸 먼저). 꽉 찼고 이 세션이 큐 밖이면 안 넣는다.
 - **ctrl+1~3** — 그 칸의 세션으로 간다. herdr 플러그인 `dotfiles.agent-numbers` 의 queue-N 액션(`herdr/plugins/agent-numbers/queue.py`)이고 키는 `herdr/config.toml` 에 묶었다.
 - **herdr 앱(데스크톱)** — `HERDR_ENV` 없이 `HC_TERMINAL_ID` 만 있으면 토큰 대신 herdr-core 터미널 라벨 `deck.q=N` 을 단다(`hc label`). 앱 쪽 표시·ctrl+1~3 은 `~/.config/herdr-app/mods/queue`(떠 있는 창)와 `keys.json` 의 `queue.goN` 이다.
 - 계기판 윗줄 맨 앞: `Decision Queue  1 ✓  2 ◐  3 ·` — 칸마다 번호와 herdr 와 같은 상태 기호·색(! 막힘 빨강 · ✓ 끝남 노랑 · ◐ 도는 중 파랑 · ○ 쉼 회색), 빈 칸은 흐린 `·`. 이 세션 칸은 보라로 뒤집히고, 이 세션이 큐 밖이면 뒤에 `○`(꽉 찼으면 빨강).
