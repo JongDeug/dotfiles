@@ -410,21 +410,21 @@ const chartTitle = (spec: string): string => {
 }
 
 // herdr 데스크톱 앱 터미널(HC_TERMINAL_ID)은 Kitty 그림을 아직 못 그린다(herdr-app #533·#302) — 그림은 앱의
-// Pictures 패널로 보내고(bin/panel.mjs) 터미널엔 한 줄만. TODO: 앱이 그림을 그리게 되면(#793) 이 길을 지운다.
+// Pictures 보기 창으로 보내고(bin/panel.mjs) 터미널엔 한 줄만. TODO: 앱이 그림을 그리게 되면(#793) 이 길을 지운다.
 type PanelSrc = { png: string } | { file: string }
 const sentToPanel = new Set<string>()
 const inHerdrApp = async ($: EngineInterface) => Boolean(await $.env.get('HC_TERMINAL_ID'))
 function toPanel($: EngineInterface, title: string, src: PanelSrc, show = false): void {
   void $.process.run(['node', `${$.plugin.root}/bin/panel.mjs`], { stdin: JSON.stringify({ title, ...src, show }), timeoutMs: 15_000 }).catch(() => {})
 }
-// 처음 그릴 때 한 번 목록에만 보내고(패널은 안 연다), 버튼을 눌러야 패널을 열어 그 그림을 보인다.
+// 처음 그릴 때 한 번 목록에만 보내고(창은 안 연다), 버튼을 눌러야 터미널 위에 보기 창을 띄워 그 그림을 보인다.
 function panelLine($: EngineInterface, ui: { Box: any; Button: any; Text: any }, id: string, title: string, src: PanelSrc): RenderElement {
   if (!sentToPanel.has(id)) { sentToPanel.add(id); toPanel($, title, src) }
   const { Box, Button, Text } = ui
   return (
     <Box flexDirection="row" columnGap={2}>
       <Text dimColor wrap="truncate-end">🖼 {title}</Text>
-      <Button key={`panel-${id}`.slice(0, 64)} plain dimColor onPress={() => toPanel($, title, src, true)}>Pictures 패널에서 보기</Button>
+      <Button key={`panel-${id}`.slice(0, 64)} plain dimColor onPress={() => toPanel($, title, src, true)}>그림 보기</Button>
     </Box>
   )
 }
