@@ -1,0 +1,14 @@
+#!/bin/sh
+# herdr-open <file>...: shows files in the herdr desktop app, each as a tab (zed-file mod: syntax colors and
+# line numbers; Markdown opens rendered). "그 파일 띄워 줘" -> Claude runs this with the path.
+set -eu
+[ $# -ge 1 ] || { echo "usage: herdr-open <file>..." >&2; exit 2; }
+for f in "$@"; do
+  [ -f "$f" ] || { echo "herdr-open: not a file: $f" >&2; exit 1; }
+  abs=$(cd "$(dirname "$f")" && pwd -P)/$(basename "$f")
+  args=$(/usr/bin/python3 -c 'import json, sys
+f = sys.argv[1]
+md = f.lower().endswith((".md", ".markdown", ".mdx"))
+print(json.dumps({"name": f.rsplit("/", 1)[-1], "mod": "zed-file", "props": {"file": f, "on": None, "preview": md}}))' "$abs")
+  herdr-app do tab.new "$args" >/dev/null
+done

@@ -16,4 +16,5 @@ for m in "$SRC"/mods/*/; do m=${m%/}; link "$m" "$APP/mods/$(basename "$m")"; do
 link "$SRC/layouts" "$APP/layouts"
 link "$SRC/keys.json" "$APP/keys.json"
 link "$SRC/programs.json" "$APP/programs.json"
+mkdir -p "$HOME/.local/bin" && link "$SRC/bin/herdr-open" "$HOME/.local/bin/herdr-open"
 echo "linked: $(ls "$SRC/mods" | tr '\n' ' ')layouts keys.json programs.json"
