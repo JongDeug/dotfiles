@@ -45,7 +45,7 @@ test('herdr 앱 터미널(HC_TERMINAL_ID)에선 그림 대신 한 줄 — 그림
   await ui.find({ text: /🖼/ })
   expect((await ui.findAll({ type: 'Image' })).length).toBe(0)
   expect(calls.filter(c => c.endsWith('/bin/panel.mjs')).length).toBe(1)
-  await ui.press({ key: (await ui.find({ type: 'Button', text: /Pictures 패널/ }))!.key! })
+  await ui.press({ key: (await ui.find({ type: 'Button', text: /그림 보기/ }))!.key! })
   expect(calls.filter(c => c.endsWith('/bin/panel.mjs')).length).toBe(2)
 })
 
