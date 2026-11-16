@@ -1,9 +1,10 @@
 // tmux-style prefix: ctrl-space opens this popup, the next key runs one command.
-// Mirrors ~/.config/herdr/config.toml (TUI). Esc or an unknown key cancels.
+// Keys follow the Zed keymap's screen keys (dotfiles zed/keymap.json, ctrl-space ...), run here as herdr
+// commands. Esc or an unknown key cancels.
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, props, closeOverlay, openOverlay, focused, panes, terminals, theme, shared, setShared, exec, home } from "herdr";
+import { run, props, closeOverlay, openOverlay, focused, panes, terminals, theme, shared, setShared, exec, home, layout, notify } from "herdr";
 
 // 2-beolsik jamo -> key, so the prefix works with the Korean IME on.
 const JAMO = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p",
@@ -11,7 +12,7 @@ const JAMO = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ"
   "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m",
   "ㅃ": "shift-q", "ㅉ": "shift-w", "ㄸ": "shift-e", "ㄲ": "shift-r", "ㅆ": "shift-t", "ㅒ": "shift-o", "ㅖ": "shift-p" };
 // Shifted punctuation can arrive either way; fold to one spelling.
-const ALIAS = { "shift-\\": "|", "shift-[": "{", "shift-]": "}", "shift-/": "?", "minus": "-",
+const ALIAS = { "shift-;": ":", "shift-'": "\"", "shift-\\": "|", "shift-[": "{", "shift-]": "}", "shift-/": "?", "minus": "-",
   "!": "shift-1", "@": "shift-2", "#": "shift-3", "$": "shift-4", "%": "shift-5", "^": "shift-6", "&": "shift-7", "*": "shift-8", "(": "shift-9" };
 
 // N = the number the spaces-num sidebar shows (its "spaces.order"); else the app's own order.
@@ -36,44 +37,87 @@ async function popup(script, self) {
   openOverlay({ kind: "dialog", width: 0.6, height: 0.6, layout: { type: "block", content: { terminal } } });
 }
 
+function find(node, id) {
+  if (!node || typeof node !== "object") return null;
+  if (node.id === id) return node;
+  for (const c of node.children ?? []) { const hit = find(c, id); if (hit) return hit; }
+  return null;
+}
+// Right panel child (files-md, changes, git-graph, ...): show it, or hide the panel when it's already shown.
+function panel(id) {
+  const root = layout(), p = find(root, "panel"), body = find(root, "panel-body");
+  if (!find(root, id)) return notify({ title: `이 레이아웃엔 ${id} 패널이 없다`, level: "warning" });
+  if (p && !p.hidden && body?.active === id) run("layout.hide", { id: "panel" });
+  else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
+}
+
+// Zed's agent panel = this tab's Claude pane: go there, or back to the last pane when already there.
+function agent(f) {
+  const here = panes().filter((p) => p.tab === f?.tab);
+  const claude = here.find((p) => /claude/i.test(p.app ?? p.title ?? ""));
+  if (!claude) return run("tab.new", { argv: ["claude"], folder: f?.cwd ?? undefined });
+  if (claude.pane !== f?.pane) return run("pane.focus", { pane: claude.pane });
+  const last = shared("prefix.last");
+  if (last) run("pane.focus", { pane: last });
+}
+
+// Zed's terminal panel = a shell pane under the tab: go there, else back, else open one.
+function shell(f) {
+  const t = terminals().find((x) => x.state === "live" && x.labels?.["zed.terminal"] && String(f?.tab ?? "").endsWith(x.labels["zed.terminal"]));
+  if (!t) {
+    // run() returns nothing, so split through the CLI to learn the new terminal and label it.
+    exec("herdr-app", ["do", "pane.split", JSON.stringify({ direction: "down", ...(f?.pane ? { pane: f.pane } : {}) })]).then((r) => {
+      const made = JSON.parse(r.stdout || "{}").terminal;
+      if (made) exec("hc", ["label", made, `zed.terminal=${String(f?.tab ?? "").split("/").pop()}`]);
+    });
+    return;
+  }
+  if (t.address === f?.terminal) run("pane.go", { direction: "up" });
+  else run("pane.focus", { terminal: t.address });
+}
+
 // [key, label, action(focusedAtOpen), async: keep this popup until the action resolves]
 const BINDS = [
+  // Panes (Zed: ActivatePane*, Split*, ToggleZoom, CloseActiveItem)
   ["h", "←", () => run("pane.go", { direction: "left" })],
   ["j", "↓", () => run("pane.go", { direction: "down" })],
   ["k", "↑", () => run("pane.go", { direction: "up" })],
   ["l", "→", () => run("pane.go", { direction: "right" })],
-  [";", "last pane", () => { const p = shared("prefix.last"); if (p) run("pane.focus", { pane: p }); }],
-  ["tab", "next pane", (f) => cycle(f, 1)],
-  ["shift-tab", "prev pane", (f) => cycle(f, -1)],
-  ["shift-h", "swap ←", () => run("pane.swap", { direction: "left" })],
-  ["shift-k", "swap ↑", () => run("pane.swap", { direction: "up" })],
-  ["shift-l", "swap →", () => run("pane.swap", { direction: "right" })],
-  ["shift-j", "swap ↓", () => run("pane.swap", { direction: "down" })],
-  // TUI prefix+g. herdr-app do: the picker's terminal can't split the pane itself; the new pane opens
-  // right of the pane under the picker.
-  ["g", "repo → pane", (_f, self) => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null', self), true],
   ["|", "split →", () => run("pane.split", { direction: "right" })],
   ["-", "split ↓", () => run("pane.split", { direction: "down" })],
   ["z", "zoom", () => run("pane.zoom")],
-  ["x", "close pane", () => run("pane.close")],
-  ["c", "new tab", () => run("tab.new")],
+  ["x", "close", () => run("pane.close")],
+  ["t", "terminal", shell],
+  [";", "sidebar", () => run("layout.toggle", { id: "sidebar" })],
+  // Tabs (Zed: ActivateItem N, Next/PreviousItem)
+  ["n", "next tab", () => run("tab.next")],
+  ["p", "prev tab", () => run("tab.prev")],
+  // Panels (Zed: project, git, agent; the same key closes it)
+  ["e", "files", () => panel("files")],
+  ["g", "git", () => panel("changes")],
+  ["shift-g", "git graph", () => panel("git-graph")],
+  ["v", "agent", agent],
+  ["a", "new agent", (f) => run("tab.new", { argv: ["claude"], folder: f?.cwd ?? undefined })],
+  ["space", "close docks", () => { run("layout.hide", { id: "panel" }); run("layout.hide", { id: "sidebar" }); }],
+  [":", "commands", () => run("app.palette")],
+  ["w", "switcher", () => run("mod.open", { name: "picker" })],
+  // Zed: OpenRecent, LazyGit task
+  ["shift-c", "repo → pane", (_f, self) => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null', self), true],
+  ["shift-l", "lazygit", (f) => run("tab.new", { name: "LazyGit", argv: ["lazygit"], folder: f?.cwd ?? undefined })],
+  // herdr's own, on keys Zed leaves free
+  ["'", "last pane", () => { const p = shared("prefix.last"); if (p) run("pane.focus", { pane: p }); }],
+  ["tab", "next pane", (f) => cycle(f, 1)],
+  ["shift-tab", "prev pane", (f) => cycle(f, -1)],
   ["shift-x", "close tab", () => run("tab.close")],
   [".", "rename tab", () => run("tab.rename")],
-  ["/", "rename pane", (f) => f?.terminal && openOverlay({ mod: "pane-name", kind: "dialog", width: 420, height: 220,
+  ["shift-r", "rename pane", (f) => f?.terminal && openOverlay({ mod: "pane-name", kind: "dialog", width: 420, height: 220,
     props: { terminal: f.terminal, value: terminals().find((x) => x.address === f.terminal)?.labels?.["pane.name"] ?? "" } })],
-  ["n", "next agent", () => run("agent.next")],
-  ["p", "prev agent", () => run("agent.prev")],
   ["shift-n", "new space", () => run("space.new")],
   ["shift-d", "close space", () => run("space.close")],
   [",", "rename space", () => run("space.rename")],
   ["{", "prev space", () => run("space.prev")],
   ["}", "next space", () => run("space.next")],
-  ["shift-g", "new worktree", worktree("new", 460, 280)],
-  ["o", "open worktree", worktree("open", 560, 480)],
-  ["shift-o", "remove worktree", worktree("remove", 440, 260)],
-  ["w", "picker", () => run("mod.open", { name: "picker" })],
-  ["b", "sidebar", () => run("layout.toggle", { id: "sidebar" })],
-  ["s", "settings", () => run("app.settings")],
+  ["shift-w", "worktree", worktree("open", 560, 480)],
   ["?", "help", () => run("app.help")],
 ];
 for (let i = 1; i <= 9; i++) {
@@ -130,7 +174,7 @@ export default class Prefix extends View {
       .size_full().p(10).gap(8).bg(t.popover).text_size(11)
       .child(h_flex().justify_between()
         .child(div().text_size(13).font_semibold().text_color(t.foreground).child("C-Space"))
-        .child(div().text_color(t.dim).child("1-9 tab · ⇧1-9 space · Esc")))
+        .child(div().text_color(t.dim).child("Zed keys · 1-9 tab · ⇧1-9 space · Esc")))
       .child(h_flex().flex_wrap().gap(4).children(HINTS.map(chip)));
   }
 }
