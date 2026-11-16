@@ -89,7 +89,8 @@ const BINDS = [
   ["x", "close", () => run("pane.close")],
   ["t", "terminal", shell],
   [";", "sidebar", () => run("layout.toggle", { id: "sidebar" })],
-  // Tabs (Zed: ActivateItem N, Next/PreviousItem)
+  // Tabs (Zed: ActivateItem N, Next/PreviousItem; c is tmux's new window, Zed's c has no herdr meaning)
+  ["c", "new tab", () => run("tab.new")],
   ["n", "next tab", () => run("tab.next")],
   ["p", "prev tab", () => run("tab.prev")],
   // Panels (Zed: project, git, agent; the same key closes it)
