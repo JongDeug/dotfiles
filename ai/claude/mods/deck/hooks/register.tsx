@@ -9,10 +9,10 @@ import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
 import { pickPin, type Pin } from './pin'
-import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, freeSlot, placeAt, queueOf, queueOfHc, shortPath, tokensOf, untilText, type Ci, type Git, type Queued } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
 
 // 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
-// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 Decision Queue와 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
+// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
 const FILES = 'board-files'
@@ -26,10 +26,7 @@ let model = ''
 let git: Git | null = null
 let ci: Ci | null = null
 let host: 'github' | 'gitlab' | null = null
-let queue: Queued[] | null = null
-let queueCap = 3
-let pane = ''
-const busy = { git: false, ci: false, usage: false, queue: false }
+const busy = { git: false, ci: false, usage: false }
 
 type Turn = { startedAt: number; tools: number; current: string; agents: number; edits: Set<string> }
 let turn: Turn | null = null
@@ -128,63 +125,6 @@ const refreshCi = ($: EngineInterface) =>
     if (ci?.state === 'fail' && was && was !== 'fail') say(await $.clock.now(), 'ci', 'CI 깨졌어!', C.red, 0)
   })
 
-// herdr 안에서만 — 모든 space 에서 /deck:queue 로 올린 에이전트를 읽는다.
-// herdr TUI 는 pane 토큰 q=◆N, herdr 앱(herdr-core 터미널, HC_TERMINAL_ID)은 터미널 라벨 deck.q=N.
-const herdr = async ($: EngineInterface, args: string[]) => sh($, [(await $.env.get('HERDR_BIN_PATH')) || 'herdr', ...args])
-let viaHc = false
-const readQueue = async ($: EngineInterface) => {
-  if ((await $.env.get('HERDR_ENV')) === '1') {
-    viaHc = false
-    pane = (await $.env.get('HERDR_PANE_ID')) ?? ''
-    return queueOf(await herdr($, ['agent', 'list']))
-  }
-  const t = await $.env.get('HC_TERMINAL_ID')
-  if (!t) return null
-  viaHc = true
-  pane = t
-  const slots = Array.from({ length: queueCap }, (_, i) => sh($, ['hc', 'ls', '--json', '--label', `deck.q=${i + 1}`]))
-  return queueOfHc(await Promise.all(slots))
-}
-const refreshQueue = ($: EngineInterface) =>
-  guarded($, 'queue', async () => {
-    queue = await readQueue($)
-  })
-
-// 칸 번호를 단다(0 은 뺀다). 앱 쪽 표시·ctrl+N 은 herdr-app mod(queue)가 터미널 라벨을 읽어 하고,
-// TUI 워크스페이스 줄의 ◆N 은 herdr 플러그인(agent-numbers)이 queue-sync 에서 한 곳에서 다시 계산한다.
-async function markSlots($: EngineInterface, slots: Map<string, number>) {
-  for (const [p, slot] of slots) {
-    if (viaHc) await sh($, ['hc', 'label', p, `deck.q=${slot || ''}`])
-    else await herdr($, ['pane', 'report-metadata', p, '--source', 'deck.queue', ...(slot ? ['--token', `q=◆${slot}`] : ['--clear-token', 'q'])])
-  }
-  if (!viaHc) await herdr($, ['plugin', 'action', 'invoke', 'queue-sync', '--plugin', 'dotfiles.agent-numbers'])
-  await refreshQueue($)
-}
-
-// /deck:queue: 이 세션을 넣고 뺀다(토글). 꽉 찼으면 넣지 않는다. N 은 그 번호(우선순위)에 꽂는다. list 는 지금 큐.
-async function queueCommand($: EngineInterface, args: string): Promise<string> {
-  const q = await readQueue($)
-  if (!q || !pane) return 'herdr 안의 세션에서만 쓴다'
-  const names = (items: Queued[]) => items.map(i => `- ctrl+${i.slot} ${i.title} (${i.status})`).join('\n')
-  const full = `Decision Queue가 꽉 찼다 (${q.length}/${queueCap}) — 하나 끝내고 넣는다\n${names(q)}`
-  if (args === 'list') return q.length ? `Decision Queue ${q.length}/${queueCap}\n${names(q)}` : `Decision Queue 비었다 (0/${queueCap})`
-  const me = q.find(i => i.pane === pane)
-  if (args) {
-    const n = /^\d+$/.test(args) ? Number(args) : 0
-    if (n < 1 || n > queueCap) return `/deck:queue [1~${queueCap}|list] — 번호는 우선순위(ctrl+번호)다`
-    if (me?.slot === n) return `이미 ${n}번이다`
-    const moved = placeAt(q, queueCap, pane, n)
-    if (!moved) return full
-    await markSlots($, moved)
-    const pushed = [...moved].filter(([p]) => p !== pane).map(([p, s]) => `${q.find(i => i.pane === p)?.title ?? p} → ${s}`)
-    return `큐 ${n}번에 ${me ? '옮겼다' : `넣었다 (${q.length + 1}/${queueCap})`} — ctrl+${n} 로 온다${pushed.length ? `\n밀림: ${pushed.join(' · ')}` : ''}`
-  }
-  const slot = me ? 0 : freeSlot(q, queueCap)
-  if (!me && !slot) return full
-  await markSlots($, new Map([[pane, slot]]))
-  return me ? `큐에서 뺐다 (${q.length - 1}/${queueCap})` : `큐 ${slot}번에 넣었다 (${q.length + 1}/${queueCap}) — ctrl+${slot} 로 온다`
-}
-
 const refreshUsage = ($: EngineInterface) =>
   guarded($, 'usage', async () => {
     const u = await $.session.usage()
@@ -221,7 +161,7 @@ async function start($: EngineInterface): Promise<void> {
   // 첫 요청 전까지 보일 effort — 설정 파일에서 읽는다. 요청이 가면 turn.step 이 실제 값으로 바꾼다.
   const dir = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${home}/.claude`
   effort = (await $.env.get('CLAUDE_EFFORT')) || (await sh($, ['node', '-e', `try{console.log(require(${JSON.stringify(`${dir}/settings.json`)}).effortLevel||'')}catch{}`]))
-  await Promise.all([refreshGit($), refreshUsage($), refreshQueue($)])
+  await Promise.all([refreshGit($), refreshUsage($)])
   void refreshCi($)
   await refreshTheme($)
   say(await $.clock.now(), 'hi', '안녕!', C.teal)
@@ -229,10 +169,7 @@ async function start($: EngineInterface): Promise<void> {
     void refreshGit($)
     void refreshTheme($)
   })
-  $.clock.every(5_000, () => {
-    void refreshUsage($)
-    void refreshQueue($)
-  })
+  $.clock.every(5_000, () => void refreshUsage($))
   $.clock.every(60_000, () => void refreshCi($))
   // 도는 동안만 스피너를 돌린다.
   $.clock.every(250, () => {
@@ -244,7 +181,7 @@ async function start($: EngineInterface): Promise<void> {
   })
 }
 
-// 명령: /deck:help · pin · queue · pet · config · sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
+// 명령: /deck:help · pin · pet · config · sync 는 commands/*.md 가 이름을 내고(엔진이 deck: 을 붙인다) 아래 command.run 훅이 답한다.
 
 // ── 그림: 답 속 ```mermaid · ```chart · 이미지 줄, Read 로 읽은 이미지 ─────────────
 // 그리기는 node(bin/*.mjs)·sh(bin/convert.sh)가 하고, 여기선 쌓아 두었다가 한 번에 넘긴다.
@@ -503,7 +440,6 @@ export const register: Register = (on, options) => {
   if (typeof options.scale === 'number') pic.scale = options.scale
   if (options.style === 'sketch') pic.style = 'sketch'
   if (options.pet === 'off') pet.kind = 'off'
-  if (typeof options.queue_cap === 'number') queueCap = options.queue_cap
 
 
   on('command.run', { command: 'deck:help' }, async () => ({ text: helpText() }))
@@ -520,8 +456,6 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'deck:pin' }, async ($, e) => ({ text: await pinCommand($, String(e.args ?? '').trim()) }))
-
-  on('command.run', { command: 'deck:queue' }, async ($, e) => ({ text: await queueCommand($, String(e.args ?? '').trim()) }))
 
   // /deck:pet: 이 세션에서 숨기기·띄우기만. 아예 끄기는 설정 pet: off.
   on('command.run', { command: 'deck:pet' }, async ($, e) => {
@@ -903,22 +837,8 @@ export const register: Register = (on, options) => {
       top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
     }
 
-    // ── 윗줄: Decision Queue + 얼마나 남았나 ───────────────────
+    // ── 윗줄: 얼마나 남았나 ───────────────────
     const bottom: Item[] = []
-    // 칸 하나 = /deck:queue 로 올린 에이전트 하나. 번호 + herdr 와 같은 상태 기호(✓ 끝남 · ! 막힘 · ◐ 도는 중 · ○ 쉼)를 칸 색에 얹고,
-    // 이 세션 칸은 보라로 뒤집는다. 빈 칸은 흐린 ·, 이 세션이 큐 밖이면 뒤에 ○ (꽉 찼으면 빨강).
-    const queueLine: Item[] = []
-    if (queue) {
-      const packed = queue.length >= queueCap
-      queueLine.push(pillItem(packed ? C.yellow : C.green, C.ink, 'Decision Queue', 0))
-      for (let n = 1; n <= Math.max(queueCap, queue.at(-1)?.slot ?? 0); n++) {
-        const q = queue.find(i => i.slot === n)
-        if (!q) { queueLine.push(pillItem(C.surface, C.overlay, `${n} ·`, 0, { bold: false })); continue }
-        const [tone, mark] = q.status === 'blocked' ? [C.red, '!'] : q.status === 'done' ? [C.yellow, '✓'] : q.status === 'working' ? [C.blue, '◐'] : [C.overlay, '○']
-        queueLine.push(pillItem(q.pane === pane ? C.mauve : tone, tone === C.overlay && q.pane !== pane ? C.text : C.ink, `${n} ${mark}`, 0))
-      }
-      if (!queue.some(i => i.pane === pane)) queueLine.push(packed ? pillItem(C.red, C.ink, '○', 1) : pillItem(C.surface, C.sub, '○', 1, { bold: false }))
-    }
 
     if (usage) {
       const u = usage
@@ -947,7 +867,7 @@ export const register: Register = (on, options) => {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
       bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
     }
-    if (queueLine.length + top.length + bottom.length + bottomRight.length === 0) return below
+    if (top.length + bottom.length + bottomRight.length === 0) return below
 
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
     const line = (left: Item[], right: Item[], width = cols) => {
@@ -992,7 +912,7 @@ export const register: Register = (on, options) => {
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
         {files}
-        {queueLine.length + bottom.length + bottomRight.length ? line([...queueLine, ...bottom], bottomRight, cols - boxW) : null}
+        {bottom.length + bottomRight.length ? line(bottom, bottomRight, cols - boxW) : null}
         {top.length ? line(top, []) : null}
       </Box>
     )

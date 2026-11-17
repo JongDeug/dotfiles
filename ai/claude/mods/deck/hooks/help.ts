@@ -8,7 +8,6 @@ export const HELP: HelpSection[] = [
     title: '명령',
     rows: [
       ['/deck:pin [off]', '직전 답의 표(없으면 답 전체)를 옆 pane 에 고정 · off 로 내림'],
-      ['/deck:queue [N|list]', 'Decision Queue 에 이 세션 넣기·빼기 (herdr) · N 번(우선순위)에 꽂기 · list 로 보기'],
       ['/deck:pet [off]', '펫을 이 세션에서 띄우기 · off 로 숨기기'],
       ['/deck:config', '설정 보기 · /deck:config <이름> <값> 으로 바꾸기'],
       ['/deck:sync', 'push 한 deck 을 두 설정 폴더에 깔고 쉬는 세션 리로드'],
@@ -23,13 +22,12 @@ export const HELP: HelpSection[] = [
       ['scale', '0.5~2 — 다이어그램 크기'],
       ['max_rows', '5~120 — 그림 하나의 최대 줄 수'],
       ['cell_aspect', '1~4 — 칸 높이÷너비, 그림이 늘어나 보이면 줄인다'],
-      ['queue_cap', '1~9 — Decision Queue 칸 수'],
     ],
   },
   {
     title: '저절로',
     rows: [
-      ['계기판', '입력창 위 두 줄 — 경로·브랜치·모델·CI / 큐·CTX·5H·7D'],
+      ['계기판', '입력창 위 두 줄 — 경로·브랜치·모델·CI / CTX·5H·7D'],
       ['그림', '답 속 ```mermaid · ```chart · ![](경로) 를 그림으로 — ⤢ 크게 · ▴ 접기 · ↓ PNG'],
       ['커밋 검문', '서명 줄·add -A·제목 type 같은 커밋 규칙에 걸리면 실행 전에 돌려보낸다'],
       ['펫', '계기판 오른쪽 슬라임 — 일하면 흐르고, 쉬면 숨 쉬고, 오류엔 시무룩'],

@@ -120,7 +120,7 @@ test('/deck:help 는 안내를 글로 찍고, 등록한 명령은 모두 안내�
   expect(text).toMatch(/  scale +0\.5~2 — 다이어그램 크기/)
   expect(opened).toEqual([])
   const keys = HELP.flatMap(sec => sec.rows.map(([k]) => k))
-  for (const name of ['/deck:help', '/deck:queue', '/deck:pin', '/deck:pet', '/deck:config', '/deck:sync']) expect(keys.some(k => k.split(' ')[0] === name)).toBe(true)
+  for (const name of ['/deck:help', '/deck:pin', '/deck:pet', '/deck:config', '/deck:sync']) expect(keys.some(k => k.split(' ')[0] === name)).toBe(true)
 })
 
 test('/deck:pin 은 직전 답의 마지막 표를 Esc 로 안 닫히는 pane 에 띄우고, /deck:pin off 로 내린다', async ($, on) => {

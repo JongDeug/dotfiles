@@ -5,8 +5,8 @@ tier('user')
 
 const START = 1_000_000
 
-// 계기판 아래 세상: 세션 값 · git(process.run). herdr 는 env 로 켠다.
-function world(on: On, opts: { live?: { tokens?: number; percent?: number }; limits?: { kind: string; percentUsed: number; resetsAt?: string }[]; env?: Record<string, string>; agents?: unknown[] } = {}) {
+// 계기판 아래 세상: 세션 값 · git(process.run).
+function world(on: On, opts: { live?: { tokens?: number; percent?: number }; limits?: { kind: string; percentUsed: number; resetsAt?: string }[] } = {}) {
   mock.store(on, {})
   const runs: string[][] = []
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -14,11 +14,10 @@ function world(on: On, opts: { live?: { tokens?: number; percent?: number }; lim
   on('session.model', () => ({ value: 'claude-fable-5-1' }))
   on('session.usage', () => ({ value: { startedAt: START, context: { window: 1000000, tokens: opts.live?.tokens, percent: opts.live?.percent }, rateLimits: opts.limits ?? [] } }))
   on('session.cwd', () => ({ value: '/work' }))
-  on('env.get', ($, e) => ({ value: opts.env?.[e.name] }))
+  on('env.get', () => ({ value: undefined }))
   on('process.run', ($, e) => {
     runs.push(e.argv)
-    const stdout = e.argv[1] === 'agent' ? JSON.stringify({ result: { agents: opts.agents ?? [] } }) : '# branch.head develop\n'
-    return { value: { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    return { value: { exitCode: 0, stdout: '# branch.head develop\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   // 엔진이 그리던 띠(다른 mod 몫) 자리 — 계기판은 그 아래에 붙는다.
   on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [''] }))
@@ -60,46 +59,5 @@ describe('board band', () => {
     expect(await ui.find({ text: /^ max $/ })).toBe(undefined)
     await $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'max', messageCount: 1 }).next()
     expect((await ui.find({ text: /^ max $/ }))?.text).toBe(' max ')
-  })
-})
-
-describe('Decision Queue', () => {
-  const band = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
-  const env = { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' }
-  const agent = (pane_id: string, agent_status: string, slot: number) => ({ pane_id, agent_status, terminal_title_stripped: pane_id, tokens: slot ? { q: `◆${slot}` } : {} })
-
-  test('칸마다 번호와 상태 기호, 빈 칸은 ·, 이 세션이 들었으면 ○ 없음', async ($, on) => {
-    mock.clock(on, { now: START })
-    world(on, { env, agents: [agent('w1:p1', 'working', 2), agent('w2:p1', 'done', 1), agent('w3:p1', 'idle', 0)] })
-    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
-    expect((await ui.find({ text: /^ 1 ✓ $/ }))?.text).toBe(' 1 ✓ ')
-    expect((await ui.find({ text: /^ 2 ◐ $/ }))?.text).toBe(' 2 ◐ ')
-    expect((await ui.find({ text: /^ 3 · $/ }))?.text).toBe(' 3 · ')
-    expect(await ui.find({ text: /^ ○ $/ })).toBe(undefined)
-  })
-
-  test('큐 밖 세션은 뒤에 ○', async ($, on) => {
-    mock.clock(on, { now: START })
-    world(on, { env, agents: [agent('w2:p1', 'blocked', 1)] })
-    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
-    expect((await ui.find({ text: /^ 1 ! $/ }))?.text).toBe(' 1 ! ')
-    expect((await ui.find({ text: /^ ○ $/ }))?.text).toBe(' ○ ')
-  })
-
-  test('/deck:queue 는 꽉 차면 넣지 않고, 들어 있으면 뺀다', async ($, on) => {
-    mock.clock(on, { now: START })
-    const full = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'working', 2), agent('w4:p1', 'blocked', 3)] })
-    const r = await $.command.run({ command: 'deck:queue', args: '' } as never)
-    expect(String((r as { text?: string }).text)).toMatch(/꽉 찼다 \(3\/3\)/)
-    expect(full.runs.some(a => a.includes('report-metadata'))).toBe(false)
-  })
-
-  test('/deck:queue 로 넣으면 비어 있는 가장 작은 칸 번호로 q 토큰을 단다', async ($, on) => {
-    mock.clock(on, { now: START })
-    const w = world(on, { env, agents: [agent('w2:p1', 'done', 1), agent('w3:p1', 'done', 3)] })
-    const r = await $.command.run({ command: 'deck:queue', args: '' } as never)
-    expect(String((r as { text?: string }).text)).toMatch(/2번에 넣었다 \(3\/3\)/)
-    expect(w.runs.find(a => a.includes('report-metadata'))).toEqual(['herdr', 'pane', 'report-metadata', 'w1:p1', '--source', 'deck.queue', '--token', 'q=◆2'])
-    expect(w.runs.some(a => a.join(' ') === 'herdr plugin action invoke queue-sync --plugin dotfiles.agent-numbers')).toBe(true)
   })
 })

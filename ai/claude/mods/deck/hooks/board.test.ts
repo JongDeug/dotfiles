@@ -1,35 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, placeAt, queueOf, queueOfHc, shortPath, tokensOf, untilText } from './board'
-
-test('Decision Queue는 q 토큰 단 에이전트만', () => {
-  const json = JSON.stringify({ result: { agents: [
-    { pane_id: 'w1:p1', agent_status: 'working', terminal_title_stripped: 'chaos', tokens: { q: '◆3', n: '1' } },
-    { pane_id: 'w1:p2', agent_status: 'done', tokens: { n: '2' } },
-    { pane_id: 'w2:p1', agent_status: 'blocked', tokens: { q: '◆1' } },
-  ] } })
-  expect(queueOf(json)).toEqual([
-    { pane: 'w2:p1', status: 'blocked', title: 'w2:p1', slot: 1 },
-    { pane: 'w1:p1', status: 'working', title: 'chaos', slot: 3 },
-  ])
-  expect(queueOf('')).toBe(null)
-  expect(queueOf('{"result":{}}')).toBe(null)
-})
-
-test('Decision Queue N번에 꽂으면 가까운 빈 칸 쪽으로 민다', () => {
-  const q = (...ps: [string, number][]) => ps.map(([pane, slot]) => ({ pane, slot, status: 'idle', title: pane }))
-  const at = (queue: ReturnType<typeof q>, pane: string, n: number) => {
-    const m = placeAt(queue, 3, pane, n)
-    return m && Object.fromEntries(m)
-  }
-  expect(at(q(), 'p', 2)).toEqual({ p: 2 })
-  expect(at(q(['a', 1], ['b', 2]), 'p', 1)).toEqual({ p: 1, a: 2, b: 3 })
-  expect(at(q(['a', 1], ['c', 3]), 'p', 1)).toEqual({ p: 1, a: 2 })
-  expect(at(q(['a', 2], ['b', 3]), 'p', 3)).toEqual({ a: 1, b: 2, p: 3 })
-  expect(at(q(['p', 1], ['a', 2], ['b', 3]), 'p', 3)).toEqual({ a: 1, b: 2, p: 3 })
-  expect(at(q(['a', 1], ['b', 2], ['p', 3]), 'p', 1)).toEqual({ p: 1, a: 2, b: 3 })
-  expect(at(q(['a', 1], ['b', 2], ['c', 3]), 'p', 2)).toBe(null)
-})
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
 
 test('git 상태와 변경 줄 수', () => {
   const status = [
@@ -91,15 +62,4 @@ test('claudeTrailer: Claude 서명 줄만 잡는다', () => {
   expect(claudeTrailer('git -C repo commit --trailer "Co-authored-by: claude"')).toBe('Co-authored-by: claude')
   expect(claudeTrailer('git commit -m "feat: 깨끗"')).toBeNull()
   expect(claudeTrailer('git commit -m "x" -m "Co-Authored-By: Kim <k@x.com>"')).toBeNull()
-})
-
-test('herdr 앱 Decision Queue는 칸마다 deck.q 라벨로 거른 hc ls', () => {
-  const one = JSON.stringify({ terminals: [{ address: 't3', status: 'working', where: 'Root / main' }] })
-  const none = JSON.stringify({ terminals: [] })
-  const three = JSON.stringify({ terminals: [{ address: 'vision/t1' }] })
-  expect(queueOfHc([one, none, three])).toEqual([
-    { pane: 't3', status: 'working', title: 'Root / main', slot: 1 },
-    { pane: 'vision/t1', status: 'idle', title: 'vision/t1', slot: 3 },
-  ])
-  expect(queueOfHc([one, ''])).toBe(null)
 })

@@ -125,57 +125,6 @@ export function fit(items: Fit[], cols: number): boolean[] {
   return keep
 }
 
-// Decision Queue — /deck:queue 로 내가 직접 올린 에이전트. 표시는 herdr pane 메타데이터 토큰 q(◆ + 칸 번호)라 pane 이 닫히면 같이 빠진다.
-// 칸 번호는 넣을 때 비어 있는 가장 작은 수이고 빼도 다른 칸이 당겨지지 않는다 — ctrl+N 이 늘 같은 세션으로 간다.
-export type Queued = { pane: string; status: string; title: string; slot: number }
-export function queueOf(json: string): Queued[] | null {
-  try {
-    const agents: unknown = JSON.parse(json)?.result?.agents
-    if (!Array.isArray(agents)) return null
-    return agents
-      .filter(a => a?.tokens?.q)
-      .map(a => ({ pane: String(a.pane_id), status: String(a.agent_status), title: String(a.terminal_title_stripped || a.pane_id), slot: Number.parseInt(String(a.tokens.q).slice(1), 10) || 0 }))
-      .sort((a, b) => a.slot - b.slot)
-  } catch {
-    return null
-  }
-}
-
-// herdr 앱(herdr-core): 칸 N 마다 `hc ls --json --label deck.q=N` 한 번. outs[i] 가 칸 i+1. 하나라도 못 읽으면 null.
-export function queueOfHc(outs: string[]): Queued[] | null {
-  try {
-    return outs.flatMap((out, i) => (JSON.parse(out).terminals as { address: string; status?: string; where?: string }[])
-      .map(t => ({ pane: t.address, status: t.status ?? 'idle', title: t.where || t.address, slot: i + 1 })))
-  } catch {
-    return null
-  }
-}
-
-export function freeSlot(queue: Queued[], cap: number): number {
-  const used = new Set(queue.map(i => i.slot))
-  for (let n = 1; n <= cap; n++) if (!used.has(n)) return n
-  return 0
-}
-// /deck:queue N — pane 을 N번(우선순위)에 꽂는다. N 에 있던 것부터 가장 가까운 빈 칸 쪽으로 한 칸씩 민다(뒤쪽 빈 칸 먼저).
-// 번호가 바뀌는 pane → 새 번호만 돌려준다. 빈 칸이 없으면(꽉 찼고 pane 이 큐 밖) null.
-export function placeAt(queue: Queued[], cap: number, pane: string, n: number): Map<string, number> | null {
-  const row: (string | null)[] = Array(cap).fill(null)
-  for (const i of queue) if (i.pane !== pane && i.slot >= 1 && i.slot <= cap) row[i.slot - 1] = i.pane
-  const at = n - 1
-  let gap = row.indexOf(null, at)
-  if (gap >= 0) for (let k = gap; k > at; k--) row[k] = row[k - 1]
-  else {
-    gap = row.lastIndexOf(null, at)
-    if (gap < 0) return null
-    for (let k = gap; k < at; k++) row[k] = row[k + 1]
-  }
-  row[at] = pane
-  const was = new Map(queue.map(i => [i.pane, i.slot]))
-  const moved = new Map<string, number>()
-  row.forEach((p, k) => { if (p && was.get(p) !== k + 1) moved.set(p, k + 1) })
-  return moved
-}
-
 // 글에 Claude 서명 줄(Co-Authored-By: Claude… · Claude-Session: · 🤖 Generated with)이 들었으면 그 줄을, 아니면 null.
 // 이 사용자는 커밋에 트레일러를 넣지 않는다 — 들어간 채 커밋되기 전에 막으려고. git commit 인지는 commit.ts 가 가린다.
 const CLAUDE_TRAILER = /Co-Authored-By:\s*Claude\b[^\n"']*|Claude-Session:[^\n"']*|(?:🤖\s*)?Generated with \[?Claude Code\]?[^\n"']*/i
