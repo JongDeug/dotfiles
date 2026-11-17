@@ -17,7 +17,7 @@ function world(on: On, opts: { live?: { tokens?: number; percent?: number }; lim
   on('env.get', () => ({ value: undefined }))
   on('process.run', ($, e) => {
     runs.push(e.argv)
-    return { value: { exitCode: 0, stdout: '# branch.head develop\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    return { value: { exitCode: 0, stdout: 'develop\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   // 엔진이 그리던 띠(다른 mod 몫) 자리 — 계기판은 그 아래에 붙는다.
   on('ui.render', ($, e) => $.ui.resolve(e).Text({ children: [''] }))
@@ -28,12 +28,11 @@ describe('board band', () => {
   const band = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
   for (const [cols, wide] of [[200, true], [26, false]] as const) {
-    test(`폭 ${cols}칸: 경로·브랜치·CTX 는 남고 모델은 ${wide ? '브랜치 옆에 보인다' : '빠진다'}`, async ($, on) => {
+    test(`폭 ${cols}칸: 한 줄, CTX 는 남고 모델은 ${wide ? '보인다' : '빠진다'} — 경로·브랜치는 없다`, async ($, on) => {
       mock.clock(on, { now: START })
       world(on, { live: { tokens: 300000 } })
       const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: { ...band, bodyColumns: cols } })
-      expect((await ui.find({ text: /⎇ develop/ }))?.text).toMatch(/develop/)
-      expect((await ui.find({ text: /📁 \/work/ }))?.text).toMatch(/work/)
+      expect(await ui.find({ text: /⎇|📁/ })).toBe(undefined)
       expect((await ui.find({ text: /^ CTX $/ }))?.text).toBe(' CTX ')
       expect(Boolean(await ui.find({ text: /Fable 5\.1/ }))).toBe(wide)
     })

@@ -1,29 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText } from './board'
-
-test('git 상태와 변경 줄 수', () => {
-  const status = [
-    '# branch.oid abc',
-    '# branch.head develop',
-    '# branch.upstream origin/develop',
-    '# branch.ab +2 -1',
-    '1 .M N... 100644 100644 100644 aaa bbb hooks/register.tsx',
-    '1 A. N... 000000 100644 100644 000 ccc new file.ts',
-    '2 R. N... 100644 100644 100644 ddd eee R100 b.ts\ta.ts',
-    '? .DS_Store',
-  ].join('\n')
-  const git = parseGit(status, '10\t2\thooks/register.tsx\n5\t0\tnew file.ts\n-\t-\timg.png\n')
-  expect(git.branch).toBe('develop')
-  expect([git.ahead, git.behind]).toEqual([2, 1])
-  expect(git.files).toEqual([
-    { code: 'M', path: 'hooks/register.tsx' },
-    { code: 'A', path: 'new file.ts' },
-    { code: 'R', path: 'b.ts' },
-    { code: '?', path: '.DS_Store' },
-  ])
-  expect([git.added, git.deleted]).toEqual([15, 2])
-})
+import { ago, cellWidth, claudeTrailer, fit, ciFromGithub, ciFromGitlab, elapsed, modelName, tokensOf, untilText } from './board'
 
 test('CI 상태', () => {
   expect(ciFromGithub('[{"status":"completed","conclusion":"success","updatedAt":"2026-10-07T08:00:00Z","workflowName":"build","url":"u"}]')?.state).toBe('ok')
@@ -41,8 +18,6 @@ test('시간 표시', () => {
 
 test('계기판 글자', () => {
   expect([modelName('claude-opus-5-5'), modelName('claude-haiku-4-5-20251001'), modelName('claude-fable-5-1'), modelName('gpt-x')]).toEqual(['Opus 5.5', 'Haiku 4.5', 'Fable 5.1', 'gpt-x'])
-  expect(shortPath('/Users/j/Documents/m1ucs/com.m1ucs/detector', '/Users/j')).toBe('~/…/com.m1ucs/detector')
-  expect(shortPath('/Users/j/dotfiles', '/Users/j')).toBe('~/dotfiles')
   expect([untilText(42 * 60_000, 0), untilText(142 * 60_000, 0), untilText((3 * 1440 + 200) * 60_000, 0)]).toEqual(['42m', '2h 22m', '3d 3h'])
 })
 
@@ -52,7 +27,6 @@ test('칸 수와 줄 맞추기', () => {
   expect(fit(items, 100)).toEqual([true, true, true, true])
   expect(fit(items, 30)).toEqual([true, true, false, true])
   expect(fit(items, 15)).toEqual([true, false, false, false])
-  expect(parseGit('# branch.head (unknown)\n', '').branch).toBe('커밋 없음')
 })
 
 test('claudeTrailer: Claude 서명 줄만 잡는다', () => {

@@ -9,13 +9,12 @@ import { pickMode, type Mode } from './parse'
 import { C, herdrTheme, setTheme, soft } from './theme'
 import { splitAll } from './blocks'
 import { pickPin, type Pin } from './pin'
-import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, parseGit, shortPath, tokensOf, untilText, type Ci, type Git } from './board'
+import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, tokensOf, untilText, type Ci } from './board'
 
-// 입력창 위 두 줄 계기판 — statusline 이 하던 것(모델·경로·브랜치·컨텍스트·비용·사용량 한도)에
-// git 변경·CI·지금 도는 작업을 더한다. 윗줄은 "얼마나 남았나", 아랫줄은 "어디서 무엇을".
+// 입력창 위 한 줄 계기판 — 모델·컨텍스트·사용량 한도·CI, 오른쪽 끝에 지금 도는 작업.
+// 경로·브랜치·바뀐 파일은 herdr 앱이 보여 줘서 뺐다.
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
-const FILES = 'board-files'
 const SPIN = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
 
 let started = false
@@ -23,7 +22,7 @@ let cwd = ''
 let home = ''
 let effort = ''
 let model = ''
-let git: Git | null = null
+let branch = '' // CI 를 읽을 브랜치
 let ci: Ci | null = null
 let host: 'github' | 'gitlab' | null = null
 const busy = { git: false, ci: false, usage: false }
@@ -108,20 +107,19 @@ async function guarded($: EngineInterface, key: keyof typeof busy, work: () => P
 
 const refreshGit = ($: EngineInterface) =>
   guarded($, 'git', async () => {
-    const status = await sh($, ['git', 'status', '--porcelain=v2', '--branch'])
-    git = status ? parseGit(status, await sh($, ['git', 'diff', '--numstat', 'HEAD'])) : null
+    branch = await sh($, ['git', 'branch', '--show-current'])
   })
 
 const refreshCi = ($: EngineInterface) =>
   guarded($, 'ci', async () => {
-    if (!git?.branch) return
+    if (!branch) return
     if (host === null) {
       const url = await sh($, ['git', 'remote', 'get-url', 'origin'])
       host = url.includes('github.com') ? 'github' : url.includes('gitlab') ? 'gitlab' : null
     }
     const was = ci?.state
-    if (host === 'github') ci = ciFromGithub(await sh($, ['gh', 'run', 'list', '-b', git.branch, '-L', '1', '--json', 'status,conclusion,updatedAt,workflowName,url']))
-    else if (host === 'gitlab') ci = ciFromGitlab(await sh($, ['glab', 'ci', 'list', '-b', git.branch, '-P', '1', '-F', 'json']))
+    if (host === 'github') ci = ciFromGithub(await sh($, ['gh', 'run', 'list', '-b', branch, '-L', '1', '--json', 'status,conclusion,updatedAt,workflowName,url']))
+    else if (host === 'gitlab') ci = ciFromGitlab(await sh($, ['glab', 'ci', 'list', '-b', branch, '-P', '1', '-F', 'json']))
     if (ci?.state === 'fail' && was && was !== 'fail') say(await $.clock.now(), 'ci', 'CI 깨졌어!', C.red, 0)
   })
 
@@ -807,52 +805,29 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // ── 아랫줄: 어디서 ──────────────────────────────────
-    const top: Item[] = []
-    if (cwd) top.push(pillItem(C.yellow, C.ink, `📁 ${shortPath(cwd, home)}`, 1))
-    if (git) {
-      const ab = `${git.ahead ? ` ↑${git.ahead}` : ''}${git.behind ? ` ↓${git.behind}` : ''}`
-      top.push(pillItem(C.teal, C.ink, `⎇ ${git.branch || '(detached)'}${ab}`, 0))
-    }
-    // 모델은 브랜치 바로 옆.
+    // ── 한 줄: 모델 · CTX · 한도 · CI, 오른쪽 끝에 지금 도는 작업 ─────
+    const row: Item[] = []
     if (model) {
-      top.push(pillItem(C.peach, C.ink, `◆ ${model}`, 2))
-      if (effort) top.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
+      row.push(pillItem(C.peach, C.ink, `◆ ${model}`, 2))
+      if (effort) row.push(pillItem(C.overlay, C.peach, effort, 6, { bold: false, glue: true }))
     }
-    if (git) {
-      if (git.files.length > 0) {
-        const t = [` ● ${git.files.length} `, `+${git.added} `, `−${git.deleted} `]
-        top.push(item(
-          <Box hover={{ scope: FILES }}>
-            <Text backgroundColor={C.surface} color={C.yellow} bold>{t[0]}</Text>
-            <Text backgroundColor={C.surface} color={C.green}>{t[1]}</Text>
-            <Text backgroundColor={C.surface} color={C.red}>{t[2]}</Text>
-          </Box>,
-          t.join(''), 3,
-        ))
-      } else top.push(pillItem(C.surface, C.green, '✓ 깨끗', 8, { bold: false }))
-    }
-    if (ci) {
-      const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
-      top.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
-    }
-
-    // ── 윗줄: 얼마나 남았나 ───────────────────
-    const bottom: Item[] = []
-
     if (usage) {
       const u = usage
-      bottom.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0, C.green))
+      row.push(gauge(u.percent >= 80 ? 'CTX 압축 임박' : 'CTX', u.percent, 0, C.green))
       u.limits.forEach((l, i) => {
         const name = l.kind === 'five_hour' ? '5H' : l.kind === 'seven_day' ? '7D' : l.kind === 'spend_limit' ? '한도' : l.kind
-        bottom.push(gauge(name, l.percent, i === 0 ? 1 : 4))
+        row.push(gauge(name, l.percent, i === 0 ? 1 : 4))
         if (l.resetsAt) {
           const t = `⟲ ${untilText(l.resetsAt, now)} `
-          bottom.push(item(<Text backgroundColor={C.surface} color={C.sub}>{t}</Text>, t, 7, true))
+          row.push(item(<Text backgroundColor={C.surface} color={C.sub}>{t}</Text>, t, 7, true))
         }
       })
     }
-    const bottomRight: Item[] = []
+    if (ci) {
+      const [bg, mark] = ci.state === 'ok' ? [C.green, '✓'] : ci.state === 'fail' ? [C.red, '✗'] : ci.state === 'run' ? [C.yellow, '⟳'] : [C.surface, '·']
+      row.push(pillItem(bg, ci.state === 'other' ? C.sub : C.ink, `CI ${mark} ${ci.name}${ci.at ? ` · ${ago(ci.at, now)}` : ''}`, 5))
+    }
+    const tail: Item[] = []
     // 펫은 그림만. 5H 80% 를 넘는 순간엔 말풍선.
     const dstate = petState(now)
     const tiredNow = (usage?.limits.find(l => l.kind === 'five_hour')?.percent ?? 0) >= 80
@@ -862,17 +837,16 @@ export const register: Register = (on, options) => {
       const parts = [`${SPIN[Math.floor(now / 250) % SPIN.length]} ${elapsed(Math.round((now - turn.startedAt) / 1000))}`, turn.current, `도구 ${turn.tools}`]
       if (turn.edits.size) parts.push(`편집 ${turn.edits.size}`)
       if (turn.agents > 0) parts.push(`에이전트 ${turn.agents}`)
-      bottomRight.push(pillItem(C.mauve, C.ink, parts.join('  '), 2))
+      tail.push(pillItem(C.mauve, C.ink, parts.join('  '), 2))
     } else if (last) {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
-      bottomRight.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
+      tail.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
     }
-    if (top.length + bottom.length + bottomRight.length === 0) return below
+    if (row.length + tail.length === 0) return below
 
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
-    const line = (left: Item[], right: Item[], width = cols) => {
-      const all = [...left, ...right]
-      const keep = fit(all, width)
+    const line = (left: Item[], right: Item[]) => {
+      const keep = fit([...left, ...right], cols)
       const draw = (items: Item[], offset: number) => {
         const out: RenderElement[] = []
         items.forEach((it, i) => {
@@ -891,29 +865,12 @@ export const register: Register = (on, options) => {
       )
     }
 
-    // 변경 알약에 포인터를 올리면 그 위 줄에 파일 목록 — 띠는 아래가 붙박이라 위로 펼쳐야 알약이 안 움직인다.
-    const shown = git?.files.slice(0, 8) ?? []
-    const files = shown.length ? (
-      <Box display="none" hover={{ display: 'flex', scope: FILES }} flexDirection="row" columnGap={2} flexWrap="wrap">
-        {shown.map(f => (
-          <Text>
-            <Text color={f.code === '?' ? C.sub : f.code === 'D' ? C.red : f.code === 'A' ? C.green : C.yellow}>{f.code}</Text>
-            <Text color={C.text}> {f.path}</Text>
-          </Text>
-        ))}
-        {git && git.files.length > shown.length ? <Text color={C.sub}>외 {git.files.length - shown.length}개</Text> : null}
-      </Box>
-    ) : null
-
     // 말풍선: 슬라임 바로 왼쪽 위에 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다.
-    // 상자가 계기판 윗줄 오른쪽 끝에 걸치므로 그동안 윗줄 알약 폭을 그만큼 줄인다.
+    // 상자(3줄)는 슬라임(4줄) 위쪽이라 맨 아래 계기판 줄을 가리지 않는다.
     const bub = showPet && bubble && now < bubble.until ? bubble : null
-    const boxW = bub ? cellWidth(bub.text) + 5 : 0 // 테두리 2 · 안쪽 여백 2 · 꼬리 1
     const dash = (
       <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
-        {files}
-        {bottom.length + bottomRight.length ? line(bottom, bottomRight, cols - boxW) : null}
-        {top.length ? line(top, []) : null}
+        {line(row, tail)}
       </Box>
     )
     const bubbleEl = bub ? (

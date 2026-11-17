@@ -1,34 +1,6 @@
 // 화면도 엔진도 모르는 규칙만 — 테스트가 여기를 본다.
 
-export type Git = { branch: string; ahead: number; behind: number; files: { code: string; path: string }[]; added: number; deleted: number }
 export type Ci = { state: 'ok' | 'fail' | 'run' | 'other'; name: string; url: string; at: number }
-
-// `git status --porcelain=v2 --branch` 와 `git diff --numstat HEAD` 를 합친다.
-export function parseGit(status: string, numstat: string): Git {
-  const git: Git = { branch: '', ahead: 0, behind: 0, files: [], added: 0, deleted: 0 }
-  for (const line of status.split('\n')) {
-    // 커밋이 하나도 없는 저장소는 git 이 (unknown) 이라고 답한다.
-    if (line.startsWith('# branch.head ')) git.branch = line.slice(14) === '(unknown)' ? '커밋 없음' : line.slice(14)
-    else if (line.startsWith('# branch.ab ')) {
-      const [a, b] = line.slice(12).split(' ')
-      git.ahead = Math.abs(Number(a) || 0)
-      git.behind = Math.abs(Number(b) || 0)
-    } else if (line.startsWith('1 ') || line.startsWith('2 ')) {
-      // 1 XY sub mH mI mW hH hI path / 2 … path\torig
-      const parts = line.split(' ')
-      const xy = parts[1] ?? '..'
-      const path = parts.slice(line.startsWith('1 ') ? 8 : 9).join(' ').split('\t')[0] ?? ''
-      git.files.push({ code: (xy[0] !== '.' ? xy[0] : xy[1]) ?? 'M', path })
-    } else if (line.startsWith('? ')) git.files.push({ code: '?', path: line.slice(2) })
-    else if (line.startsWith('u ')) git.files.push({ code: 'U', path: line.split(' ').slice(10).join(' ') })
-  }
-  for (const line of numstat.split('\n')) {
-    const [a, d] = line.split('\t')
-    git.added += Number(a) || 0
-    git.deleted += Number(d) || 0
-  }
-  return git
-}
 
 // `gh run list --json status,conclusion,updatedAt,workflowName,url` 의 첫 줄.
 export function ciFromGithub(json: string): Ci | null {
@@ -68,13 +40,6 @@ export function modelName(id: string): string {
   if (!m) return id
   const name = (m[1] ?? '').replace(/^./, c => c.toUpperCase())
   return m[3] && m[3].length <= 2 ? `${name} ${m[2]}.${m[3]}` : `${name} ${m[2]}`
-}
-
-// /Users/x/Documents/m1ucs/com.m1ucs/detector → "~/…/com.m1ucs/detector"
-export function shortPath(path: string, home: string): string {
-  const p = home && path.startsWith(home) ? `~${path.slice(home.length)}` : path
-  const parts = p.split('/').filter(Boolean)
-  return parts.length <= 3 ? p : `${p.startsWith('~') ? '~' : ''}/…/${parts.slice(-2).join('/')}`
 }
 
 // 남은 시간: "42m" · "2h 22m" · "3d 3h"
