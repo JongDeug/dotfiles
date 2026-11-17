@@ -130,10 +130,9 @@ const GROUPS = [
     ["}", "next space", () => run("space.next")],
     ["shift-w", "worktree", worktree("open", 560, 480)],
   ]],
-  // Zed: project, git, agent panels; the same key closes it
+  // Zed: project panel (jongdeug-ide has no Changes); the same key closes it
   ["Panel", [
     ["e", "files", () => panel("files")],
-    ["g", "git", () => panel("changes")],
     ["shift-g", "git graph", () => panel("git-graph")],
     [";", "sidebar", () => run("layout.toggle", { id: "sidebar" })],
     ["shift-space", "close docks", () => { run("layout.hide", { id: "panel" }); run("layout.hide", { id: "sidebar" }); }],
