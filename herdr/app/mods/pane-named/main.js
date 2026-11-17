@@ -1,8 +1,8 @@
 // A pane's header, for layouts that frame their panes:
 //   { "tab": "active", "pane": { "header": { "content": { "mod": "pane-named" } } } }
 // Shows the program's icon (the app's program table), the agent's name or
-// the terminal's title, the folder, and the agent's status; buttons split, zoom and close
-// this pane. Props from the app: { pane, terminal }. Click: focus the pane.
+// the terminal's title, the folder, and the agent's status; buttons open this pane's repo in Zed,
+// split, zoom and close this pane. Props from the app: { pane, terminal }. Click: focus the pane.
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
@@ -87,6 +87,10 @@ export default class Pane extends View {
       .when(st === "blocked", el => el.child(div().flex_none().px(6).h(18).flex().items_center().rounded(5).bg(t.blocked + "26").text_size(10.5).font_semibold().text_color(t.blocked).child("Needs you")))
       .when(st === "done", el => el.child(div().size(7).flex_none().rounded(4).bg(t.done)))
       .when(this.hovered, el => el
+        // tabs-num opens the focused terminal's repo, so focus this pane first.
+        .when(Boolean(p.terminal), el => el.child(div().id(`ph-zed-${pane}`).p(3).rounded(4).hover((s) => s.bg(t.hover))
+          .on_click((_e, cx) => { cx.stop_propagation(); run("pane.focus", { pane }); run("tabs-num.zed"); })
+          .child(svg("mods/tabs-num/zed.svg").size(14).text_color(t.dim))))
         .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
         .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
         .child(this.button(t, `ph-z-${pane}`, p.zoomed ? "unzoom" : "zoom", "pane.zoom", { pane }))

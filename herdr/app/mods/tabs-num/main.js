@@ -42,13 +42,25 @@ export default class Tabs extends View {
     this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}");
     // deck's picture button (bin/panel.mjs) sends "tabs-num.pictures": open the Pictures viewer over the terminals,
     // replacing one still open (it reads the picture to show from its index.json).
-    cx.spawn(async () => {
+    cx.spawn(async cx => {
       for (;;) {
-        if ((await nextCommand()) !== "pictures") continue;
+        const c = await nextCommand();
+        // pane-named's header Zed button: it focuses its pane first, so this opens that pane's repo.
+        if (c === "zed") { this.openZed(cx); continue; }
+        if (c !== "pictures") continue;
         if (this.viewer) try { closeOverlay(this.viewer); } catch { /* already closed */ }
         this.viewer = openOverlay({ mod: "pictures", kind: "dialog", width: 0.8, height: 0.85 });
       }
     });
+  }
+
+  // Opens the focused terminal's repo (else the space's folder) in Zed, then goes to Zed's workspace.
+  openZed(cx) {
+    const space = spaces().find(p => p.active);
+    if (this.zedOpening || !space) return;
+    this.zedOpening = true;
+    cx.notify();
+    cx.spawn(async cx => { await openInZed(space); await followZed(cx); this.zedOpening = false; cx.notify(); });
   }
 
   // The side panel is remembered per space: switching shows that space's choice
@@ -145,12 +157,7 @@ export default class Tabs extends View {
       .when(this.zed, el => el.child(h_flex().id("open-zed").h(26).px(8).gap(5).flex_none().items_center().rounded(6)
         .text_size(12).bg(t.chrome).text_color(this.zedOpening ? t.dim : t.muted)
         .hover(s => s.bg(t.hover)).on_mouse_down("left", stop)
-        .on_click((_e, cx) => {
-          if (this.zedOpening || !space) return;
-          this.zedOpening = true;
-          cx.notify();
-          cx.spawn(async cx => { await openInZed(space); await followZed(cx); this.zedOpening = false; cx.notify(); });
-        })
+        .on_click((_e, cx) => this.openZed(cx))
         .child(svg("mods/tabs-num/zed.svg").size(14)).child(this.zedOpening ? "Opening…" : "Zed")))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/tabs-num/win-min.svg").size(16) : "−", () => run("window.minimize")))
         .child(button("maximize", w.platform === "windows" ? svg(`mods/tabs-num/${w.maximized ? "win-restore" : "win-max"}.svg`).size(16) : "□", () => run("window.maximize")))
