@@ -21,15 +21,19 @@ const selectSpace = (n) => { const id = shared("spaces.order")?.[n - 1]; run("sp
 const worktree = (action, w, h) => (f) =>
   openOverlay({ mod: "worktree", kind: "dialog", width: w, height: h, props: { space: f?.space, folder: f?.cwd, action } });
 
-// Decision Queue (the queue mod draws it, ctrl-1..3 jumps): the focused terminal takes the lowest free slot,
-// or leaves. Slots never shift, so ctrl-N keeps going to the same session.
-function enqueue(f) {
+// Decision Queue (the queue mod draws it, ctrl-1..3 jumps). prefix q then 1-3 puts the focused terminal in that slot
+// (its holder takes this terminal's old slot, else leaves), q again takes the lowest free slot or leaves, x leaves.
+// Slots never shift, so ctrl-N keeps going to the same session.
+const queueSlots = () => terminals().filter((t) => t.state === "live")
+  .map((t) => [t.address, Number.parseInt(t.labels?.["deck.q"], 10)]).filter(([, n]) => n > 0);
+function enqueue(f, n) {
   if (!f?.terminal) return;
-  const slots = terminals().filter((t) => t.state === "live").map((t) => [t.address, Number.parseInt(t.labels?.["deck.q"], 10)]).filter(([, n]) => n > 0);
-  if (slots.some(([a]) => a === f.terminal)) return exec("hc", ["label", f.terminal, "deck.q="]);
-  const free = [1, 2, 3].find((n) => !slots.some(([, s]) => s === n));
-  if (!free) return notify({ title: "Decision Queue가 꽉 찼다 (3/3)", level: "warning" });
-  exec("hc", ["label", f.terminal, `deck.q=${free}`]);
+  const slots = queueSlots(), mine = slots.find(([a]) => a === f.terminal)?.[1];
+  if (n === 0 || (n === undefined && mine)) return mine && exec("hc", ["label", f.terminal, "deck.q="]);
+  n ??= [1, 2, 3].find((k) => !slots.some(([, s]) => s === k));
+  if (!n) return notify({ title: "Decision Queue가 꽉 찼다 (3/3)", level: "warning" });
+  for (const [a, s] of slots) if (s === n && a !== f.terminal) exec("hc", ["label", a, mine ? `deck.q=${mine}` : "deck.q="]);
+  exec("hc", ["label", f.terminal, `deck.q=${n}`]);
 }
 
 // Every pane of this tab gets the same share of its split, like vim's ctrl-w = (the TUI's prefix space was layouts.cycle).
@@ -141,7 +145,7 @@ const GROUPS = [
   ["Agent", [
     ["v", "agent", agent],
     ["a", "new agent", (f) => run("tab.new", { argv: ["claude"], folder: f?.cwd ?? undefined })],
-    ["q", "queue", enqueue],
+    ["q", "queue 1-3", null], // picks a slot: the popup stays for one more key
     ["w", "switcher", () => run("mod.open", { name: "picker" })],
     [":", "commands", () => run("app.palette")],
     ["shift-c", "repo → pane", (_f, self) => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null', self), true],
@@ -190,15 +194,22 @@ export default class Prefix extends View {
         .child(div().text_color(t.accent).font_semibold().child(k.replace("shift-", "⇧")))
         .child(div().text_color(t.muted).child(label));
     };
-    return v_flex()
+    const base = v_flex()
       .id("prefix")
       .track_focus(this.handle)
       .on_key_down((e, cx) => {
         cx.stop_propagation();
         if (/^(shift|ctrl|alt|cmd)$/.test(e.key)) return; // a lone modifier: keep waiting
-        const b = resolve(e);
         const f = this.f;
         const id = props().overlay;
+        if (this.queue) {
+          closeOverlay(id);
+          const k = [e.keystroke, e.key_char, JAMO[e.key_char]].find((x) => /^[0-3qx]$/.test(x ?? ""));
+          if (k) enqueue(f, k === "q" ? undefined : k === "x" ? 0 : Number(k));
+          return;
+        }
+        const b = resolve(e);
+        if (b?.[0] === "q") { this.queue = true; cx.notify(); return; }
         if (b?.[3]) {
           cx.spawn(async () => { try { await b[2](f, id); } finally { closeOverlay(id); } });
           return;
@@ -206,7 +217,25 @@ export default class Prefix extends View {
         closeOverlay(id);
         if (b) b[2](f);
       })
-      .size_full().p(10).gap(8).bg(t.popover).text_size(11)
+      .size_full().p(10).gap(8).bg(t.popover).text_size(11);
+    if (this.queue) {
+      const slots = queueSlots();
+      const who = (n) => {
+        const a = slots.find(([, s]) => s === n)?.[0];
+        if (!a) return "empty";
+        if (a === this.f?.terminal) return "here";
+        const x = terminals().find((x) => x.address === a);
+        return String(x?.labels?.["pane.name"] || panes().find((p) => p.terminal === a)?.title || a).slice(0, 24);
+      };
+      return base
+        .child(h_flex().justify_between()
+          .child(div().text_size(13).font_semibold().text_color(t.foreground).child("Decision Queue"))
+          .child(div().text_color(t.dim).child("Esc")))
+        .child(h_flex().flex_wrap().gap(4).children([
+          ...[1, 2, 3].map((n) => chip([`${n}`, who(n)])), chip(["q", "auto"]), chip(["x", "leave"]),
+        ]));
+    }
+    return base
       .child(h_flex().justify_between()
         .child(div().text_size(13).font_semibold().text_color(t.foreground).child("C-Space"))
         .child(div().text_color(t.dim).child("Zed keys · Esc")))
