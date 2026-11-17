@@ -4,20 +4,21 @@
 `/deck:config` — 설정(style · pet · scale · max_rows · cell_aspect)을 보여 주고, `/deck:config <이름> <값>` 으로 바꾼다. `/plugin → deck → configure` 와 같은 곳에 저장된다.
 `/deck:sync` — push 한 deck 을 `~/.claude`·`~/.claude-work` 에 깔고, herdr 안(TUI 는 `herdr`, 데스크톱 앱은 `hc`)의 쉬는 Claude 세션에 `/reload-plugins` 를 보낸다(작업 중·입력 중·부른 세션은 건너뜀). 끝나면 알림으로 요약.
 
-Claude Code 화면 한 벌. 입력창 위 계기판, 답 속 그림, 크게 보기 pane 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
+Claude Code 화면 한 벌. 입력창 아래 계기판, 답 속 그림, 크게 보기 pane 이 한 mod 다. 색은 herdr 테마(gruvbox dark) — `hooks/theme.ts` 하나에서 바꾼다.
 
 ```
 /plugin marketplace add JongDeug/dotfiles
 /plugin install deck@jongdeug
 ```
 
-## 계기판 — 입력창 위 한 줄 (statusline 대체)
+## 계기판 — 입력창 아래 맨 끝 줄 (statusline 대체)
 
 ```
  ◆ Opus 5.5  high   CTX ▰▰▰▰▰▱▱▱ 63%   5H ▱▱▱▱▱▱▱▱ 6% ⟲ 4h 46m   7D ▰▰▰▱▱▱▱▱ 40% ⟲ 2d 16h   CI ✓ build · 3분 전      ⠹ 12s  Bash  도구 3
 ```
 
 - 모델·effort(주황), 컨텍스트(늘 초록)·5시간·7일을 같은 ▰▱ 8칸 게이지로(한도는 50%·80% 에서 초록 → 노랑 → 빨강, 초기화까지 남은 시간), CI(GitHub `gh` · GitLab `glab`, 현재 브랜치 마지막 실행). 오른쪽 끝은 도는 동안 스피너·경과·지금 도구·도구/편집/에이전트 수, 끝나면 `지난 턴 …`.
+- 엔진의 안내 줄(`-- INSERT --` · `auto mode on` …) 밑에 붙는다(`PromptHint`). 그래서 ctrl+x ctrl+a 로 접히지 않는다.
 - 경로·브랜치·바뀐 파일은 herdr 앱(사이드바·아래 줄)이 보여 줘서 뺐다.
 - **좁은 pane** — 한 줄에 안 들어가면 덜 중요한 것부터 뺀다(지난 턴 → 초기화 시각 → effort → CI → 7D → 모델 …). CTX 는 끝까지 남는다.
 - 갱신: 도는 동안 0.25초(스피너), 컨텍스트·한도 5초, git 10초(명령·편집이 끝날 때도), CI 1분. 값은 `$.session.usage()`(statusline 과 같은 숫자), `$.session.model()`, git·gh·glab. effort 는 요청마다 엔진이 실어 보낸 값(`turn.step`)이라 `/effort max` 처럼 세션에서만 바꾼 것도 맞게 보인다. 첫 요청 전엔 설정 파일의 `effortLevel`.
@@ -61,7 +62,7 @@ git-commit 스킬이 앞에서 쓰는 법을 이끌고, deck 은 실행 직전�
 
 ## 펫 (슬라임 말랑이)
 
-계기판 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
+입력창 위 띠 오른쪽 끝에 펫이 산다(설정 `pet`: `slime` 기본 · `off`, 100칸보다 좁으면 숨는다). 펫은 그림만 — 글자는 없다.
 
 - 슬라임(21칸 × 4줄): 바닥에 앉은 반타원 젤리를 너비·높이·기울기·위치로 그때그때 계산해 찍는다(`slime.ts`). 일하는 동안엔 깜빡이다 왼쪽을 힐끔 보고, 왼쪽으로 사르륵 녹아 흘러가 사라졌다가(바닥 자국이 말라 간다) 오른쪽 위에서 뚝 떨어져 뿅 하고 다시 선다.
 - 사건이 있으면 슬라임 왼쪽에 말풍선 상자가 3초 뜬다: 커밋 성공(냠! 커밋 깔끔 ✓) · 검문에 걸림 · 도구 오류 · 1분 넘은 턴 끝 · 5H 80% 넘는 순간 · CI 실패 · 세션 시작. 같은 말은 10분에 한 번, 띠 높이는 그대로다.

@@ -26,12 +26,14 @@ function world(on: On, opts: { live?: { tokens?: number; percent?: number }; lim
 
 describe('board band', () => {
   const band = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 160, scroll: { offset: 0, bodyRows: 10 }, view: {} }
+  // 계기판은 입력창 아래 안내 줄(PromptHint) 밑에 붙는다.
+  const hint = (columns = 160) => ({ plugin: 'deck', surface: 'terminal', component: 'PromptHint', props: { isDraft: false, isWorking: false, hint: '? for shortcuts' }, viewport: { columns, rows: 40 } }) as never
 
   for (const [cols, wide] of [[200, true], [26, false]] as const) {
-    test(`폭 ${cols}칸: 한 줄, CTX 는 남고 모델은 ${wide ? '보인다' : '빠진다'} — 경로·브랜치는 없다`, async ($, on) => {
+    test(`폭 ${cols}칸: 입력창 아래 한 줄, CTX 는 남고 모델은 ${wide ? '보인다' : '빠진다'} — 경로·브랜치는 없다`, async ($, on) => {
       mock.clock(on, { now: START })
       world(on, { live: { tokens: 300000 } })
-      const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: { ...band, bodyColumns: cols } })
+      const ui = await $.ui.mount(hint(cols))
       expect(await ui.find({ text: /⎇|📁/ })).toBe(undefined)
       expect((await ui.find({ text: /^ CTX $/ }))?.text).toBe(' CTX ')
       expect(Boolean(await ui.find({ text: /Fable 5\.1/ }))).toBe(wide)
@@ -41,7 +43,7 @@ describe('board band', () => {
   test('CTX 는 한도처럼 ▰▱ 8칸과 퍼센트, 남은 시간은 띄어 쓴다', async ($, on) => {
     mock.clock(on, { now: START })
     world(on, { live: { tokens: 630000, percent: 63 }, limits: [{ kind: 'five_hour', percentUsed: 6, resetsAt: new Date(START + (4 * 60 + 46) * 60_000).toISOString() }] })
-    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
+    const ui = await $.ui.mount(hint())
     expect((await ui.find({ text: /^ ▰▰▰▰▰$/ }))?.text).toBe(' ▰▰▰▰▰')
     expect((await ui.find({ text: /^ 63% $/ }))?.text).toBe(' 63% ')
     expect((await ui.find({ text: /^⟲ 4h 46m $/ }))?.text).toBe('⟲ 4h 46m ')
@@ -53,10 +55,18 @@ describe('board band', () => {
     on('turn.step', async function* ($, e) {
       return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
     })
-    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
-    await ui.find({ text: /develop/ })
+    const ui = await $.ui.mount(hint())
+    await ui.find({ text: /CTX/ })
     expect(await ui.find({ text: /^ max $/ })).toBe(undefined)
     await $.turn.step({ turnId: 't', index: 0, model: 'claude-opus-5-5', effort: 'max', messageCount: 1 }).next()
     expect((await ui.find({ text: /^ max $/ }))?.text).toBe(' max ')
+  })
+
+  test('입력창 위 띠엔 펫만 — 계기판은 없다', async ($, on) => {
+    mock.clock(on, { now: START })
+    world(on, { live: { tokens: 300000 } })
+    const ui = await $.ui.mount({ plugin: 'deck', surface: 'terminal', component: 'AbovePrompt', props: band })
+    expect(await ui.find({ text: /CTX/ })).toBe(undefined)
+    expect(await ui.find({ text: /▀|▄|█/ })).toBeDefined()
   })
 })
