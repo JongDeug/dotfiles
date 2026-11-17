@@ -11,7 +11,7 @@ import { splitAll } from './blocks'
 import { pickPin, type Pin } from './pin'
 import { ago, cellWidth, fit, type Fit, ciFromGithub, ciFromGitlab, elapsed, modelName, tokensOf, untilText, type Ci } from './board'
 
-// 입력창 아래 한 줄 계기판 — 모델·컨텍스트·사용량 한도·CI, 오른쪽 끝에 지금 도는 작업.
+// 입력창 바로 위 한 줄 계기판 — 모델·컨텍스트·사용량 한도·CI, 오른쪽 끝에 지금 도는 작업.
 // 경로·브랜치·바뀐 파일은 herdr 앱이 보여 줘서 뺐다.
 // 모듈 변수는 리로드 때 비워지고 session.start 는 다시 오지 않는다 — 처음 그릴 때 시작한다.
 const EDITS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit'])
@@ -767,56 +767,25 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
 
-  // 펫(4줄)과 말풍선은 입력창 위 띠에. 계기판은 입력창 아래 맨 끝 줄(아래 PromptHint 훅).
+  // 띠의 맨 아래 줄(입력창 바로 위)이 계기판 한 줄이다. 펫(4줄)은 그 오른쪽 끝에서 위로 솟고, 말풍선은 펫 왼쪽 위.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const below = await next(e)
     if (e.surface !== 'terminal' || e.props.hasSurvey) return below
     void start($)
+    const { Box, Text } = $.ui.resolve(e)
     const now = await $.clock.now()
     // 5H 80% 를 넘는 순간엔 말풍선.
     const tiredNow = (usage?.limits.find(l => l.kind === 'five_hour')?.percent ?? 0) >= 80
     if (tiredNow && !seen.tired) say(now, '5h', '5H 거의 다 썼어', C.yellow, 3_600_000)
     seen.tired = tiredNow
-    // 펫: 100칸 넘을 때만.
-    if (pet.kind === 'off' || pet.hidden || e.props.bodyColumns < 100) return below
-    const { Box, Text } = $.ui.resolve(e)
-    // 말풍선: 슬라임 바로 왼쪽 위에 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다.
-    const bub = bubble && now < bubble.until ? bubble : null
-    return (
-      <Box flexDirection="column">
-        {below}
-        <Box flexDirection="row" justifyContent="flex-end">
-          {bub ? (
-            <Box position="absolute" top={0} right={SLIME_COLS + 2} flexDirection="row" alignItems="center">
-              <Box borderStyle="round" borderColor={C.overlay} paddingX={1}>
-                <Text color={bub.color} bold>{bub.text}</Text>
-              </Box>
-              <Text color={C.overlay}>╴</Text>
-            </Box>
-          ) : null}
-          <Box flexDirection="column" width={SLIME_COLS} flexShrink={0}>
-            {slimeRows(petState(now), now).map((runs, y) => (
-              <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
-            ))}
-          </Box>
-        </Box>
-      </Box>
-    )
-  })
-
-  // 계기판 한 줄: 입력창 아래, 엔진의 안내 줄(-- INSERT -- · auto mode …) 밑 맨 끝.
-  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
-    const hint = await next(e)
-    if (e.surface !== 'terminal') return hint
-    void start($)
-    const { Box, Text } = $.ui.resolve(e)
-    const now = await $.clock.now()
     // 바탕색은 테마 바탕 쪽으로 누그러뜨려(soft) 칠한다.
     const pill = (bg: string, fg: string, text: string, bold = true) => <Text backgroundColor={soft(bg)} color={fg} bold={bold}>{` ${text} `}</Text>
     const label = (bg: string, text: string) => pill(bg, C.ink, text)
 
-    // 안내 줄과 같은 들여쓰기(2칸)에 오른쪽 여백 2칸.
-    const cols = Math.max(20, (e.viewport?.columns ?? 100) - 4)
+    const full = Math.max(20, e.props.bodyColumns)
+    // 펫: 100칸 넘을 때만. 맨 아래 줄에서 그 폭만큼 계기판 알약이 줄어든다.
+    const showPet = pet.kind !== 'off' && !pet.hidden && full >= 100
+    const cols = showPet ? full - SLIME_COLS - 2 : full
     // 알약 하나 = 그림 + 칸 수 + 중요도(작을수록 끝까지 남는다). 좁으면 fit 이 큰 p 부터 뺀다.
     type Item = Fit & { el: RenderElement }
     const item = (el: RenderElement, text: string, p: number, glue = false): Item => ({ el, w: cellWidth(text), p, glue })
@@ -872,8 +841,6 @@ export const register: Register = (on, options) => {
       const t = `지난 턴 ${elapsed(last.seconds)} · 도구 ${last.tools}${last.edits ? ` · 편집 ${last.edits}` : ''}`
       tail.push(item(<Text color={C.sub}>{t}</Text>, t, 9))
     }
-    if (row.length + tail.length === 0) return hint
-
     // 한 줄: 들어가는 알약만, 붙은 것(glue)은 사이 칸 없이. right 는 오른쪽 끝으로 민다.
     const line = (left: Item[], right: Item[]) => {
       const keep = fit([...left, ...right], cols)
@@ -895,6 +862,33 @@ export const register: Register = (on, options) => {
       )
     }
 
-    return <Box flexDirection="column">{hint}{line(row, tail)}</Box>
+    const dash = row.length + tail.length ? line(row, tail) : <Box flexGrow={1} />
+    if (!showPet) return row.length + tail.length ? <Box flexDirection="column">{below}{dash}</Box> : below
+    // 펫 윗 세 줄은 오른쪽 끝에, 마지막 줄은 계기판 줄 오른쪽에 — 그래야 계기판이 늘 맨 아래 줄이다.
+    const slime = slimeRows(petState(now), now).map((runs, y) => (
+      <Text key={`d${y}`}>{runs.map((r, i) => <Text key={`r${i}`} color={r.fg} backgroundColor={r.bg}>{r.text}</Text>)}</Text>
+    ))
+    // 말풍선: 둥근 상자(엔진이 테두리를 그린다)를 띄워(absolute) 띠 높이는 그대로 둔다. 3줄이라 계기판 줄에 안 걸친다.
+    const bub = bubble && now < bubble.until ? bubble : null
+    return (
+      <Box flexDirection="column">
+        {below}
+        <Box flexDirection="row" justifyContent="flex-end">
+          {bub ? (
+            <Box position="absolute" top={0} right={SLIME_COLS + 2} flexDirection="row" alignItems="center">
+              <Box borderStyle="round" borderColor={C.overlay} paddingX={1}>
+                <Text color={bub.color} bold>{bub.text}</Text>
+              </Box>
+              <Text color={C.overlay}>╴</Text>
+            </Box>
+          ) : null}
+          <Box flexDirection="column" width={SLIME_COLS} flexShrink={0}>{slime.slice(0, -1)}</Box>
+        </Box>
+        <Box flexDirection="row" columnGap={2}>
+          {dash}
+          <Box width={SLIME_COLS} flexShrink={0}>{slime.at(-1)}</Box>
+        </Box>
+      </Box>
+    )
   })
 }
