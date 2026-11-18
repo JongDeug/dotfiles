@@ -15,7 +15,7 @@
 │   ├── claude/                  #   Claude Code 전용 배선
 │   │   ├── skills/              #     직접 만든 스킬
 │   │   ├── agents/              #     Claude 종속 에이전트 (chaos-blog-team — Agent Teams)
-│   │   ├── hooks/               #     notify.sh 링크 · herdr-agent-state.sh 는 herdr 가 관리
+│   │   ├── hooks/               #     notify.sh 링크
 │   │   ├── mods/                #     직접 만든 mod — 목록·내보내기·함정은 mods/README.md
 │   │   ├── telegram/            #     텔레그램 연동 설정
 │   │   └── settings.json        #     전역 설정 — 훅, 플러그인 목록, 취향
@@ -24,9 +24,8 @@
 ├── aerospace/                   # AeroSpace 윈도우 매니저
 ├── git/                         # git 신원 규칙 — 기본 신원(~/.gitconfig-local)은 머신 로컬
 ├── karabiner/                   # Karabiner-Elements — 오른쪽 Command = 한/영
-├── herdr/                       # Herdr (터미널 워크스페이스 — 키바인딩을 tmux 에 맞춤)
+├── herdr/                       # Herdr 데스크톱 앱 — mods·키·레이아웃, Hermes 다리
 ├── kitty/                       # kitty — iTerm2 에서 옮긴 폰트·Option 키, 테마는 머신마다 받는다
-├── nvim/                        # Neovim (LazyVim). ~/.config/nvim 심링크
 ├── tmux/                        # tmux — m1.sh 는 사무실 서버 세션 (아래 m1)
 ├── vscode/                      # VS Code
 ├── zed/                         # Zed — keymap 은 herdr 처럼 ctrl-space prefix
@@ -59,8 +58,6 @@ ln -sfn "$REPO/tmux/.tmux.conf"       ~/.tmux.conf
 ln -sfn "$REPO/tmux/tmux-cheat.sh"    ~/.tmux/tmux-cheat.sh        # tmux-win-menu.sh, tmux-pane-jump.sh, m1.sh 도 같은 자리
 ln -sfn "$REPO/tmux/smug-main.yaml"   ~/.config/smug/main.yml      # smug 는 .yml 만 찾는다
 ln -sfn "$REPO/ai/grok/config.toml"   ~/.grok/config.toml          # ai/setup.sh 가 같이 건다
-ln -sfn "$REPO/herdr/config.toml"     ~/.config/herdr/config.toml
-ln -sfn "$REPO/nvim"                  ~/.config/nvim
 ln -sfn "$REPO/kitty"                 ~/.config/kitty
 kitten themes Catppuccin-Macchiato                                  # kitty/current-theme.conf 생성 (gitignore)
 ln -sfn "$REPO/aerospace/aerospace.toml" ~/.config/aerospace/aerospace.toml
@@ -73,7 +70,7 @@ ln -sfn "$REPO/zed/tasks.json"         ~/.config/zed/tasks.json
 ln -sfn "$REPO/zsh/zshrc"             ~/.zshrc
 ln -sfn "$REPO/zsh/zprofile"          ~/.zprofile
 ln -sfn "$REPO/zsh/macos-nfc.zsh"     ~/.oh-my-zsh/custom/macos-nfc.zsh   # ls/eza 한글 파일명 NFC
-ln -sfn "$REPO/zsh/editor.zsh"        ~/.oh-my-zsh/custom/editor.zsh      # EDITOR=nvim
+ln -sfn "$REPO/zsh/editor.zsh"        ~/.oh-my-zsh/custom/editor.zsh      # EDITOR=zed --wait
 ln -sfn "$REPO/git/gitconfig"          ~/.gitconfig
 ln -sfn "$REPO/git/gitconfig-personal" ~/.gitconfig-personal
 ```
@@ -94,7 +91,7 @@ git clone https://github.com/zsh-users/zsh-history-substring-search ~/.zsh/plugi
 git clone https://github.com/zsh-users/zsh-completions ~/.zsh/plugins/zsh-completions
 ```
 
-herdr 플러그인은 repo에 넣지 않는다. 목록·설치는 [herdr/README.md](herdr/README.md).
+herdr 데스크톱 앱 설정은 [herdr/README.md](herdr/README.md).
 
 ### m1 (사무실 서버 tmux 세션)
 
@@ -151,7 +148,7 @@ Host m1-*
 
 - `enabledPlugins` — 설치해둔 외부 플러그인 목록 (ponytail, humanize-korean, karpathy-skills 등)
 - `extraKnownMarketplaces` — 그 플러그인들을 받아오는 마켓플레이스 URL
-- `hooks` — `Notification`/`Stop`(notify.sh), `SessionStart`(herdr-agent-state.sh)
+- `hooks` — `Notification`/`Stop`(notify.sh)
 
 훅 커맨드는 전부 `~/.claude/...` 를 경유한다(`bash ~/.claude/hooks/notify.sh`). repo 경로가 들어있지 않으므로 repo를 어디에 두든 그대로 동작한다.
 

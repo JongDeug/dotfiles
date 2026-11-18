@@ -8,8 +8,7 @@
 #   ai/**/commands/<name>.md →  ~/.claude/commands/<name>.md (개별)
 #   ai/**/workflows/<name>.js → ~/.claude/workflows/<name>.js (개별)
 #   ai/claude/telegram       →  ~/.claude/channels/telegram  (이름만 다름)
-#   ai/claude/hooks/<file>   →  ~/.claude/hooks/<file>       (개별.
-#                                herdr-agent-state.sh 는 복사만 — herdr 가 덮어쓴다)
+#   ai/claude/hooks/<file>   →  ~/.claude/hooks/<file>       (개별)
 #   ai/claude/settings.json  →  ~/.claude/settings.json      (복사만 — Claude Code 가
 #                                덮어쓴다. 라이브 → repo 는 --save)
 #   ai/claude/<그 외>         →  ~/.claude/<같은 이름>          (통째로)
@@ -107,25 +106,10 @@ for p in "$AI"/claude/*; do
       fi
       ;;
     hooks)
-      # 통째 심링크면 `herdr integration install claude` 가 repo 파일을 직접 수정한다.
       as_real_dir "$CLAUDE/hooks"
       for f in "$p"/*; do
         [ -e "$f" ] || continue
-        base="$(basename "$f")"
-        if [ "$base" = "herdr-agent-state.sh" ]; then
-          if [ -e "$CLAUDE/hooks/$base" ]; then
-            skipped=$((skipped + 1))
-          elif [ "$CHECK_ONLY" = 1 ]; then
-            echo "  - .claude/hooks/$base 없음 (herdr integration install claude)"
-            refused=$((refused + 1))
-          else
-            cp "$f" "$CLAUDE/hooks/$base"
-            chmod +x "$CLAUDE/hooks/$base"
-            linked=$((linked + 1))
-          fi
-        else
-          link "$f" "$CLAUDE/hooks/$base"
-        fi
+        link "$f" "$CLAUDE/hooks/$(basename "$f")"
       done
       ;;
     *) link "$p" "$CLAUDE/$(basename "$p")" ;;

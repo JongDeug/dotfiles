@@ -157,7 +157,6 @@ run = 'move-node-to-workspace 8'
     alt-comma = 'layout accordion horizontal vertical'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
-    # alt-h 는 nvim 숨김 토글을 먹는다. 피커/트리는 H 로 우회 (picker.lua).
     alt-h = 'focus left'
     alt-j = 'focus down'
     alt-k = 'focus up'
@@ -195,7 +194,7 @@ run = 'move-node-to-workspace 8'
     alt-s = 'workspace 11'
     alt-d = 'workspace 12'
     # alt-f 가 아니라 alt-g 다. alt-f 는 터미널의 forward-word(Meta-f)로 넘긴다 —
-    # AeroSpace 가 먼저 먹으면 셸·nvim 어디서도 단어 앞으로 이동이 안 된다.
+    # AeroSpace 가 먼저 먹으면 셸 어디서도 단어 앞으로 이동이 안 된다.
     alt-g = 'workspace 13'
     alt-leftSquareBracket = 'workspace --wrap-around prev'
     alt-rightSquareBracket = 'workspace --wrap-around next'

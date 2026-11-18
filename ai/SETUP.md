@@ -28,7 +28,7 @@ ai/**/agents/<name>.md     →  ~/.claude/agents/<name>.md     개별
 ai/**/commands/<name>.md   →  ~/.claude/commands/<name>.md   개별
 
 ai/claude/telegram         →  ~/.claude/channels/telegram    (이름만 다른 유일한 예외)
-ai/claude/hooks/<file>     →  ~/.claude/hooks/<file>         개별. herdr-agent-state.sh 는 복사만
+ai/claude/hooks/<file>     →  ~/.claude/hooks/<file>         개별
 ai/claude/<그 외>           →  ~/.claude/<같은 이름>            통째로
 ai/grok/config.toml        →  ~/.grok/config.toml
 ```
@@ -55,31 +55,6 @@ ai/grok/config.toml        →  ~/.grok/config.toml
 `ai/setup.sh`가 `~/.claude/channels/telegram` 링크는 항상 걸어둔다(심링크일 뿐 아무것도 실행하지 않는다). 실제로 봇을 쓰려면 `settings.json`에서 telegram 플러그인을 켜고, 봇 토큰 등은 `~/.claude/channels/telegram/.env`에 둔다 — **`.env`는 이 repo에 커밋하지 않는다** (dotfiles는 public이다).
 
 훅 스크립트(`scripts/*.sh`)의 실체는 여기다. 예전엔 `personal-harness` repo가 원본이고 이쪽이 낡은 사본이었는데, 봇 머신의 `~/.claude/channels/telegram/scripts/`가 이 repo를 가리키도록 통합했다.
-
-## 선택 2 — herdr
-
-[herdr](https://herdr.dev)는 에이전트용 터미널 워크스페이스 매니저다. 키맵은 `herdr/config.toml`에 있고, `~/.config/herdr/config.toml`로 심링크한다(`ai/setup.sh`가 아니라 손으로 — 자세한 건 [README](../README.md#새-pc-세팅)).
-
-`ai/claude/hooks/herdr-agent-state.sh`는 **herdr가 설치·관리하는 파일**이다. Claude Code의 `SessionStart` 훅으로 돌면서, 그 페인의 Claude가 어떤 대화 세션인지(`session_id`, `transcript_path`)를 herdr 소켓에 보고한다 — herdr 서버가 재시작돼도 각 페인의 대화가 되살아나는 게 이것 덕분이다. `settings.json`의 `SessionStart` 항목이 짝이다.
-
-`~/.claude/hooks`는 디렉토리 통째 심링크가 아니다. `notify.sh`만 repo 링크이고, `herdr-agent-state.sh`는 없을 때 repo에서 **복사**한다. 그래서 `herdr integration install claude`가 버전을 올려도 git이 더러워지지 않는다.
-
-**직접 편집하지 않는다.** 새 PC나 herdr 업데이트 후에는 다시 깔면 된다:
-
-```bash
-herdr integration install claude   # 현재 v8
-herdr integration status           # 버전 확인
-```
-
-에이전트가 herdr CLI를 쓰려면 공식 스킬을 전역 설치한다 (`ai/setup.sh`는 링크만 한다):
-
-```bash
-npx skills add herdrdev/herdr --skill herdr -g
-```
-
-Grok herdr 훅(`~/.grok/hooks/herdr-agent-state.sh`)은 머신 로컬이다. repo에 넣지 않는다.
-
-herdr를 안 쓰는 머신에서는 이 훅이 조용히 빠진다(`$HERDR_ENV`가 없으면 즉시 종료). **없어도 나머지는 전부 정상 동작한다.**
 
 ## 확인
 

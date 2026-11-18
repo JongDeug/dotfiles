@@ -10,7 +10,6 @@ typeset -U path PATH fpath
 path=("$HOME/.local/bin" $path)
 path=("$HOME/.grok/bin" $path)
 fpath=("$HOME/.grok/completions/zsh" $fpath)
-fpath=("$HOME/.zsh/completions" $fpath)   # herdr completion zsh
 
 # --- oh-my-zsh ----------------------------------------------
 # custom/*.zsh 는 아래 source 시점에 자동 로드
@@ -108,10 +107,8 @@ bindkey -e
 # 기본값 "Normal" 이면 Option+f 가 ƒ, Option+b 가 ∫ 로 입력되고 이 줄들은 영영
 # 안 먹는다. Claude Code 같은 TUI 도 같은 이유로 단어 이동이 안 된다.
 #
-# Option+←/→ 는 herdr 이 탭 이동(alt+left/right)으로 먼저 먹는다. 터미널까지
-# 내려오는 건 Option+b/f 쪽이다. Option+f 를 살리려고 AeroSpace 의
-# workspace 13 을 alt-f → alt-g 로 옮겼다 (aerospace.toml).
-bindkey '^[[1;3C' forward-word    # Option+→ (herdr 밖에서만)
+# Option+f 를 살리려고 AeroSpace 의 workspace 13 을 alt-f → alt-g 로 옮겼다 (aerospace.toml).
+bindkey '^[[1;3C' forward-word    # Option+→
 bindkey '^[[1;3D' backward-word   # Option+←
 bindkey '^[b' backward-word       # Option+b
 bindkey '^[f' forward-word        # Option+f
@@ -165,16 +162,6 @@ if (( $+commands[zoxide] )); then
   # document type -- gitkraken://repo/<abs path> is how a running instance takes it.
   c() { local d; d=$(_pick_dir "$@") || return; zed "$d"; open "gitkraken://repo$d"; }
   j() { local d; d=$(_pick_dir "$@") && cd "$d"; }     # cd to the pick
-
-  # herdr prefix+shift+J calls this from a popup. A custom command runs in its own
-  # process and cannot cd the live pane, so it splits a new one instead.
-  # Popups get no HERDR_PANE_ID -- HERDR_ACTIVE_PANE_ID is the tiled pane.
-  # --direction is required; without it split exits with a usage error.
-  _pane_at() {
-    local d
-    d=$(_pick_dir "$@") &&
-      herdr pane split --pane "$HERDR_ACTIVE_PANE_ID" --direction right --cwd "$d"
-  }
 fi
 
 # Syntax highlighting MUST be sourced last
@@ -192,21 +179,17 @@ fi
 # 로그인 토큰만 config dir 별로 갈린다.
 # cc-p 는 CLAUDE_CONFIG_DIR 를 "빼는" 쪽 — 이 변수를 ~/.claude 로 잡으면
 # 설정을 ~/.claude/.claude.json 에서 찾아 로그인이 날아간다(기본은 ~/.claude.json).
-# herdr 은 둘 다 같은 claude 바이너리라 프로필을 구분하지 못한다 — 띄우는 쪽이
-# display_agent 를 덮어야 사이드바·페인 보더에 claude-work/claude-personal 로 뜬다.
-_claude_herdr_label() {
-  [[ ${HERDR_ENV:-} == 1 ]] || return 0
-  herdr pane report-metadata "$HERDR_PANE_ID" --source claude-profile "$@" >/dev/null 2>&1
-}
-# herdr 안에서는 Claude Code 가 그림(kitty 그래픽)을 못 쓴다고 판단한다 — 터미널 이름이 kitty·ghostty
-# 일 때만 허용하는데 herdr 는 libghostty 라고 답한다. herdr 는 실제로 그리니 그 확인만 건너뛴다.
-# mermaid·web mod 의 그림이 이걸로 나온다. (iTerm2 로 herdr 를 보면 그림 자리가 깨진다.)
-# 데스크톱 앱 터미널(herdr-core)엔 HERDR_ENV 가 없고 HC_TERMINAL_ID 가 있다 — 앱도 kitty 그래픽을 그린다.
-[[ ${HERDR_ENV:-} == 1 || -n ${HC_TERMINAL_ID:-} ]] && export CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1
+# herdr 데스크톱 앱 터미널(HC_TERMINAL_ID)은 kitty 그래픽을 그리는데 Claude Code 는 못 쓴다고
+# 판단한다. 그 확인만 건너뛴다. mermaid·web mod 의 그림이 이걸로 나온다.
+[[ -n ${HC_TERMINAL_ID:-} ]] && export CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1
 
-cc-p() { _claude_herdr_label --display-agent claude-personal; (unset CLAUDE_CONFIG_DIR; command claude "$@"); _claude_herdr_label --clear-display-agent }
-cc-w() { _claude_herdr_label --display-agent claude-work; CLAUDE_CONFIG_DIR="$HOME/.claude-work" command claude "$@"; _claude_herdr_label --clear-display-agent }
+cc-p() { (unset CLAUDE_CONFIG_DIR; command claude "$@") }
+cc-w() { CLAUDE_CONFIG_DIR="$HOME/.claude-work" command claude "$@" }
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
 [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+
+
+# Added by Antigravity CLI installer
+export PATH="/Users/jongdeug/.local/bin:$PATH"
