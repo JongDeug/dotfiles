@@ -1,6 +1,5 @@
 // tmux-style prefix: ctrl-space opens this popup, the next key runs one command.
-// Keys follow the Zed keymap's screen keys (dotfiles zed/keymap.json, ctrl-space ...), run here as herdr
-// commands. Esc or an unknown key cancels.
+// Keys started from Zed's old ctrl-space keymap (git history of zed/keymap.json). Esc or an unknown key cancels.
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
@@ -73,16 +72,6 @@ function panel(id) {
   else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
 }
 
-// Zed's agent panel = this tab's Claude pane: go there, or back to the last pane when already there.
-function agent(f) {
-  const here = panes().filter((p) => p.tab === f?.tab);
-  const claude = here.find((p) => /claude/i.test(p.app ?? p.title ?? ""));
-  if (!claude) return run("tab.new", { argv: ["claude"], folder: f?.cwd ?? undefined });
-  if (claude.pane !== f?.pane) return run("pane.focus", { pane: claude.pane });
-  const last = shared("prefix.last");
-  if (last) run("pane.focus", { pane: last });
-}
-
 // Zed's terminal panel = a shell pane under the tab: go there, else back, else open one.
 function shell(f) {
   const t = terminals().find((x) => x.state === "live" && x.labels?.["zed.terminal"] && String(f?.tab ?? "").endsWith(x.labels["zed.terminal"]));
@@ -146,9 +135,7 @@ const GROUPS = [
     [";", "sidebar", () => run("layout.toggle", { id: "sidebar" })],
     ["shift-space", "close docks", () => { run("layout.hide", { id: "panel" }); run("layout.hide", { id: "sidebar" }); }],
   ]],
-  // Zed: agent panel, OpenRecent, LazyGit task
   ["Agent", [
-    ["v", "agent", agent],
     ["a", "new agent", (f) => run("tab.new", { argv: ["claude"], folder: f?.cwd ?? undefined })],
     ["q", "queue 1-3", null], // picks a slot: the popup stays for one more key
     ["w", "switcher", () => run("mod.open", { name: "picker" })],
