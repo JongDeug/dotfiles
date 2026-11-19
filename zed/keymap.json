@@ -1,111 +1,38 @@
-// ctrl-space prefix, mirroring ~/.config/herdr/config.toml.
+// Zed defaults with vim mode (settings.json "vim_mode": true), plus a ctrl-space prefix like herdr's.
+// which-key (settings.json) lists the prefix's keys after a pause.
 [
   {
-    // Free ctrl-space so the prefix sequences below are not swallowed.
+    // Free ctrl-space (completions in the editor) so the prefix isn't swallowed.
     "context": "Editor",
     "bindings": { "ctrl-space": null }
   },
   {
     "context": "Workspace",
     "bindings": {
-      // Panes (herdr: prefix+h/j/k/l, |, -, z, x)
       "ctrl-space h": "workspace::ActivatePaneLeft",
       "ctrl-space j": "workspace::ActivatePaneDown",
       "ctrl-space k": "workspace::ActivatePaneUp",
       "ctrl-space l": "workspace::ActivatePaneRight",
-      "ctrl-space |": "pane::SplitRight",
-      "ctrl-space -": "pane::SplitDown",
-      "ctrl-space z": "workspace::ToggleZoom",
-      "ctrl-space x": "pane::CloseActiveItem",
-      "ctrl-space t": "terminal_panel::Toggle",
+      // The threads list on the left (herdr's ; is its sidebar too).
       "ctrl-space ;": "multi_workspace::ToggleWorkspaceSidebar",
-
-      // Tabs (herdr: prefix+1..9, prefix+n/p)
-      "ctrl-space 1": ["pane::ActivateItem", 0],
-      "ctrl-space 2": ["pane::ActivateItem", 1],
-      "ctrl-space 3": ["pane::ActivateItem", 2],
-      "ctrl-space 4": ["pane::ActivateItem", 3],
-      "ctrl-space 5": ["pane::ActivateItem", 4],
-      "ctrl-space 6": ["pane::ActivateItem", 5],
-      "ctrl-space 7": ["pane::ActivateItem", 6],
-      "ctrl-space 8": ["pane::ActivateItem", 7],
-      "ctrl-space 9": ["pane::ActivateItem", 8],
-      "ctrl-space n": "pane::ActivateNextItem",
-      "ctrl-space p": "pane::ActivatePreviousItem",
-
-      // Same intent as herdr: f = open file, shift-c = pick repo, v = side panel
-      "ctrl-space f": "file_finder::Toggle",
-      "ctrl-space shift-c": "projects::OpenRecent",
-      "ctrl-space v": "agent::ToggleFocus",
-
-      // Zed-only
       "ctrl-space e": "project_panel::ToggleFocus",
-      "ctrl-space g": "git_panel::ToggleFocus",
-      "ctrl-space o": "outline_panel::ToggleFocus",
-      "ctrl-space d": "debug_panel::ToggleFocus",
-      "ctrl-space /": "pane::DeploySearch",
-      "ctrl-space shift-f": "pane::DeploySearch",
-      "ctrl-space a": "agent::NewThread",
-      "ctrl-space b": "git::Blame",
-      "ctrl-space space": "workspace::CloseAllDocks",
-      "ctrl-space w": "tab_switcher::Toggle",
-      "ctrl-space c": "workspace::ToggleCenteredLayout",
-      "ctrl-space :": "command_palette::Toggle",
-      "ctrl-space s": "outline::Toggle",
-      "ctrl-space shift-s": "project_symbols::Toggle",
-      "ctrl-space !": "diagnostics::Deploy",
-      "ctrl-space shift-u": "git::Diff",
-      "ctrl-space shift-g": "git_graph::Open",
-      "ctrl-space shift-l": ["task::Spawn", { "task_name": "LazyGit", "reveal_target": "center" }],
-      "ctrl-space r": "editor::FindAllReferences"
-    }
-  },
-  // Same key closes the panel when it has focus (no per-panel toggle action exists).
-  // Toggle*Dock, not CloseActiveDock: CloseActiveDock leaves focus in the hidden panel,
-  // so the next prefix+key still matches the panel context and never reopens it.
-  {
-    "context": "ProjectPanel",
-    "bindings": { "ctrl-space e": "workspace::ToggleRightDock" }
-  },
-  {
-    // neo-tree style file ops.
-    "context": "ProjectPanel && not_editing",
-    "bindings": {
-      "a": "project_panel::NewFile",
-      "shift-a": "project_panel::NewDirectory",
-      "r": "project_panel::Rename",
-      "d": ["project_panel::Trash", { "skip_prompt": false }],
-      "shift-d": ["project_panel::Trash", { "skip_prompt": false }], // default is permanent delete
-      "y": "project_panel::Copy",
-      "x": "project_panel::Cut",
-      "p": "project_panel::Paste",
-      "c": "project_panel::Duplicate",
-      "shift-y": "workspace::CopyRelativePath",
-      "shift-o": "project_panel::RevealInFileManager",
-      "s": "project_panel::OpenSplitVertical",
-      "shift-s": "project_panel::OpenSplitHorizontal",
-      "q": "workspace::ToggleRightDock"
+      "ctrl-space t": "terminal_panel::Toggle",
+      // a opens and closes the agent panel (cmd-b toggles the whole left dock, which the terminal shares).
+      "ctrl-space a": "agent::Toggle",
+      // A new Claude Code thread in it, kept in the threads list.
+      "ctrl-space shift-a": "agent::NewTerminalThread",
+      "ctrl-space g": "git_graph::Open",
+      // The right dock's git panel (settings.json docks it right).
+      "ctrl-space shift-g": "git_panel::ToggleFocus"
     }
   },
   {
-    // ctrl-space alone is StageAll here; free it for the prefix.
+    // ctrl-space alone is Stage All in the git panel; free it for the prefix.
     "context": "GitPanel",
-    "bindings": { "ctrl-space": null, "ctrl-space g": "workspace::ToggleRightDock" }
+    "bindings": { "ctrl-space": null }
   },
   {
-    "context": "AgentPanel",
-    "bindings": { "ctrl-space v": "workspace::ToggleLeftDock" }
-  },
-  {
-    "context": "OutlinePanel",
-    "bindings": { "ctrl-space o": "workspace::ToggleRightDock" }
-  },
-  {
-    "context": "DebugPanel",
-    "bindings": { "ctrl-space d": "workspace::ToggleBottomDock" }
-  },
-  {
-    // Claude Code newline, carried over from VS Code.
+    // Claude Code newline: it reads a backslash before Enter as one.
     "context": "Terminal",
     "bindings": { "shift-enter": ["terminal::SendText", "\\\r\n"] }
   }

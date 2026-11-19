@@ -54,7 +54,7 @@
   "theme": {
     "mode": "system",
     "light": "Catppuccin Macchiato",
-    "dark": "Fleet Dark Purple"
+    "dark": "Carbonfox - opaque"
   },
   // Popup of next keys after ctrl-space.
   "which_key": {
@@ -112,7 +112,7 @@
   "git_panel": { "dock": "right" },
   "outline_panel": { "dock": "right" },
   // No padding setting for the terminal; taller lines are the closest.
-  "terminal": { "line_height": "comfortable", "dock": "bottom" },
+  "terminal": { "line_height": "comfortable", "dock": "left", "font_size": 12 },
   "telemetry": {
     "diagnostics": false,
     "metrics": false
