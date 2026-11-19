@@ -105,20 +105,45 @@ if.app-id = 'net.kovidgoyal.kitty'
 run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
-if.app-id = 'com.microsoft.VSCode'
-run = 'move-node-to-workspace 2'
+if.app-id = 'dev.herdr.app'
+run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
-if.app-id = 'com.google.Chrome'
+if.app-id = 'com.citrolabs.ego.lite'
 run = 'move-node-to-workspace 6'
 
 [[on-window-detected]]
 if.app-id = 'md.obsidian'
-run = 'move-node-to-workspace 7'
+run = 'move-node-to-workspace 8'
 
 [[on-window-detected]]
 if.app-id = 'notion.id'
-run = 'move-node-to-workspace 8'
+run = 'move-node-to-workspace 7'
+
+[[on-window-detected]]
+if.app-id = 'dev.zed.Zed'
+run = 'move-node-to-workspace 2'
+
+[[on-window-detected]]
+if.app-id = 'com.nousresearch.hermes'
+run = 'move-node-to-workspace 5'
+
+[[on-window-detected]]
+if.app-id = 'sh.jongdeug.chaos'
+run = 'move-node-to-workspace 9'
+
+# 작은 창은 타일에서 뺀다 — 쪼개 넣으면 옆 큰 창까지 찌그러진다.
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.calculator'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.kakao.KakaoTalkMac'
+run = 'layout floating'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
