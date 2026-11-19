@@ -1,7 +1,7 @@
 // A pane's header, for layouts that frame their panes:
 //   { "tab": "active", "pane": { "header": { "content": { "mod": "pane-named" } } } }
 // Shows the program's icon (the app's program table), the agent's name or
-// the terminal's title, the folder, and the agent's status; buttons open this pane's repo in Zed,
+// the terminal's title, the folder, and the agent's status, and its number in the tab when there are several; buttons open this pane's repo in Zed,
 // split, zoom and close this pane. Props from the app: { pane, terminal }. Click: focus the pane.
 
 import { View, div, svg, image } from "gpui-kit";
@@ -67,6 +67,8 @@ export default class Pane extends View {
     const st = p.status;
     const pane = p.pane;
     const bottom = paneFrame(layout())?.header?.position === "bottom";
+    // prefix s then this number focuses the pane (the prefix mod counts the same list).
+    const here = panes().filter((x) => x.tab === p.tab), n = here.findIndex((x) => x.pane === pane) + 1;
     return h_flex()
       .id(`pane-head-${pane}`)
       .size_full()
@@ -80,6 +82,7 @@ export default class Pane extends View {
       .text_size(12)
       .on_hover((hovered, cx) => { this.hovered = hovered; cx.notify(); })
       .on_click(() => run("pane.focus", { pane }))
+      .when(here.length > 1, (el) => el.child(div().flex_none().font_semibold().text_color(p.focused ? t.accent : t.dim).child(String(n))))
       .when(Boolean(pic), (el) => el.child(pic))
       .child(div().flex_none().truncate().max_w(260).font_medium().text_color(t.foreground).child(name))
       .child(div().flex_1().truncate().text_color(t.dim).child(folder(p.cwd)))

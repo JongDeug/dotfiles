@@ -106,6 +106,11 @@ const GROUPS = [
     ["j", "↓", () => run("pane.go", { direction: "down" })],
     ["k", "↑", () => run("pane.go", { direction: "up" })],
     ["l", "→", () => run("pane.go", { direction: "right" })],
+    ["shift-h", "swap ←", () => run("pane.swap", { direction: "left" })],
+    ["shift-j", "swap ↓", () => run("pane.swap", { direction: "down" })],
+    ["shift-k", "swap ↑", () => run("pane.swap", { direction: "up" })],
+    ["shift-l", "swap →", () => run("pane.swap", { direction: "right" })],
+    ["s", "pane 1-9", null], // the number its header shows: the popup stays for one more key
     ["|", "split →", () => run("pane.split", { direction: "right" })],
     ["-", "split ↓", () => run("pane.split", { direction: "down" })],
     ["z", "zoom", () => run("pane.zoom")],
@@ -149,7 +154,7 @@ const GROUPS = [
     ["w", "switcher", () => run("mod.open", { name: "picker" })],
     [":", "commands", () => run("app.palette")],
     ["shift-c", "repo → pane", (_f, self) => popup('d=$(_pick_dir) && herdr-app do terminal.open --folder "$d" --place right >/dev/null', self), true],
-    ["shift-l", "lazygit", (f) => run("tab.new", { name: "LazyGit", argv: ["lazygit"], folder: f?.cwd ?? undefined })],
+    ["g", "lazygit", (f) => run("tab.new", { name: "LazyGit", argv: ["lazygit"], folder: f?.cwd ?? undefined })],
     ["?", "help", () => run("app.help")],
   ]],
 ];
@@ -159,20 +164,24 @@ for (let i = 1; i <= 9; i++) {
   group("Space").push([`shift-${i}`, `space ${i}`, () => selectSpace(i)]);
 }
 const BINDS = GROUPS.flatMap((g) => g[1]);
-// The help shows runs as one chip: hjkl, 1-9, ⇧1-9.
-const CHIP = { h: ["hjkl", "move"], 1: ["1-9", "tab N"], "shift-1": ["⇧1-9", "space N"] };
-const hidden = (k) => /^(?:[jkl]|(shift-)?[2-9])$/.test(k);
+// The help shows runs as one chip: hjkl, ⇧hjkl, 1-9, ⇧1-9.
+const CHIP = { h: ["hjkl", "move"], "shift-h": ["⇧hjkl", "swap"], 1: ["1-9", "tab N"], "shift-1": ["⇧1-9", "space N"] };
+const hidden = (k) => /^(shift-)?[jkl2-9]$/.test(k);
 const BY_KEY = new Map(BINDS.map((b) => [b[0], b]));
 
 function resolve(e) {
   for (const k of [e.keystroke, e.key_char, JAMO[e.key_char]]) {
     if (!k) continue;
     const n = ALIAS[k] ?? k;
+    // Shift first: the Korean IME sends ⇧ㅗ as ㅗ, which must be shift-h, not h.
+    if (e.modifiers?.shift && BY_KEY.has(`shift-${n}`)) return BY_KEY.get(`shift-${n}`);
     if (BY_KEY.has(n)) return BY_KEY.get(n);
-    if (e.modifiers?.shift && BY_KEY.has(`shift-${n}`)) return BY_KEY.get(`shift-${n}`); // Korean IME: ⇧ㅗ is still ㅗ
   }
   return null;
 }
+
+const paneName = (p) =>
+  String(terminals().find((x) => x.address === p.terminal)?.labels?.["pane.name"] || p.title || p.terminal || "pane").slice(0, 24);
 
 export default class Prefix extends View {
   init(_props, cx) {
@@ -202,14 +211,21 @@ export default class Prefix extends View {
         if (/^(shift|ctrl|alt|cmd)$/.test(e.key)) return; // a lone modifier: keep waiting
         const f = this.f;
         const id = props().overlay;
-        if (this.queue) {
+        if (this.mode === "q") {
           closeOverlay(id);
           const k = [e.keystroke, e.key_char, JAMO[e.key_char]].find((x) => /^[0-3qx]$/.test(x ?? ""));
           if (k) enqueue(f, k === "q" ? undefined : k === "x" ? 0 : Number(k));
           return;
         }
+        if (this.mode === "s") {
+          closeOverlay(id);
+          const p = panes().filter((x) => x.tab === f?.tab)[Number(e.keystroke) - 1];
+          if (p) run("pane.focus", { pane: p.pane });
+          return;
+        }
         const b = resolve(e);
-        if (b?.[0] === "q") { this.queue = true; cx.notify(); return; }
+        // q and s pick with one more key (their action is null).
+        if (b && !b[2]) { this.mode = b[0]; cx.notify(); return; }
         if (b?.[3]) {
           cx.spawn(async () => { try { await b[2](f, id); } finally { closeOverlay(id); } });
           return;
@@ -218,14 +234,21 @@ export default class Prefix extends View {
         if (b) b[2](f);
       })
       .size_full().p(10).gap(8).bg(t.popover).text_size(11);
-    if (this.queue) {
+    if (this.mode === "s") {
+      const here = panes().filter((p) => p.tab === this.f?.tab);
+      return base
+        .child(h_flex().justify_between()
+          .child(div().text_size(13).font_semibold().text_color(t.foreground).child("Pane"))
+          .child(div().text_color(t.dim).child("Esc")))
+        .child(h_flex().flex_wrap().gap(4).children(here.map((p, i) => chip([`${i + 1}`, p.pane === this.f?.pane ? "here" : paneName(p)]))));
+    }
+    if (this.mode === "q") {
       const slots = queueSlots();
       const who = (n) => {
         const a = slots.find(([, s]) => s === n)?.[0];
         if (!a) return "empty";
         if (a === this.f?.terminal) return "here";
-        const x = terminals().find((x) => x.address === a);
-        return String(x?.labels?.["pane.name"] || panes().find((p) => p.terminal === a)?.title || a).slice(0, 24);
+        return paneName(panes().find((p) => p.terminal === a) ?? { terminal: a });
       };
       return base
         .child(h_flex().justify_between()
