@@ -11,6 +11,9 @@ import { appHome, exec, readTextFile, watchFolder, theme, props, closeOverlay } 
 
 const DIR = () => `${appHome()}/pictures`;
 const ZOOM_MAX = 8;
+// deck draws at about 2× for sharpness (mermaid 40 px a row against the terminal's ~17, charts at zoom 2), and Read's
+// screenshots are Retina pixels: one PNG pixel per point showed them twice as big as the answer's text.
+const NATIVE = 0.5;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export default class Pictures extends View {
@@ -73,8 +76,8 @@ export default class Pictures extends View {
       .on_key_down((e, cx) => { if (this.key(e.keystroke, i)) { cx.stop_propagation(); cx.notify(); } });
     if (!it) return root.child(div().p(14).text_color(t.muted).child("아직 그림이 없다 — Claude 답에 그림이 나오면 여기 쌓인다. (Esc 닫기)"));
 
-    // Fit the view (never past the PNG's own pixels), times the zoom; the picture can't be dragged past its overhang.
-    const k = Math.min(1, this.room.width / it.width, this.room.height / it.height) * this.zoom;
+    // Fit the view (never past NATIVE, the PNG's own size), times the zoom; the picture can't be dragged past its overhang.
+    const k = Math.min(NATIVE, this.room.width / it.width, this.room.height / it.height) * this.zoom;
     const w = it.width * k, h = it.height * k;
     const mx = Math.max(0, (w - this.room.width) / 2), my = Math.max(0, (h - this.room.height) / 2);
     this.pan = { x: clamp(this.pan.x, -mx, mx), y: clamp(this.pan.y, -my, my) };
