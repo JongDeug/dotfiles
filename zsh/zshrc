@@ -173,8 +173,8 @@ fi
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # --- Claude Code 계정 전환 --------------------------------------
-# cc-p → 개인 (jongdeug2021@gmail.com, ~/.claude)
-# cc-w → 회사 (jonghwan.kim@themobilityone.com, ~/.claude-work)
+# cc-p → 개인 (~/.claude)
+# cc-w → 회사 (~/.claude-work)
 # 설정(settings/skills/plugins/agents/projects)은 심볼릭 링크로 공유,
 # 로그인 토큰만 config dir 별로 갈린다.
 # cc-p 는 CLAUDE_CONFIG_DIR 를 "빼는" 쪽 — 이 변수를 ~/.claude 로 잡으면
