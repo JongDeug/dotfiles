@@ -1,11 +1,11 @@
 # 전역 지시 (모든 프로젝트)
 
-## 보여 주는 페이지는 Chrome 에
+## 보여 주는 페이지는 ego 브라우저에
 
-설명·시각화·대시보드처럼 사용자가 **볼** HTML 페이지(아티팩트 성격)를 만들면, 로컬 파일로 쓰고 Chrome 에 띄운다.
+설명·시각화·대시보드처럼 사용자가 **볼** HTML 페이지(아티팩트 성격)를 만들면, 로컬 파일로 쓰고 ego 브라우저에 띄운다 (2026-10-26 부터, Chrome 아님).
 
 - 파일: 코드 저장소 밖, `~/.cache/explain/YYYY-MM-DD-<slug>.html` — 한 파일에 CSS·JS 다 넣는다.
-- 띄우기: `open -a "Google Chrome" <절대 경로>`.
+- 띄우기: ego-browser 스킬대로 `ego-browser nodejs` 로 taskSpace 를 열어 `page.goto("file://<절대 경로>")` 후 `task.finish({ keep: ["p1"] })` 로 페이지를 남긴다.
 - terminal-browser(대화 옆 pane)는 지금 쓰지 않는다 — herdr 안에서 렌더링이 너무 느리다(2026-10-08). herdr 업데이트로 고쳐지면 사용자가 다시 쓰자고 말한다. 그 전엔 부르지 않는다.
 - claude.ai 아티팩트로 올리는 건 **공유하려 할 때만**(남에게 줄 링크, 폰에서 보기). 사용자가 말하지 않으면 올리지 않는다.
 

@@ -1,6 +1,6 @@
 ---
 name: explain
-description: Use when the user wants a rich, visual explanation of anything — a conversation we just had, a concept, a system, an architecture, a decision, a codebase, or a code change/diff/PR. Builds an interactive page (Background / Intuition / Detail / Quiz) with a required flow diagram and opens it in Chrome as a local file; publishes a Claude Artifact only when the user wants to share it. 트리거는 `/explain`, "이거 시각화해줘", "지금까지 얘기한 거 정리해줘", "이 변경/PR 설명해줘", "그림으로 설명해줘".
+description: Use when the user wants a rich, visual explanation of anything — a conversation we just had, a concept, a system, an architecture, a decision, a codebase, or a code change/diff/PR. Builds an interactive page (Background / Intuition / Detail / Quiz) with a required flow diagram and opens it in the ego browser as a local file; publishes a Claude Artifact only when the user wants to share it. 트리거는 `/explain`, "이거 시각화해줘", "지금까지 얘기한 거 정리해줘", "이 변경/PR 설명해줘", "그림으로 설명해줘".
 ---
 
 # Explain
@@ -44,15 +44,15 @@ Content rules that stay here because they are about explaining, not design:
 - Callouts for key concepts, definitions, and important edge cases.
 - One long scrolling page with section headers and a table of contents; no tabs for the top-level structure.
 
-## 4. Output — a local file in Chrome
+## 4. Output — a local file in the ego browser
 
 The artifact skills assume a publish; by default this page is a local file instead, which changes a few things:
 
 - **Path**: outside the code repo, today's date first so files stay time-sorted: `~/.cache/explain/YYYY-MM-DD-<slug>.html`.
 - **Skeleton**: no publish wrapper adds one, so start the file with `<!doctype html>`, `<html lang="ko">`, `<meta charset="utf-8">` and the viewport meta (`viewport-fit=cover`). Without the charset, Korean text can render garbled.
 - **Libraries**: the artifact CDN allowlist still applies (cdnjs pinned UMD builds), so the same file can be published later unchanged. Mermaid is not rendered natively in a local file — draw diagrams as inline SVG.
-- **Open**: `open -a "Google Chrome" <absolute path>`. Don't use the terminal-browser pane.
-- **Check once**: take one Chrome screenshot (claude-in-chrome) of the page, make one pass of fixes for what it shows, and stop. No second look.
+- **Open**: follow the `ego-browser` skill — `ego-browser nodejs`, open a taskSpace, `page.goto("file://<absolute path>")`, then `task.finish({ keep: ["p1"] })` so the page stays up. Not Chrome, not the terminal-browser pane.
+- **Check once**: take one screenshot of the page (ego `page.screenshot()` before `finish`, or headless Chrome), make one pass of fixes for what it shows, and stop. No second look.
 - **Publish only when the user wants to share it** (a link for someone else, a teammate, phone). Then strip the doctype/html/meta lines the publish wrapper supplies and call `Artifact` with the file, an `icon`, and a one-sentence `description`.
 
 ---
