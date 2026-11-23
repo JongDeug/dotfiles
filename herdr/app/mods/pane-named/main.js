@@ -6,7 +6,7 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, props, run, theme, home, layout, terminals } from "herdr";
+import { panes, props, run, theme, home, layout } from "herdr";
 
 // Match the first visible tab frame, including the active child of a stack.
 function paneFrame(node) {
@@ -60,9 +60,8 @@ export default class Pane extends View {
     const t = theme();
     const p = this.me();
     if (!p) return div();
-    // A name set with prefix "/" (terminal label pane.name) comes first.
-    const named = p.terminal && terminals().find((x) => x.address === p.terminal)?.labels?.["pane.name"];
-    const name = named || ((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name || "shell";
+    // A name given with prefix "/" or the pane menu's Rename (pane.rename) comes first.
+    const name = p.name || ((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name || "shell";
     const pic = icon(p.program, 14, t.dim);
     const st = p.status;
     const pane = p.pane;

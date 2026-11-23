@@ -108,8 +108,7 @@ const GROUPS = [
     ["tab", "next pane", (f) => cycle(f, 1)],
     ["shift-tab", "prev pane", (f) => cycle(f, -1)],
     ["'", "last pane", () => { const p = shared("prefix.last"); if (p) run("pane.focus", { pane: p }); }],
-    ["/", "rename pane", (f) => f?.terminal && openOverlay({ mod: "pane-name", kind: "dialog", width: 420, height: 220,
-      props: { terminal: f.terminal, value: terminals().find((x) => x.address === f.terminal)?.labels?.["pane.name"] ?? "" } })],
+    ["/", "rename pane", () => run("pane.rename")],
     ["t", "terminal", shell],
   ]],
   // Zed: ActivateItem N, Next/PreviousItem; c is tmux's new window, Zed's c has no herdr meaning
@@ -168,7 +167,7 @@ function resolve(e) {
 }
 
 const paneName = (p) =>
-  String(terminals().find((x) => x.address === p.terminal)?.labels?.["pane.name"] || p.title || p.terminal || "pane").slice(0, 24);
+  String(p.name || p.title || p.terminal || "pane").slice(0, 24);
 
 export default class Prefix extends View {
   init(_props, cx) {
